@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: goalsniper-daily-api
+    name: goalify-ai-api
     env: node
     plan: free
     buildCommand: npm install
