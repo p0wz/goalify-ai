@@ -37,6 +37,19 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+// Safe JSON parser - handles Render sleep mode HTML responses
+const safeJson = async (res: Response) => {
+    const text = await res.text();
+    if (!text || text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        throw new Error('Sunucu uyanıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
+    }
+    try {
+        return JSON.parse(text);
+    } catch {
+        throw new Error('Geçersiz sunucu yanıtı');
+    }
+};
+
 interface AnalysisResult {
     id: string;
     matchId: string;
@@ -107,12 +120,12 @@ const AdminPanel = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ limit: 50, leagueFilter: true })
             });
-            const data = await res.json();
+            const data = await safeJson(res);
             if (data.success) {
                 setResults(data.results);
                 toast.success(`${data.count} aday bulundu!`);
             } else {
-                toast.error(data.error);
+                toast.error(data.error || 'Analiz hatası');
             }
         } catch (err: any) {
             toast.error(err.message);
@@ -136,11 +149,13 @@ const AdminPanel = () => {
                     matchTime: item.timestamp
                 })
             });
-            const data = await res.json();
+            const data = await safeJson(res);
             if (data.success) {
                 toast.success('Bahis onaylandı!');
                 setResults(results.filter(r => r.id !== item.id));
                 loadBets();
+            } else {
+                toast.error(data.error || 'Onay hatası');
             }
         } catch (err: any) {
             toast.error(err.message);
@@ -184,10 +199,11 @@ const AdminPanel = () => {
         setBetsLoading(true);
         try {
             const res = await fetch(`${API_BASE}/bets/approved`);
-            const data = await res.json();
-            if (data.success) setBets(data.bets);
-        } catch (err) {
+            const data = await safeJson(res);
+            if (data.success) setBets(data.bets || []);
+        } catch (err: any) {
             console.error(err);
+            // Silent fail on initial load
         }
         setBetsLoading(false);
     };
@@ -196,11 +212,13 @@ const AdminPanel = () => {
         setSettling(true);
         try {
             const res = await fetch(`${API_BASE}/settlement/run`, { method: 'POST' });
-            const data = await res.json();
+            const data = await safeJson(res);
             if (data.success) {
                 toast.success(`${data.settled} bahis settle edildi!`);
                 loadBets();
                 loadTraining();
+            } else {
+                toast.error(data.error || 'Settlement hatası');
             }
         } catch (err: any) {
             toast.error(err.message);
@@ -210,7 +228,8 @@ const AdminPanel = () => {
 
     const deleteBet = async (id: string) => {
         try {
-            await fetch(`${API_BASE}/bets/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE}/bets/${id}`, { method: 'DELETE' });
+            await safeJson(res);
             loadBets();
             toast.success('Bahis silindi');
         } catch (err: any) {
@@ -226,11 +245,15 @@ const AdminPanel = () => {
                 fetch(`${API_BASE}/training/all`),
                 fetch(`${API_BASE}/training/stats`)
             ]);
-            const [dataJson, statsJson] = await Promise.all([dataRes.json(), statsRes.json()]);
-            if (dataJson.success) setTraining(dataJson.data);
+            const [dataJson, statsJson] = await Promise.all([
+                safeJson(dataRes).catch(() => ({ success: false })),
+                safeJson(statsRes).catch(() => ({ success: false }))
+            ]);
+            if (dataJson.success) setTraining(dataJson.data || []);
             if (statsJson.success) setTrainingStats(statsJson.stats);
         } catch (err) {
             console.error(err);
+            // Silent fail on initial load
         }
     };
 
