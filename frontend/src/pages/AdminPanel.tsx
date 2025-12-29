@@ -115,7 +115,7 @@ const AdminPanel = () => {
     // ============ ANALYSIS FUNCTIONS ============
 
     const loadCachedAnalysis = async () => {
-        setAnalysisLoading(true);
+        // Silent load - do not set analysisLoading to avoid "Analysis Starting" UI confusion
         try {
             const res = await fetch(`${API_BASE}/analysis/results`);
             const data = await safeJson(res);
@@ -126,7 +126,6 @@ const AdminPanel = () => {
         } catch (err: any) {
             console.error('Cache load error:', err);
         }
-        setAnalysisLoading(false);
     };
 
     const runAnalysis = async () => {
