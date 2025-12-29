@@ -35,7 +35,7 @@ import {
     Zap
 } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 // Safe JSON parser - handles Render sleep mode HTML responses
 const safeJson = async (res: Response) => {
