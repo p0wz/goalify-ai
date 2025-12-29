@@ -18,16 +18,19 @@ async function authenticateToken(req, res, next) {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
+        // console.log('[Auth] Decoded token:', JSON.stringify(decoded));
 
         // Verify user exists in DB (optional security check)
         const user = await database.getUserById(decoded.id);
         if (!user) {
+            console.error(`[Auth] User not found for ID: ${decoded.id}`);
             return res.status(403).json({ success: false, error: 'User not found' });
         }
 
         req.user = user;
         next();
     } catch (err) {
+        console.error('[Auth] Token verification failed:', err.message);
         return res.status(403).json({ success: false, error: 'Access denied: Invalid token' });
     }
 }
