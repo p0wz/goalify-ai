@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "https://goalsniper-daily-api.onrender.com/api/$1"
+        }
+    ]
+}

@@ -1,0 +1,100 @@
+/**
+ * Allowed Leagues Configuration
+ */
+
+const ALLOWED_LEAGUES = [
+    // International
+    'WORLD: Friendly International',
+    'WORLD: Club Friendly',
+    'EUROPE: Champions League',
+    'EUROPE: Europa League',
+    'EUROPE: Conference League',
+    'EUROPE: Euro',
+    'EUROPE: UEFA Nations League',
+
+    // Tier 1
+    'ENGLAND: Premier League',
+    'ENGLAND: Championship',
+    'ENGLAND: League One',
+    'SPAIN: La Liga',
+    'SPAIN: LaLiga',
+    'SPAIN: LaLiga2',
+    'GERMANY: Bundesliga',
+    'GERMANY: 2. Bundesliga',
+    'ITALY: Serie A',
+    'ITALY: Serie B',
+    'FRANCE: Ligue 1',
+    'FRANCE: Ligue 2',
+    'NETHERLANDS: Eredivisie',
+    'PORTUGAL: Liga Portugal',
+    'PORTUGAL: Primeira Liga',
+    'TURKEY: Super Lig',
+    'TURKIYE: Super Lig',
+    'TURKEY: 1. Lig',
+    'BELGIUM: Pro League',
+    'BELGIUM: Jupiler',
+
+    // South America
+    'BRAZIL: Serie A',
+    'BRAZIL: Serie B',
+    'ARGENTINA: Liga Profesional',
+    'ARGENTINA: Primera Division',
+    'COLOMBIA: Primera A',
+    'CHILE: Primera Division',
+    'URUGUAY: Primera Division',
+
+    // Scandinavia
+    'DENMARK: Superliga',
+    'SWEDEN: Allsvenskan',
+    'NORWAY: Eliteserien',
+    'FINLAND: Veikkausliiga',
+    'ICELAND: Besta deild karla',
+
+    // Rest of Europe
+    'AUSTRIA: Bundesliga',
+    'SWITZERLAND: Super League',
+    'SCOTLAND: Premiership',
+    'POLAND: Ekstraklasa',
+    'CZECH REPUBLIC: 1. Liga',
+    'CZECHIA: 1. Liga',
+    'GREECE: Super League',
+    'ROMANIA: Liga I',
+    'ROMANIA: Liga 1',
+    'CROATIA: HNL',
+    'SERBIA: Super Liga',
+    'HUNGARY: OTP Bank Liga',
+    'BULGARIA: Parva Liga',
+    'SLOVAKIA: Nike liga',
+    'SLOVENIA: Prva Liga',
+
+    // 2nd Tiers
+    'NETHERLANDS: Eerste Divisie',
+    'AUSTRIA: 2. Liga',
+    'SWITZERLAND: Challenge League',
+    'GERMANY: 3. Liga',
+    'FRANCE: National',
+    'SCOTLAND: Championship',
+
+    // Latin America
+    'MEXICO: Liga MX',
+    'PERU: Liga 1',
+    'ECUADOR: Liga Pro',
+    'BOLIVIA: Primera Division',
+    'PARAGUAY: Primera Division',
+
+    // Other
+    'IRELAND: Premier Division',
+    'WALES: Premier League',
+    'ISRAEL: Ligat ha\'Al',
+    'CYPRUS: First Division',
+    'USA: MLS',
+    'AUSTRALIA: A-League',
+    'JAPAN: J1 League',
+    'JAPAN: J2 League',
+    'SOUTH KOREA: K League 1',
+    'SAUDI ARABIA: Pro League',
+    'SAUDI ARABIA: Saudi Professional',
+    'CHINA: Super League'
+];
+
+module.exports = ALLOWED_LEAGUES;

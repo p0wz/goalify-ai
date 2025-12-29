@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: goalsniper-daily-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: RAPIDAPI_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
