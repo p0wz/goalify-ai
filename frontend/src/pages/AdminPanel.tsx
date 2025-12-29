@@ -529,34 +529,94 @@ const AdminPanel = () => {
 
                     {/* ============ TRAINING TAB ============ */}
                     <TabsContent value="training" className="space-y-4">
+                        <div className="flex justify-end">
+                            <Button variant="destructive" onClick={async () => {
+                                if (!confirm('Tüm eğitim verilerini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+                                try {
+                                    const res = await fetch(`${API_BASE}/training`, { method: 'DELETE' });
+                                    const data = await safeJson(res);
+                                    if (data.success) {
+                                        toast.success('Training pool temizlendi');
+                                        loadTraining();
+                                    } else {
+                                        toast.error(data.error || 'Hata oluştu');
+                                    }
+                                } catch (err: any) {
+                                    toast.error(err.message);
+                                }
+                            }}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                İstatistikleri Sıfırla
+                            </Button>
+                        </div>
+
                         {trainingStats && (
-                            <Card className="glass-card-premium">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <TrendingUp className="h-5 w-5 text-primary" />
-                                        Performans Özeti
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <div className="flex justify-between text-sm mb-1">
-                                                <span>Kazanma Oranı</span>
-                                                <span className="font-semibold text-win">{trainingStats.winRate}%</span>
+                            <>
+                                {/* Global Stats */}
+                                <Card className="glass-card-premium mb-6">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="flex items-center gap-2">
+                                            <TrendingUp className="h-5 w-5 text-primary" />
+                                            Genel Performans ({trainingStats.total} Bahis)
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <div className="flex justify-between text-sm mb-1">
+                                                    <span>Kazanma Oranı</span>
+                                                    <span className="font-semibold text-win">{trainingStats.winRate}%</span>
+                                                </div>
+                                                <div className="h-4 bg-secondary rounded-full overflow-hidden flex">
+                                                    <div className="h-full bg-win" style={{ width: `${(trainingStats.won / (trainingStats.total || 1)) * 100}%` }} />
+                                                    <div className="h-full bg-lose" style={{ width: `${(trainingStats.lost / (trainingStats.total || 1)) * 100}%` }} />
+                                                </div>
                                             </div>
-                                            <div className="h-4 bg-secondary rounded-full overflow-hidden flex">
-                                                <div className="h-full bg-win" style={{ width: `${(trainingStats.won / (trainingStats.total || 1)) * 100}%` }} />
-                                                <div className="h-full bg-lose" style={{ width: `${(trainingStats.lost / (trainingStats.total || 1)) * 100}%` }} />
+                                            <div className="flex justify-center gap-6 text-sm">
+                                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-win" /><span>Kazanan ({trainingStats.won})</span></div>
+                                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-lose" /><span>Kaybeden ({trainingStats.lost})</span></div>
+                                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-muted" /><span>İade ({trainingStats.refund})</span></div>
                                             </div>
                                         </div>
-                                        <div className="flex justify-center gap-6 text-sm">
-                                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-win" /><span>Kazanan ({trainingStats.won})</span></div>
-                                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-lose" /><span>Kaybeden ({trainingStats.lost})</span></div>
-                                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-muted" /><span>İade ({trainingStats.refund})</span></div>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Market Stats Grid */}
+                                <h3 className="text-xl font-semibold mb-4 px-1">Market Performansı</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                                    {trainingStats.byMarket?.map((m: any) => (
+                                        <Card key={m.market} className="glass-card border-l-4 border-l-primary/50">
+                                            <CardHeader className="pb-2 pt-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <CardTitle className="text-base font-bold">{m.market}</CardTitle>
+                                                        <CardDescription>{m.total} Bahis</CardDescription>
+                                                    </div>
+                                                    <Badge className={m.winRate >= 70 ? "bg-win text-white" : m.winRate >= 50 ? "bg-warning text-black" : "bg-lose text-white"}>
+                                                        %{m.winRate}
+                                                    </Badge>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="pb-4">
+                                                <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                                                    <div className="bg-win/10 p-2 rounded">
+                                                        <div className="font-bold text-win">{m.won}</div>
+                                                        <div className="text-xs opacity-70">W</div>
+                                                    </div>
+                                                    <div className="bg-lose/10 p-2 rounded">
+                                                        <div className="font-bold text-lose">{m.lost}</div>
+                                                        <div className="text-xs opacity-70">L</div>
+                                                    </div>
+                                                    <div className="bg-muted/10 p-2 rounded">
+                                                        <div className="font-bold text-muted-foreground">{m.refund}</div>
+                                                        <div className="text-xs opacity-70">R</div>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </>
                         )}
 
                         {training.length === 0 ? (
@@ -568,6 +628,9 @@ const AdminPanel = () => {
                             </Card>
                         ) : (
                             <Card className="glass-card overflow-hidden">
+                                <div className="p-4 border-b border-border">
+                                    <h3 className="font-semibold">Son İşlemler</h3>
+                                </div>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>

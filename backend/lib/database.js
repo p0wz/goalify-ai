@@ -167,9 +167,10 @@ async function getAllTrainingData() {
     }));
 }
 
-async function getTrainingStats() {
-    const client = getClient();
-    const result = await client.execute(`
+const client = getClient();
+
+// Global Stats
+const result = await client.execute(`
         SELECT 
             COUNT(*) as total,
             SUM(CASE WHEN result = 'WON' THEN 1 ELSE 0 END) as won,
@@ -178,14 +179,35 @@ async function getTrainingStats() {
         FROM training_pool
     `);
 
-    const row = result.rows[0];
-    const total = row.total || 0;
-    const won = row.won || 0;
-    const lost = row.lost || 0;
-    const refund = row.refund || 0;
-    const winRate = (won + lost) > 0 ? ((won / (won + lost)) * 100).toFixed(1) : 0;
+const row = result.rows[0];
+const stats = {
+    total: row.total || 0,
+    won: row.won || 0,
+    lost: row.lost || 0,
+    refund: row.refund || 0,
+    winRate: 0
+};
+stats.winRate = (stats.won + stats.lost) > 0 ? ((stats.won / (stats.won + stats.lost)) * 100).toFixed(1) : 0;
 
-    return { total, won, lost, refund, winRate: parseFloat(winRate) };
+// Market Stats
+const marketResult = await client.execute(`
+        SELECT 
+            market,
+            COUNT(*) as total,
+            SUM(CASE WHEN result = 'WON' THEN 1 ELSE 0 END) as won,
+            SUM(CASE WHEN result = 'LOST' THEN 1 ELSE 0 END) as lost,
+            SUM(CASE WHEN result = 'REFUND' THEN 1 ELSE 0 END) as refund
+        FROM training_pool
+        GROUP BY market
+        ORDER BY total DESC
+    `);
+
+const marketStats = marketResult.rows.map(m => {
+    const wr = (m.won + m.lost) > 0 ? ((m.won / (m.won + m.lost)) * 100).toFixed(1) : 0;
+    return { ...m, winRate: parseFloat(wr) };
+});
+
+return { ...stats, winRate: parseFloat(stats.winRate), byMarket: marketStats };
 }
 
 async function deleteTrainingEntry(id) {
