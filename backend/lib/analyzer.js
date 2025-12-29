@@ -223,13 +223,19 @@ async function analyzeMatch(match, h2hData) {
     const proxyLeagueAvg = (homeForm.avgTotalGoals + awayForm.avgTotalGoals) / 2;
     const passedMarkets = [];
 
+
     // === MARKET FILTERS ===
+    const logPrefix = `[Analyzer] ${match.homeTeam} vs ${match.awayTeam}`;
+    // console.log(`${logPrefix} Stats: LeagueAvg=${proxyLeagueAvg.toFixed(2)}, HomeScoring=${homeHomeStats.scoringRate}%, AwayConceding=${awayAwayStats.avgConceded}`);
 
     // 1. Over 2.5
     if (proxyLeagueAvg >= 3.0 &&
         homeForm.over25Rate >= 70 && awayForm.over25Rate >= 70 &&
         homeHomeStats.avgScored >= 1.5) {
+        // console.log(`${logPrefix} PASSED: Over 2.5`);
         passedMarkets.push({ market: 'Over 2.5 Goals', key: 'over25' });
+    } else {
+        // console.log(`${logPrefix} FAILED: Over 2.5 (L_Avg=${proxyLeagueAvg.toFixed(2)}, H_O25=${homeForm.over25Rate}%, A_O25=${awayForm.over25Rate}%, H_Scored=${homeHomeStats.avgScored})`);
     }
 
     // 2. BTTS
@@ -272,7 +278,7 @@ async function analyzeMatch(match, h2hData) {
         passedMarkets.push({ market: 'Under 2.5 Goals', key: 'under25' });
     }
 
-    // 7. First Half Over 0.5 (basic heuristic)
+    // 7. First Half Over 0.5
     const fhAnalysis = analyzeFirstHalf(homeRawHistory, awayRawHistory, mutualH2H, match.homeTeam, match.awayTeam);
     if (fhAnalysis.signal) {
         passedMarkets.push({ market: 'First Half Over 0.5', key: 'firstHalfOver05', fhStats: fhAnalysis });
@@ -291,6 +297,7 @@ async function analyzeMatch(match, h2hData) {
     }
 
     // 10. Handicap MS1 (-1.5)
+    // Detailed logs only for complex markets
     const homeGoalDiff = homeHomeStats.avgScored - homeHomeStats.avgConceded;
     const awayGoalDiff = awayAwayStats.avgScored - awayAwayStats.avgConceded;
 
@@ -301,26 +308,49 @@ async function analyzeMatch(match, h2hData) {
     }
 
     // 11. 1X + 1.5 Üst
-    if (homeHomeStats.lossCount <= 1 && awayAwayStats.winRate < 35 &&
-        homeHomeStats.winRate >= 45 && homeHomeStats.scoringRate >= 80 &&
-        proxyLeagueAvg >= 2.3 && homeForm.over15Rate >= 70) {
+    const dc15_cond = {
+        loss: homeHomeStats.lossCount <= 1,
+        awayWin: awayAwayStats.winRate < 35,
+        homeWin: homeHomeStats.winRate >= 45,
+        scoring: homeHomeStats.scoringRate >= 80,
+        league: proxyLeagueAvg >= 2.3,
+        over15: homeForm.over15Rate >= 70
+    };
+    if (Object.values(dc15_cond).every(v => v)) {
         passedMarkets.push({ market: '1X + 1.5 Üst', key: 'dc15' });
+    } else {
+        // console.log(`${logPrefix} FAILED: 1X+1.5 (Loss=${dc15_cond.loss}, AWin=${dc15_cond.awayWin}, HWin=${dc15_cond.homeWin}, Score=${dc15_cond.scoring})`);
     }
 
     // 12. Ev Herhangi Yarı
-    if ((homeHomeStats.eitherHalfWinRate || 0) >= 70 &&
-        (homeHomeStats.firstHalfWinRate || 0) >= 45 &&
-        (homeHomeStats.secondHalfWinRate || 0) >= 45 &&
-        homeHomeStats.winRate >= 55 && homeHomeStats.scoringRate >= 85 &&
-        (awayAwayStats.eitherHalfWinRate || 0) < 45) {
+    const homeHalf_cond = {
+        either: (homeHomeStats.eitherHalfWinRate || 0) >= 70,
+        h1: (homeHomeStats.firstHalfWinRate || 0) >= 45,
+        h2: (homeHomeStats.secondHalfWinRate || 0) >= 45,
+        win: homeHomeStats.winRate >= 55,
+        score: homeHomeStats.scoringRate >= 85,
+        awayOpp: (awayAwayStats.eitherHalfWinRate || 0) < 45
+    };
+    if (Object.values(homeHalf_cond).every(v => v)) {
         passedMarkets.push({ market: 'Ev Herhangi Yarı', key: 'homeWinsHalf' });
+    } else if (homeHalf_cond.either) {
+        // Log near misses (>70% either half win)
+        console.log(`${logPrefix} NEAR MISS: Ev Herhangi Yarı (Either=${homeHomeStats.eitherHalfWinRate}%, H1=${homeHomeStats.firstHalfWinRate}%, H2=${homeHomeStats.secondHalfWinRate}%, Win=${homeHomeStats.winRate}%)`);
     }
 
     // 13. Dep DNB
-    if (awayAwayStats.winRate >= 45 && awayAwayStats.lossCount <= 1 &&
-        homeHomeStats.winRate < 45 && awayAwayStats.scoringRate >= 80 &&
-        awayForm.avgScored >= 1.5 && homeHomeStats.lossCount >= 2) {
+    const dnb_cond = {
+        awayWin: awayAwayStats.winRate >= 45,
+        awayLoss: awayAwayStats.lossCount <= 1,
+        homeWin: homeHomeStats.winRate < 45,
+        awayScore: awayAwayStats.scoringRate >= 80,
+        awayAvg: awayForm.avgScored >= 1.5,
+        homeLoss: homeHomeStats.lossCount >= 2
+    };
+    if (Object.values(dnb_cond).every(v => v)) {
         passedMarkets.push({ market: 'Dep DNB', key: 'awayDNB' });
+    } else if (dnb_cond.awayWin) {
+        console.log(`${logPrefix} CHECK: Dep DNB (A_Win=${awayAwayStats.winRate}%, A_Loss=${awayAwayStats.lossCount}, H_Win=${homeHomeStats.winRate}%, H_Loss=${homeHomeStats.lossCount})`);
     }
 
     return {
