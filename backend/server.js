@@ -1,5 +1,6 @@
 /**
  * GoalSniper Daily - Express Server
+ * With detailed logging for debugging
  */
 
 require('dotenv').config();
@@ -22,13 +23,36 @@ const PORT = process.env.PORT || 3001;
 // Store analysis results in memory (fallback if no Redis)
 let lastAnalysisResults = null;
 
+// ============ REQUEST LOGGING MIDDLEWARE ============
+
+app.use((req, res, next) => {
+    const start = Date.now();
+    console.log(`[REQUEST] ${req.method} ${req.url} - Started`);
+
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`[RESPONSE] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+    });
+
+    next();
+});
+
 // ============ ANALYSIS ROUTES ============
 
 app.post('/api/analysis/run', async (req, res) => {
+    console.log('[Analysis] === STARTING ANALYSIS ===');
+    console.log('[Analysis] Request body:', JSON.stringify(req.body));
+    console.log('[Analysis] RAPIDAPI_KEY exists:', !!process.env.RAPIDAPI_KEY);
+    console.log('[Analysis] RAPIDAPI_KEY length:', process.env.RAPIDAPI_KEY?.length || 0);
+
     try {
         // Rate limiting
+        console.log('[Analysis] Checking rate limit...');
         const rateCheck = await redis.checkRateLimit('analysis', 5, 60);
+        console.log('[Analysis] Rate limit result:', JSON.stringify(rateCheck));
+
         if (!rateCheck.allowed) {
+            console.log('[Analysis] Rate limited!');
             return res.status(429).json({
                 success: false,
                 error: 'Rate limit exceeded. Try again in a minute.',
@@ -38,13 +62,26 @@ app.post('/api/analysis/run', async (req, res) => {
 
         const { limit = 50, leagueFilter = true } = req.body;
 
-        console.log(`[Analysis] Starting with limit=${limit}, leagueFilter=${leagueFilter}`);
+        console.log(`[Analysis] Params: limit=${limit}, leagueFilter=${leagueFilter}`);
         await redis.incrementStat('analysisRuns');
 
         const leagues = leagueFilter ? ALLOWED_LEAGUES : [];
-        const matches = await flashscore.fetchDayMatches(1, leagues);
+        console.log(`[Analysis] Allowed leagues count: ${leagues.length}`);
 
-        console.log(`[Analysis] Found ${matches.length} matches`);
+        console.log('[Analysis] Fetching matches from Flashscore...');
+        const matches = await flashscore.fetchDayMatches(1, leagues);
+        console.log(`[Analysis] Fetched ${matches.length} matches`);
+
+        if (matches.length === 0) {
+            console.log('[Analysis] No matches found!');
+            return res.json({
+                success: true,
+                count: 0,
+                processed: 0,
+                results: [],
+                message: 'No matches found for today'
+            });
+        }
 
         const results = [];
         let processed = 0;
@@ -52,12 +89,23 @@ app.post('/api/analysis/run', async (req, res) => {
         for (const match of matches) {
             if (processed >= limit) break;
 
+            console.log(`[Analysis] Processing match: ${match.homeTeam} vs ${match.awayTeam}`);
+
             await redis.incrementStat('apiCalls');
             const h2hData = await flashscore.fetchH2H(match.matchId);
-            if (!h2hData) continue;
+
+            if (!h2hData) {
+                console.log(`[Analysis] No H2H data for ${match.matchId}`);
+                continue;
+            }
 
             const analysis = await analyzer.analyzeMatch(match, h2hData);
-            if (!analysis || analysis.passedMarkets.length === 0) continue;
+            if (!analysis || analysis.passedMarkets.length === 0) {
+                console.log(`[Analysis] No markets passed for ${match.matchId}`);
+                continue;
+            }
+
+            console.log(`[Analysis] ${analysis.passedMarkets.length} markets passed for ${match.matchId}`);
 
             // Fetch odds
             const odds = await flashscore.fetchMatchOdds(match.matchId);
@@ -86,12 +134,14 @@ app.post('/api/analysis/run', async (req, res) => {
             }
 
             processed++;
-            console.log(`[Analysis] ${processed}/${limit} - ${match.homeTeam} vs ${match.awayTeam}: ${analysis.passedMarkets.length} markets`);
+            console.log(`[Analysis] Progress: ${processed}/${limit}`);
         }
 
         // Cache results
         lastAnalysisResults = results;
         await redis.cacheAnalysisResults(results);
+
+        console.log(`[Analysis] === COMPLETED: ${results.length} results ===`);
 
         res.json({
             success: true,
@@ -101,30 +151,44 @@ app.post('/api/analysis/run', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('[Analysis] Error:', error);
+        console.error('[Analysis] === ERROR ===');
+        console.error('[Analysis] Error name:', error.name);
+        console.error('[Analysis] Error message:', error.message);
+        console.error('[Analysis] Error stack:', error.stack);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.get('/api/analysis/results', async (req, res) => {
-    // Try Redis cache first
-    const cached = await redis.getCachedAnalysisResults();
-    if (cached) {
-        return res.json({ success: true, results: cached, cached: true });
-    }
+    console.log('[Results] Fetching cached results...');
+    try {
+        // Try Redis cache first
+        const cached = await redis.getCachedAnalysisResults();
+        if (cached) {
+            console.log(`[Results] Found ${cached.length} cached results`);
+            return res.json({ success: true, results: cached, cached: true });
+        }
 
-    res.json({
-        success: true,
-        results: lastAnalysisResults || [],
-        cached: false
-    });
+        console.log(`[Results] Returning memory results: ${lastAnalysisResults?.length || 0}`);
+        res.json({
+            success: true,
+            results: lastAnalysisResults || [],
+            cached: false
+        });
+    } catch (error) {
+        console.error('[Results] Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // ============ APPROVAL ROUTES ============
 
 app.post('/api/bets/approve', async (req, res) => {
+    console.log('[Approve] === APPROVING BET ===');
+    console.log('[Approve] Body:', JSON.stringify(req.body));
+
     try {
-        const { matchId, homeTeam, awayTeam, league, market, odds, matchTime, stats } = req.body;
+        const { matchId, homeTeam, awayTeam, league, market, odds, matchTime } = req.body;
 
         const result = await database.approveBet({
             matchId,
@@ -139,36 +203,46 @@ app.post('/api/bets/approve', async (req, res) => {
         await redis.incrementStat('betsApproved');
         await redis.invalidateAnalysisCache();
 
+        console.log('[Approve] Success, id:', result.id);
         res.json({ success: true, id: result.id });
     } catch (error) {
-        console.error('[Approve] Error:', error);
+        console.error('[Approve] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.get('/api/bets/approved', async (req, res) => {
+    console.log('[Bets] Fetching approved bets...');
     try {
         const bets = await database.getAllApprovedBets();
+        console.log(`[Bets] Found ${bets.length} approved bets`);
         res.json({ success: true, bets });
     } catch (error) {
+        console.error('[Bets] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.get('/api/bets/pending', async (req, res) => {
+    console.log('[Bets] Fetching pending bets...');
     try {
         const bets = await database.getPendingBets();
+        console.log(`[Bets] Found ${bets.length} pending bets`);
         res.json({ success: true, bets });
     } catch (error) {
+        console.error('[Bets] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.delete('/api/bets/:id', async (req, res) => {
+    console.log('[Bets] Deleting bet:', req.params.id);
     try {
         await database.deleteBet(req.params.id);
+        console.log('[Bets] Deleted successfully');
         res.json({ success: true });
     } catch (error) {
+        console.error('[Bets] Delete error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -176,15 +250,21 @@ app.delete('/api/bets/:id', async (req, res) => {
 // ============ SETTLEMENT ROUTES ============
 
 app.post('/api/settlement/run', async (req, res) => {
+    console.log('[Settlement] === RUNNING SETTLEMENT ===');
     try {
         const pendingBets = await database.getPendingBets();
+        console.log(`[Settlement] Found ${pendingBets.length} pending bets`);
+
         let settled = 0;
         let skipped = 0;
         let errors = 0;
         const results = [];
 
         for (const bet of pendingBets) {
+            console.log(`[Settlement] Processing: ${bet.home_team} vs ${bet.away_team} (${bet.market})`);
+
             if (!settlement.isReadyForSettlement(bet)) {
+                console.log('[Settlement] Not ready, skipping');
                 skipped++;
                 continue;
             }
@@ -195,10 +275,13 @@ app.post('/api/settlement/run', async (req, res) => {
             });
 
             if (!result.success) {
+                console.log('[Settlement] Settlement failed:', result.error);
                 errors++;
                 results.push({ bet, error: result.error });
                 continue;
             }
+
+            console.log(`[Settlement] Result: ${result.status} (${result.finalScore})`);
 
             // Update bet status
             await database.settleBetInDB(bet.id, result.status, result.finalScore);
@@ -224,9 +307,10 @@ app.post('/api/settlement/run', async (req, res) => {
         // Update settlement status in Redis
         await redis.setSettlementStatus({ settled, skipped, errors, lastRun: new Date().toISOString() });
 
+        console.log(`[Settlement] === COMPLETED: settled=${settled}, skipped=${skipped}, errors=${errors} ===`);
         res.json({ success: true, settled, skipped, errors, results });
     } catch (error) {
-        console.error('[Settlement] Error:', error);
+        console.error('[Settlement] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -241,6 +325,7 @@ app.get('/api/settlement/status', async (req, res) => {
 });
 
 app.post('/api/settlement/manual/:id', async (req, res) => {
+    console.log('[Settlement] Manual settlement for:', req.params.id);
     try {
         const { status, finalScore } = req.body;
         const bet = (await database.getAllApprovedBets()).find(b => b.id === req.params.id);
@@ -275,19 +360,25 @@ app.post('/api/settlement/manual/:id', async (req, res) => {
 // ============ TRAINING POOL ROUTES ============
 
 app.get('/api/training/all', async (req, res) => {
+    console.log('[Training] Fetching all training data...');
     try {
         const data = await database.getAllTrainingData();
+        console.log(`[Training] Found ${data.length} entries`);
         res.json({ success: true, data });
     } catch (error) {
+        console.error('[Training] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.get('/api/training/stats', async (req, res) => {
+    console.log('[Training] Fetching stats...');
     try {
         const stats = await database.getTrainingStats();
+        console.log('[Training] Stats:', JSON.stringify(stats));
         res.json({ success: true, stats });
     } catch (error) {
+        console.error('[Training] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -313,37 +404,76 @@ app.delete('/api/training', async (req, res) => {
 // ============ HEALTH & STATS ROUTES ============
 
 app.get('/api/health', async (req, res) => {
+    console.log('[Health] === HEALTH CHECK ===');
+
     const redisStatus = await redis.ping();
     const stats = await redis.getStats();
 
-    res.json({
+    const health = {
         success: true,
         status: 'ok',
         timestamp: new Date().toISOString(),
+        environment: {
+            RAPIDAPI_KEY: process.env.RAPIDAPI_KEY ? `Set (${process.env.RAPIDAPI_KEY.length} chars)` : 'NOT SET',
+            TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? 'Set' : 'NOT SET',
+            TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? 'Set' : 'NOT SET',
+            UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'NOT SET',
+            UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN ? 'Set' : 'NOT SET'
+        },
         services: {
             database: 'ok',
             redis: redisStatus.connected ? 'ok' : 'not configured',
-            flashscore: process.env.RAPIDAPI_KEY ? 'configured' : 'not configured'
+            flashscore: process.env.RAPIDAPI_KEY ? 'configured' : 'NOT CONFIGURED'
         },
         stats
-    });
+    };
+
+    console.log('[Health] Result:', JSON.stringify(health, null, 2));
+    res.json(health);
+});
+
+// ============ ERROR HANDLER ============
+
+app.use((err, req, res, next) => {
+    console.error('[ERROR] Unhandled error:', err.message);
+    console.error('[ERROR] Stack:', err.stack);
+    res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
 // ============ STARTUP ============
 
 async function start() {
+    console.log('='.repeat(50));
+    console.log('[STARTUP] GoalSniper Daily Server');
+    console.log('='.repeat(50));
+
+    console.log('[STARTUP] Environment Variables:');
+    console.log(`  - PORT: ${PORT}`);
+    console.log(`  - RAPIDAPI_KEY: ${process.env.RAPIDAPI_KEY ? `Set (${process.env.RAPIDAPI_KEY.length} chars)` : 'NOT SET ❌'}`);
+    console.log(`  - TURSO_DATABASE_URL: ${process.env.TURSO_DATABASE_URL ? 'Set ✓' : 'NOT SET ❌'}`);
+    console.log(`  - TURSO_AUTH_TOKEN: ${process.env.TURSO_AUTH_TOKEN ? 'Set ✓' : 'NOT SET ❌'}`);
+    console.log(`  - UPSTASH_REDIS_REST_URL: ${process.env.UPSTASH_REDIS_REST_URL ? 'Set ✓' : 'NOT SET ❌'}`);
+    console.log(`  - UPSTASH_REDIS_REST_TOKEN: ${process.env.UPSTASH_REDIS_REST_TOKEN ? 'Set ✓' : 'NOT SET ❌'}`);
+
+    if (!process.env.RAPIDAPI_KEY) {
+        console.log('[STARTUP] ⚠️  WARNING: RAPIDAPI_KEY is not set! Analysis will fail.');
+    }
+
+    console.log('[STARTUP] Initializing database...');
     await database.initDatabase();
+    console.log('[STARTUP] Database initialized ✓');
 
     // Test Redis connection
+    console.log('[STARTUP] Testing Redis connection...');
     const redisStatus = await redis.ping();
-    console.log(`[Redis] Status: ${redisStatus.connected ? 'Connected' : redisStatus.reason}`);
+    console.log(`[STARTUP] Redis: ${redisStatus.connected ? 'Connected ✓' : 'Not configured - ' + redisStatus.reason}`);
 
     app.listen(PORT, () => {
-        console.log(`[Server] Running on port ${PORT}`);
-        console.log(`[Server] RAPIDAPI_KEY: ${process.env.RAPIDAPI_KEY ? 'Set' : 'NOT SET'}`);
-        console.log(`[Server] UPSTASH_REDIS: ${process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'NOT SET'}`);
+        console.log('='.repeat(50));
+        console.log(`[STARTUP] Server running on port ${PORT} ✓`);
+        console.log(`[STARTUP] Health check: http://localhost:${PORT}/api/health`);
+        console.log('='.repeat(50));
     });
 }
 
 start();
-
