@@ -278,10 +278,43 @@ async function analyzeMatch(match, h2hData) {
         passedMarkets.push({ market: 'Under 2.5 Goals', key: 'under25' });
     }
 
-    // 7. First Half Over 0.5
-    const fhAnalysis = analyzeFirstHalf(homeRawHistory, awayRawHistory, mutualH2H, match.homeTeam, match.awayTeam);
+    // 7. First Half Over 0.5 (Detailed Verification)
+    let fhAnalysis = analyzeFirstHalf(homeRawHistory, awayRawHistory, mutualH2H, match.homeTeam, match.awayTeam);
     if (fhAnalysis.signal) {
-        passedMarkets.push({ market: 'First Half Over 0.5', key: 'firstHalfOver05', fhStats: fhAnalysis });
+        // Fetch details for last 3 matches of each team to verify HT scores
+        console.log(`${logPrefix} Verifying FH Over 0.5 with detailed stats...`);
+        const homeLast3 = homeRawHistory.filter(x => x.home_team?.name === match.homeTeam || x.away_team?.name === match.homeTeam).slice(0, 3);
+        const awayLast3 = awayRawHistory.filter(x => x.home_team?.name === match.awayTeam || x.away_team?.name === match.awayTeam).slice(0, 3);
+
+        const fetchDetails = async (matches) => {
+            const details = [];
+            for (const m of matches) {
+                // Ensure we have a valid ID
+                const mid = m.match_id || m.id || m.eventId;
+                if (!mid) continue;
+                const d = await flashscore.fetchMatchDetails(mid);
+                if (d) details.push(d);
+            }
+            return details;
+        };
+
+        const [homeDetails, awayDetails] = await Promise.all([
+            fetchDetails(homeLast3),
+            fetchDetails(awayLast3)
+        ]);
+
+        const validation = validateHTScores(homeDetails, awayDetails, match.homeTeam, match.awayTeam);
+        if (validation.passed) {
+            console.log(`${logPrefix} PASSED: First Half Over 0.5 (Verified)`);
+            passedMarkets.push({
+                market: 'First Half Over 0.5',
+                key: 'firstHalfOver05',
+                fhStats: fhAnalysis,
+                validation
+            });
+        } else {
+            console.log(`${logPrefix} FAILED: First Half Over 0.5 (Validation Failed: CombinedRate=${validation.combinedRate}%)`);
+        }
     }
 
     // 8. MS1 & 1.5 Üst
@@ -322,7 +355,7 @@ async function analyzeMatch(match, h2hData) {
         // console.log(`${logPrefix} FAILED: 1X+1.5 (Loss=${dc15_cond.loss}, AWin=${dc15_cond.awayWin}, HWin=${dc15_cond.homeWin}, Score=${dc15_cond.scoring})`);
     }
 
-    // 12. Ev Herhangi Yarı
+    // 12. Ev Herhangi Yarı (Detailed Verification)
     const homeHalf_cond = {
         either: (homeHomeStats.eitherHalfWinRate || 0) >= 70,
         h1: (homeHomeStats.firstHalfWinRate || 0) >= 45,
@@ -331,8 +364,49 @@ async function analyzeMatch(match, h2hData) {
         score: homeHomeStats.scoringRate >= 85,
         awayOpp: (awayAwayStats.eitherHalfWinRate || 0) < 45
     };
+
     if (Object.values(homeHalf_cond).every(v => v)) {
-        passedMarkets.push({ market: 'Ev Herhangi Yarı', key: 'homeWinsHalf' });
+        // Verify with detailed stats if not already fetched
+        console.log(`${logPrefix} Verifying Home Wins Either Half with detailed stats...`);
+
+        // Helper to check if home team won either half in a detailed match
+        const checkEitherHalfWin = (d, isHomeTeam) => {
+            const result = flashscore.parseMatchResult(d);
+            if (!result || result.htHome === null) return false;
+
+            const htMy = isHomeTeam ? result.htHome : result.htAway;
+            const htOpp = isHomeTeam ? result.htAway : result.htHome;
+            const ftMy = isHomeTeam ? result.homeGoals : result.awayGoals;
+            const ftOpp = isHomeTeam ? result.awayGoals : result.homeGoals;
+
+            const h2My = ftMy - htMy;
+            const h2Opp = ftOpp - htOpp;
+
+            return (htMy > htOpp) || (h2My > h2Opp);
+        };
+
+        // Fetch if we haven't already for FH Over 0.5 (optimize later, for now just fetch again or reuse logic?)
+        // To be safe and simple, I'll fetch specifically for this market's logic validation
+        const homeLast3 = homeRawHistory.filter(x => x.home_team?.name === match.homeTeam).slice(0, 3);
+
+        const details = [];
+        for (const m of homeLast3) {
+            const mid = m.match_id || m.id || m.eventId;
+            if (mid) {
+                const d = await flashscore.fetchMatchDetails(mid);
+                if (d) details.push(d);
+            }
+        }
+
+        const validWins = details.filter(d => checkEitherHalfWin(d, true)).length;
+
+        if (validWins >= 2) { // At least 2 out of 3 recent home matches must have 'either half win'
+            passedMarkets.push({ market: 'Ev Herhangi Yarı', key: 'homeWinsHalf' });
+            console.log(`${logPrefix} PASSED: Ev Herhangi Yarı (Verified: ${validWins}/3)`);
+        } else {
+            console.log(`${logPrefix} FAILED: Ev Herhangi Yarı (Validation Failed: ${validWins}/3)`);
+        }
+
     } else if (homeHalf_cond.either) {
         // Log near misses (>70% either half win)
         console.log(`${logPrefix} NEAR MISS: Ev Herhangi Yarı (Either=${homeHomeStats.eitherHalfWinRate}%, H1=${homeHomeStats.firstHalfWinRate}%, H2=${homeHomeStats.secondHalfWinRate}%, Win=${homeHomeStats.winRate}%)`);
