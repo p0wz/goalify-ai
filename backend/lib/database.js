@@ -61,6 +61,8 @@ async function initDatabase() {
             stats TEXT,
             settled_at TEXT
         )
+    `);
+
     // Create users table
     await client.execute(`
         CREATE TABLE IF NOT EXISTS users(
@@ -150,7 +152,7 @@ async function addToTrainingPool(data) {
               VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
             id,
-            `${ data.homeTeam } vs ${ data.awayTeam }`,
+            `${data.homeTeam} vs ${data.awayTeam}`,
             data.homeTeam,
             data.awayTeam,
             data.league,
