@@ -4,17 +4,21 @@ import { Lock, Mail, ArrowRight, Zap, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 const Login = () => {
     const navigate = useNavigate();
+    const [isRegistering, setIsRegistering] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
 
@@ -26,7 +30,8 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const res = await fetch(`${API_BASE}/auth/login`, {
+            const endpoint = isRegistering ? `${API_BASE}/auth/register` : `${API_BASE}/auth/login`;
+            const res = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -36,11 +41,11 @@ const Login = () => {
 
             if (data.success && data.token) {
                 localStorage.setItem("token", data.token);
-                toast.success("Giriş başarılı!");
+                toast.success(isRegistering ? "Kayıt başarılı!" : "Giriş başarılı!");
                 navigate("/admin");
             } else {
-                setError(data.error || "Giriş başarısız");
-                toast.error(data.error || "Giriş başarısız");
+                setError(data.error || (isRegistering ? "Kayıt başarısız" : "Giriş başarısız"));
+                toast.error(data.error || (isRegistering ? "Kayıt başarısız" : "Giriş başarısız"));
             }
         } catch (err: any) {
             setError(err.message || "Bağlantı hatası");
@@ -67,56 +72,39 @@ const Login = () => {
                     <p className="text-muted-foreground mt-2">Goalify AI Yönetim Paneli</p>
                 </div>
 
-                <div className="glass-card rounded-3xl p-8 border border-white/10 shadow-2xl backdrop-blur-xl">
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        {error && (
-                            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4" />
-                                {error}
-                            </div>
-                        )}
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium ml-1">Email</label>
-                            <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Card className="glass-card rounded-3xl p-8 border border-white/10 shadow-2xl backdrop-blur-xl">
+                    <CardHeader>
+                        <CardTitle className="text-2xl text-center">GoalSniper Admin</CardTitle>
+                        <CardDescription className="text-center">
+                            {isRegistering ? "Yeni hesap oluşturun" : "Yönetici paneline giriş yapın"}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email</Label>
                                 <Input
+                                    id="email"
                                     type="email"
                                     placeholder="admin@goalifyai.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="pl-12 h-12 bg-secondary/50 border-input rounded-xl"
+                                    required
+                                    className="pl-4 h-12 bg-secondary/50 border-input rounded-xl"
                                 />
                             </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium ml-1">Şifre</label>
-                            <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Şifre</Label>
                                 <Input
+                                    id="password"
                                     type="password"
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="pl-12 h-12 bg-secondary/50 border-input rounded-xl"
-                                />
-                            </div>
-                        </div>
-
-                        <Button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full h-12 gradient-primary text-primary-foreground font-semibold rounded-xl text-lg glow-primary mt-4"
-                        >
-                            {loading ? "Giriş Yapılıyor..." : "Giriş Yap"}
-                            {!loading && <ArrowRight className="w-5 h-5 ml-2" />}
-                        </Button>
-                    </form>
                 </div>
-            </div>
-        </div>
-    );
+                        </div>
+                    </div>
+                    );
 };
 
-export default Login;
+                    export default Login;

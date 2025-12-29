@@ -61,7 +61,17 @@ async function initDatabase() {
             stats TEXT,
             settled_at TEXT
         )
-    `);
+    // Create users table
+    await client.execute(`
+        CREATE TABLE IF NOT EXISTS users(
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE,
+        password_hash TEXT,
+        role TEXT DEFAULT 'user',
+        plan TEXT DEFAULT 'free',
+        created_at TEXT
+    )
+        `);
 
     console.log('[Database] Initialized');
 }
@@ -74,8 +84,8 @@ async function approveBet(betData) {
     const now = new Date().toISOString();
 
     await client.execute({
-        sql: `INSERT INTO approved_bets (id, match_id, home_team, away_team, league, market, odds, status, approved_at, match_time)
-              VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?)`,
+        sql: `INSERT INTO approved_bets(id, match_id, home_team, away_team, league, market, odds, status, approved_at, match_time)
+              VALUES(?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?)`,
         args: [
             id,
             betData.matchId,
@@ -136,11 +146,11 @@ async function addToTrainingPool(data) {
     const now = new Date().toISOString();
 
     await client.execute({
-        sql: `INSERT INTO training_pool (id, match, home_team, away_team, league, market, odds, result, final_score, home_goals, away_goals, stats, settled_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO training_pool(id, match, home_team, away_team, league, market, odds, result, final_score, home_goals, away_goals, stats, settled_at)
+              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
             id,
-            `${data.homeTeam} vs ${data.awayTeam}`,
+            `${ data.homeTeam } vs ${ data.awayTeam }`,
             data.homeTeam,
             data.awayTeam,
             data.league,
@@ -174,11 +184,11 @@ async function getTrainingStats() {
     const result = await client.execute(`
         SELECT 
             COUNT(*) as total,
-            SUM(CASE WHEN result = 'WON' THEN 1 ELSE 0 END) as won,
-            SUM(CASE WHEN result = 'LOST' THEN 1 ELSE 0 END) as lost,
-            SUM(CASE WHEN result = 'REFUND' THEN 1 ELSE 0 END) as refund
+        SUM(CASE WHEN result = 'WON' THEN 1 ELSE 0 END) as won,
+        SUM(CASE WHEN result = 'LOST' THEN 1 ELSE 0 END) as lost,
+        SUM(CASE WHEN result = 'REFUND' THEN 1 ELSE 0 END) as refund
         FROM training_pool
-    `);
+        `);
 
     const row = result.rows[0];
     const stats = {
@@ -194,14 +204,14 @@ async function getTrainingStats() {
     const marketResult = await client.execute(`
         SELECT 
             market,
-            COUNT(*) as total,
-            SUM(CASE WHEN result = 'WON' THEN 1 ELSE 0 END) as won,
-            SUM(CASE WHEN result = 'LOST' THEN 1 ELSE 0 END) as lost,
-            SUM(CASE WHEN result = 'REFUND' THEN 1 ELSE 0 END) as refund
+        COUNT(*) as total,
+        SUM(CASE WHEN result = 'WON' THEN 1 ELSE 0 END) as won,
+        SUM(CASE WHEN result = 'LOST' THEN 1 ELSE 0 END) as lost,
+        SUM(CASE WHEN result = 'REFUND' THEN 1 ELSE 0 END) as refund
         FROM training_pool
         GROUP BY market
         ORDER BY total DESC
-    `);
+        `);
 
     const marketStats = marketResult.rows.map(m => {
         const wr = (m.won + m.lost) > 0 ? ((m.won / (m.won + m.lost)) * 100).toFixed(1) : 0;
@@ -226,6 +236,61 @@ async function clearTrainingPool() {
     return { success: true };
 }
 
+// ============ USER MANAGEMENT ============
+
+async function createUser({ email, passwordHash, role = 'user', plan = 'free' }) {
+    const client = getClient();
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    try {
+        await client.execute({
+            sql: `INSERT INTO users(id, email, password_hash, role, plan, created_at)
+                  VALUES(?, ?, ?, ?, ?, ?)`,
+            args: [id, email, passwordHash, role, plan, now]
+        });
+        return { success: true, id, email, role, plan };
+    } catch (error) {
+        if (error.message.includes('UNIQUE constraint failed')) {
+            throw new Error('Email already exists');
+        }
+        throw error;
+    }
+}
+
+async function getUserByEmail(email) {
+    const client = getClient();
+    const result = await client.execute({
+        sql: 'SELECT * FROM users WHERE email = ?',
+        args: [email]
+    });
+    return result.rows[0] || null;
+}
+
+async function getUserById(id) {
+    const client = getClient();
+    const result = await client.execute({
+        sql: 'SELECT id, email, role, plan, created_at FROM users WHERE id = ?',
+        args: [id]
+    });
+    return result.rows[0] || null;
+}
+
+async function getAllUsers() {
+    const client = getClient();
+    const result = await client.execute('SELECT id, email, role, plan, created_at FROM users ORDER BY created_at DESC');
+    return result.rows;
+}
+
+async function updateUserPlan(id, plan) {
+    const client = getClient();
+    await client.execute({
+        sql: 'UPDATE users SET plan = ? WHERE id = ?',
+        args: [plan, id]
+    });
+    return { success: true };
+}
+
 module.exports = {
     initDatabase,
     // Approved Bets
@@ -239,5 +304,11 @@ module.exports = {
     getAllTrainingData,
     getTrainingStats,
     deleteTrainingEntry,
-    clearTrainingPool
+    clearTrainingPool,
+    // Users
+    createUser,
+    getUserByEmail,
+    getUserById,
+    getAllUsers,
+    updateUserPlan
 };

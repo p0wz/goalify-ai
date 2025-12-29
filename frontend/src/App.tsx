@@ -54,9 +54,13 @@ const App = () => (
                     <Route path="/approved" element={<ApprovedBets />} />
                     <Route path="/training" element={<TrainingPool />} />
 
-                    {/* Protected Admin Routes */}
+                    {/* Protected Routes */}
                     <Route element={<RequireAuth />}>
                         <Route path="/admin" element={<AdminPanel />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/analysis" element={<Analysis />} />
+                        <Route path="/approved" element={<ApprovedBets />} />
+                        <Route path="/training" element={<TrainingPool />} />
                     </Route>
 
                     <Route path="*" element={<NotFound />} />

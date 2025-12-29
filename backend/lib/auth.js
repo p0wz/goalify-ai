@@ -1,11 +1,13 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const database = require('./database');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'goalify-default-secret-do-not-use-in-prod-without-env';
 
 /**
  * Middleware to verify JWT token
  */
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     // Bearer TOKEN
     const token = authHeader && authHeader.split(' ')[1];
@@ -14,23 +16,62 @@ function authenticateToken(req, res, next) {
         return res.status(401).json({ success: false, error: 'Access denied: No token provided' });
     }
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ success: false, error: 'Access denied: Invalid token' });
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        // Verify user exists in DB (optional security check)
+        const user = await database.getUserById(decoded.id);
+        if (!user) {
+            return res.status(403).json({ success: false, error: 'User not found' });
         }
+
         req.user = user;
         next();
-    });
+    } catch (err) {
+        return res.status(403).json({ success: false, error: 'Access denied: Invalid token' });
+    }
+}
+
+/**
+ * Require Admin Role Middleware
+ */
+function requireAdmin(req, res, next) {
+    if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'Access denied: Admin only' });
+    }
+    next();
 }
 
 /**
  * Generate JWT token
  */
-function generateToken(payload) {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+function generateToken(user) {
+    return jwt.sign({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        plan: user.plan
+    }, JWT_SECRET, { expiresIn: '24h' });
+}
+
+/**
+ * Hash password
+ */
+async function hashPassword(password) {
+    return await bcrypt.hash(password, 10);
+}
+
+/**
+ * Compare password
+ */
+async function comparePassword(plain, hashed) {
+    return await bcrypt.compare(plain, hashed);
 }
 
 module.exports = {
     authenticateToken,
-    generateToken
+    requireAdmin,
+    generateToken,
+    hashPassword,
+    comparePassword
 };

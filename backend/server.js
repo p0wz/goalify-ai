@@ -13,6 +13,7 @@ const settlement = require('./lib/settlement');
 const database = require('./lib/database');
 const redis = require('./lib/redis');
 const auth = require('./lib/auth');
+const cron = require('node-cron');
 const ALLOWED_LEAGUES = require('./data/leagues');
 
 const app = express();
@@ -40,24 +41,75 @@ app.use((req, res, next) => {
 
 // ============ AUTH ROUTES ============
 
-app.post('/api/auth/login', (req, res) => {
-    const { email, password } = req.body;
-    const ADMIN_EMAIL = 'admin@goalifyai.com';
-    const ADMIN_PASS = process.env.ADMIN_PASSWORD;
+// ============ AUTH ROUTES ============
 
-    if (!ADMIN_PASS) {
-        console.error('[Auth] ADMIN_PASSWORD not set in env!');
-        return res.status(500).json({ success: false, error: 'Server configuration error' });
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ success: false, error: 'Email and password required' });
+        }
+
+        const passwordHash = await auth.hashPassword(password);
+        const user = await database.createUser({ email, passwordHash });
+
+        const token = auth.generateToken(user);
+        res.json({ success: true, token, user: { id: user.id, email: user.email, role: user.role, plan: user.plan } });
+    } catch (error) {
+        res.status(400).json({ success: false, error: error.message });
     }
+});
 
-    if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
-        const token = auth.generateToken({ email, role: 'admin' });
-        console.log(`[Auth] Admin logged in: ${email}`);
-        return res.json({ success: true, token });
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await database.getUserByEmail(email);
+
+        if (!user || !(await auth.comparePassword(password, user.password_hash))) {
+            // BACKDOOR for existing Admin Env (Migration support)
+            const ADMIN_EMAIL = 'admin@goalifyai.com';
+            const ADMIN_PASS = process.env.ADMIN_PASSWORD;
+            if (email === ADMIN_EMAIL && password === ADMIN_PASS && process.env.ADMIN_PASSWORD) {
+                const token = auth.generateToken({ id: 'admin-legacy', email, role: 'admin', plan: 'pro' });
+                return res.json({ success: true, token, user: { email, role: 'admin', plan: 'pro' } });
+            }
+
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        }
+
+        const token = auth.generateToken(user);
+        res.json({ success: true, token, user: { id: user.id, email: user.email, role: user.role, plan: user.plan } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
+});
 
-    console.log(`[Auth] Failed login attempt for: ${email}`);
-    res.status(401).json({ success: false, error: 'Invalid credentials' });
+app.get('/api/auth/me', auth.authenticateToken, (req, res) => {
+    res.json({ success: true, user: { id: req.user.id, email: req.user.email, role: req.user.role, plan: req.user.plan } });
+});
+
+// ============ USER MANAGEMENT ROUTES (Admin Only) ============
+
+app.get('/api/users', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+    try {
+        const users = await database.getAllUsers();
+        res.json({ success: true, users });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.patch('/api/users/:id/plan', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+    try {
+        const { plan } = req.body;
+        if (!['free', 'pro'].includes(plan)) {
+            return res.status(400).json({ success: false, error: 'Invalid plan' });
+        }
+        await database.updateUserPlan(req.params.id, plan);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // ============ ANALYSIS ROUTES ============
@@ -490,6 +542,28 @@ async function start() {
     console.log('[STARTUP] Testing Redis connection...');
     const redisStatus = await redis.ping();
     console.log(`[STARTUP] Redis: ${redisStatus.connected ? 'Connected ✓' : 'Not configured - ' + redisStatus.reason}`);
+
+    // Start Auto-Settlement Cron (Every hour)
+    cron.schedule('0 * * * *', async () => {
+        console.log('[Cron] Running Auto-Settlement...');
+        try {
+            // Logic similar to settlement route but internal
+            const pendingBets = await database.getPendingBets();
+            for (const bet of pendingBets) {
+                if (!settlement.isReadyForSettlement(bet)) continue;
+
+                const result = await settlement.settleBet({ matchId: bet.match_id, market: bet.market });
+                if (result.success) {
+                    await database.settleBetInDB(bet.id, result.status, result.finalScore);
+                    // Add to training pool logic here if replicated... simpler to just hit the function manually or extract logic.
+                    // Ideally settlement.settleBet logic should handle DB updates too if we refactor, but for now we keep it simple.
+                    console.log(`[Cron] Settled ${bet.id}: ${result.status}`);
+                }
+            }
+        } catch (err) {
+            console.error('[Cron] Settlement Error:', err);
+        }
+    });
 
     app.listen(PORT, () => {
         console.log('='.repeat(50));

@@ -1,169 +1,110 @@
-import { useNavigate } from "react-router-dom";
-import { User, Settings, Trophy, TrendingUp, Crown, ChevronRight, Bell, Shield, LogOut, CreditCard, Star, Award, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { User, Shield, Calendar, CreditCard } from "lucide-react";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const user = {
-    name: "Ahmet Yılmaz",
-    email: "ahmet@email.com",
-    plan: "Pro",
-    joinDate: "Ocak 2024",
-    avatar: null,
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUser(data.user);
+      } else {
+        toast.error("Profil yüklenemedi");
+        if (res.status === 401) navigate('/login');
+      }
+    } catch (err) {
+      toast.error("Bağlantı hatası");
+    }
+    setLoading(false);
   };
 
-  const stats = [
-    { label: "Toplam Tahmin", value: "156", icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10" },
-    { label: "Başarı Oranı", value: "78%", icon: Trophy, color: "text-green-500", bgColor: "bg-green-500/10" },
-    { label: "Kazanç", value: "+₺4,520", icon: CreditCard, color: "text-accent", bgColor: "bg-accent/10" },
-  ];
-
-  const achievements = [
-    { icon: Star, label: "İlk Tahmin", completed: true },
-    { icon: Trophy, label: "5 Seri", completed: true },
-    { icon: Award, label: "50 Tahmin", completed: true },
-    { icon: Zap, label: "Pro Üye", completed: true },
-  ];
-
-  const menuItems = [
-    { icon: Crown, label: "Premium Üyelik", action: () => navigate("/premium"), badge: user.plan, badgeColor: "bg-primary/15 text-primary" },
-    { icon: Bell, label: "Bildirimler", action: () => navigate("/notifications"), badge: "3", badgeColor: "bg-accent/15 text-accent" },
-    { icon: Shield, label: "Gizlilik & Güvenlik", action: () => {} },
-    { icon: Settings, label: "Ayarlar", action: () => navigate("/settings") },
-  ];
-
-  const handleLogout = () => {
-    navigate("/auth");
-  };
+  if (loading) return null;
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">Profil</h1>
-          <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted">
-            <Settings className="w-5 h-5 text-muted-foreground" />
-          </Button>
-        </div>
-
-        {/* Profile Card */}
-        <div className="bg-card border border-border rounded-3xl p-6 relative overflow-hidden">
-          {/* Background Decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
-          
-          <div className="relative flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center">
-              <User className="w-10 h-10 text-primary-foreground" />
+      <div className="space-y-6 animate-slide-up max-w-2xl mx-auto">
+        <Card className="glass-card shadow-2xl border-white/10">
+          <CardHeader className="text-center pb-2">
+            <div className="w-20 h-20 rounded-full gradient-primary mx-auto flex items-center justify-center mb-4 shadow-glow-primary">
+              <User className="w-10 h-10 text-white" />
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-foreground">{user.name}</h2>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs px-3 py-1 rounded-full bg-accent text-accent-foreground font-bold">
-                  {user.plan}
-                </span>
-                <span className="text-xs text-muted-foreground">Üye: {user.joinDate}</span>
+            <CardTitle className="text-2xl">{user?.email}</CardTitle>
+            <CardDescription>
+              <Badge variant="outline" className={`mt-2 ${user?.role === 'admin' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-primary/10 text-primary border-primary/20'}`}>
+                {user?.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
+              </Badge>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-6">
+            <div className="grid gap-4">
+              <div className="bg-secondary/30 p-4 rounded-xl flex items-center justify-between border border-white/5">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-accent" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Üyelik Tipi</p>
+                    <p className="font-semibold">{user?.plan === 'pro' ? 'PRO Üyelik' : 'Ücretsiz Plan'}</p>
+                  </div>
+                </div>
+                {user?.plan === 'pro' && <Badge className="gradient-accent text-white">AKTİF</Badge>}
+              </div>
+
+              <div className="bg-secondary/30 p-4 rounded-xl flex items-center justify-between border border-white/5">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-win" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Durum</p>
+                    <p className="font-semibold">
+                      {user?.plan === 'pro' ? 'Sınırsız Erişim' : 'Kısıtlı Erişim'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-secondary/30 p-4 rounded-xl flex items-center justify-between border border-white/5">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Katılım Tarihi</p>
+                    <p className="font-semibold">2024</p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
-            {stats.map((stat, idx) => {
-              const Icon = stat.icon;
-              return (
-                <div key={idx} className="bg-muted/50 rounded-2xl p-4 text-center">
-                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${stat.bgColor} mb-2`}>
-                    <Icon className={`w-5 h-5 ${stat.color}`} />
-                  </div>
-                  <p className="text-lg font-bold text-foreground">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Achievements */}
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-1">BAŞARILAR</h3>
-          <div className="bg-card border border-border rounded-2xl p-4">
-            <div className="flex items-center justify-between">
-              {achievements.map((achievement, idx) => {
-                const Icon = achievement.icon;
-                return (
-                  <div key={idx} className="flex flex-col items-center gap-2">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                      achievement.completed ? 'bg-primary' : 'bg-muted'
-                    }`}>
-                      <Icon className={`w-6 h-6 ${achievement.completed ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
-                    </div>
-                    <span className="text-xs text-muted-foreground text-center">{achievement.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Premium Banner */}
-        <button
-          onClick={() => navigate("/premium")}
-          className="w-full rounded-2xl p-5 relative overflow-hidden bg-gradient-to-r from-primary via-primary/90 to-accent"
-        >
-          <div className="relative flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
-              <Crown className="w-7 h-7 text-white" />
-            </div>
-            <div className="text-left flex-1">
-              <p className="font-bold text-white text-lg">Elite'e Yükselt</p>
-              <p className="text-sm text-white/80">AI destekli analizler ve daha fazlası</p>
-            </div>
-            <ChevronRight className="w-6 h-6 text-white" />
-          </div>
-        </button>
-
-        {/* Menu */}
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {menuItems.map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={idx}
-                onClick={item.action}
-                className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors border-b border-border last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <span className="font-medium text-foreground">{item.label}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {item.badge && (
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${item.badgeColor || 'bg-muted text-muted-foreground'}`}>
-                      {item.badge}
-                    </span>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Logout */}
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-          className="w-full h-14 rounded-2xl border-2 border-destructive/30 text-destructive hover:bg-destructive/10 font-semibold"
-        >
-          <LogOut className="w-5 h-5 mr-2" />
-          Çıkış Yap
-        </Button>
+            {/* Upgrade CTA for Free users */}
+            {user?.plan !== 'pro' && (
+              <div className="bg-gradient-to-r from-accent/20 to-purple-500/20 p-6 rounded-2xl border border-accent/20 text-center space-y-3">
+                <h3 className="font-bold text-lg text-accent">PRO'ya Geçin</h3>
+                <p className="text-sm text-muted-foreground">
+                  Tüm analizlere sınırsız erişim ve özel AI promptları için Pro üyeliğe yükseltin.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );

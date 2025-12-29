@@ -99,14 +99,37 @@ const Analysis = () => {
 
     const copyAllMarketPrompts = () => {
         const filtered = marketFilter === 'all' ? results : results.filter(r => r.marketKey === marketFilter);
-        const text = filtered.map(r => {
-            const odds = oddsInputs[r.id];
-            let prompt = r.aiPrompt;
-            if (odds) {
-                prompt = prompt.replace(`Market: ${r.market}`, `Market: ${r.market}\nOdds: ${odds}`);
-            }
-            return prompt;
-        }).join('\n\n---\n\n');
+
+        let text = "";
+
+        if (marketFilter === 'all') {
+            // Group by market
+            const grouped: Record<string, string[]> = {};
+            filtered.forEach(r => {
+                if (!grouped[r.market]) grouped[r.market] = [];
+                let prompt = r.aiPrompt;
+                if (oddsInputs[r.id]) {
+                    prompt = prompt.replace(`Market: ${r.market}`, `Market: ${r.market}\nOdds: ${oddsInputs[r.id]}`);
+                }
+                grouped[r.market].push(prompt);
+            });
+
+            Object.entries(grouped).forEach(([market, prompts]) => {
+                text += `=== MARKET: ${market.toUpperCase()} ===\n\n`;
+                text += prompts.join('\n\n---\n\n');
+                text += '\n\n\n';
+            });
+        } else {
+            text = filtered.map(r => {
+                const odds = oddsInputs[r.id];
+                let prompt = r.aiPrompt;
+                if (odds) {
+                    prompt = prompt.replace(`Market: ${r.market}`, `Market: ${r.market}\nOdds: ${odds}`);
+                }
+                return prompt;
+            }).join('\n\n---\n\n');
+        }
+
         copyToClipboard(text);
     };
 
