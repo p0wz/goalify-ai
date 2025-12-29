@@ -114,10 +114,27 @@ const AdminPanel = () => {
 
     // ============ ANALYSIS FUNCTIONS ============
 
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    };
+
+    const handleAuthError = (res: Response) => {
+        if (res.status === 401) {
+            toast.error("Oturum süresi doldu, lütfen tekrar giriş yapın");
+            localStorage.removeItem('token');
+            // Allow time for toast
+            setTimeout(() => window.location.href = '/login', 1500);
+            throw new Error("Unauthorized");
+        }
+        return res;
+    };
+
     const loadCachedAnalysis = async () => {
         // Silent load - do not set analysisLoading to avoid "Analysis Starting" UI confusion
         try {
-            const res = await fetch(`${API_BASE}/analysis/results`);
+            const res = await fetch(`${API_BASE}/analysis/results`, { headers: getAuthHeaders() as any });
+            handleAuthError(res);
             const data = await safeJson(res);
             if (data.success && data.results && data.results.length > 0) {
                 setResults(data.results);
@@ -133,9 +150,10 @@ const AdminPanel = () => {
         try {
             const res = await fetch(`${API_BASE}/analysis/run`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({ limit: 50, leagueFilter: true })
             });
+            handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) {
                 setResults(data.results);
@@ -154,7 +172,7 @@ const AdminPanel = () => {
         try {
             const res = await fetch(`${API_BASE}/bets/approve`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({
                     matchId: item.matchId,
                     homeTeam: item.homeTeam,
@@ -165,6 +183,7 @@ const AdminPanel = () => {
                     matchTime: item.timestamp
                 })
             });
+            handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) {
                 toast.success('Bahis onaylandı!');
@@ -214,7 +233,8 @@ const AdminPanel = () => {
     const loadBets = async () => {
         setBetsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/bets/approved`);
+            const res = await fetch(`${API_BASE}/bets/approved`, { headers: getAuthHeaders() as any });
+            handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) setBets(data.bets || []);
         } catch (err: any) {
@@ -227,7 +247,11 @@ const AdminPanel = () => {
     const runSettlement = async () => {
         setSettling(true);
         try {
-            const res = await fetch(`${API_BASE}/settlement/run`, { method: 'POST' });
+            const res = await fetch(`${API_BASE}/settlement/run`, {
+                method: 'POST',
+                headers: getAuthHeaders() as any
+            });
+            handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) {
                 toast.success(`${data.settled} bahis settle edildi!`);
@@ -244,7 +268,11 @@ const AdminPanel = () => {
 
     const deleteBet = async (id: string) => {
         try {
-            const res = await fetch(`${API_BASE}/bets/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE}/bets/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders() as any
+            });
+            handleAuthError(res);
             await safeJson(res);
             loadBets();
             toast.success('Bahis silindi');
@@ -258,8 +286,8 @@ const AdminPanel = () => {
     const loadTraining = async () => {
         try {
             const [dataRes, statsRes] = await Promise.all([
-                fetch(`${API_BASE}/training/all`),
-                fetch(`${API_BASE}/training/stats`)
+                fetch(`${API_BASE}/training/all`, { headers: getAuthHeaders() as any }).then(handleAuthError),
+                fetch(`${API_BASE}/training/stats`, { headers: getAuthHeaders() as any }).then(handleAuthError)
             ]);
             const [dataJson, statsJson] = await Promise.all([
                 safeJson(dataRes).catch(() => ({ success: false })),
@@ -532,7 +560,11 @@ const AdminPanel = () => {
                             <Button variant="destructive" onClick={async () => {
                                 if (!confirm('Tüm eğitim verilerini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
                                 try {
-                                    const res = await fetch(`${API_BASE}/training`, { method: 'DELETE' });
+                                    const res = await fetch(`${API_BASE}/training`, {
+                                        method: 'DELETE',
+                                        headers: getAuthHeaders() as any
+                                    });
+                                    handleAuthError(res);
                                     const data = await safeJson(res);
                                     if (data.success) {
                                         toast.success('Training pool temizlendi');

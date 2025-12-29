@@ -12,6 +12,7 @@ const analyzer = require('./lib/analyzer');
 const settlement = require('./lib/settlement');
 const database = require('./lib/database');
 const redis = require('./lib/redis');
+const auth = require('./lib/auth');
 const ALLOWED_LEAGUES = require('./data/leagues');
 
 const app = express();
@@ -37,9 +38,31 @@ app.use((req, res, next) => {
     next();
 });
 
-// ============ ANALYSIS ROUTES ============
+// ============ AUTH ROUTES ============
 
-app.post('/api/analysis/run', async (req, res) => {
+app.post('/api/auth/login', (req, res) => {
+    const { email, password } = req.body;
+    const ADMIN_EMAIL = 'admin@goalifyai.com';
+    const ADMIN_PASS = process.env.ADMIN_PASSWORD;
+
+    if (!ADMIN_PASS) {
+        console.error('[Auth] ADMIN_PASSWORD not set in env!');
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
+    }
+
+    if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
+        const token = auth.generateToken({ email, role: 'admin' });
+        console.log(`[Auth] Admin logged in: ${email}`);
+        return res.json({ success: true, token });
+    }
+
+    console.log(`[Auth] Failed login attempt for: ${email}`);
+    res.status(401).json({ success: false, error: 'Invalid credentials' });
+});
+
+// ============ ANALYSIS ROUTES ============
+// Protect analysis routes
+app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
     console.log('[Analysis] === STARTING ANALYSIS ===');
     console.log('[Analysis] Request body:', JSON.stringify(req.body));
     console.log('[Analysis] RAPIDAPI_KEY exists:', !!process.env.RAPIDAPI_KEY);
@@ -159,7 +182,7 @@ app.post('/api/analysis/run', async (req, res) => {
     }
 });
 
-app.get('/api/analysis/results', async (req, res) => {
+app.get('/api/analysis/results', auth.authenticateToken, async (req, res) => {
     console.log('[Results] Fetching cached results...');
     try {
         // Try Redis cache first
@@ -183,7 +206,7 @@ app.get('/api/analysis/results', async (req, res) => {
 
 // ============ APPROVAL ROUTES ============
 
-app.post('/api/bets/approve', async (req, res) => {
+app.post('/api/bets/approve', auth.authenticateToken, async (req, res) => {
     console.log('[Approve] === APPROVING BET ===');
     console.log('[Approve] Body:', JSON.stringify(req.body));
 
@@ -211,7 +234,7 @@ app.post('/api/bets/approve', async (req, res) => {
     }
 });
 
-app.get('/api/bets/approved', async (req, res) => {
+app.get('/api/bets/approved', auth.authenticateToken, async (req, res) => {
     console.log('[Bets] Fetching approved bets...');
     try {
         const bets = await database.getAllApprovedBets();
@@ -223,7 +246,7 @@ app.get('/api/bets/approved', async (req, res) => {
     }
 });
 
-app.get('/api/bets/pending', async (req, res) => {
+app.get('/api/bets/pending', auth.authenticateToken, async (req, res) => {
     console.log('[Bets] Fetching pending bets...');
     try {
         const bets = await database.getPendingBets();
@@ -235,7 +258,7 @@ app.get('/api/bets/pending', async (req, res) => {
     }
 });
 
-app.delete('/api/bets/:id', async (req, res) => {
+app.delete('/api/bets/:id', auth.authenticateToken, async (req, res) => {
     console.log('[Bets] Deleting bet:', req.params.id);
     try {
         await database.deleteBet(req.params.id);
@@ -249,7 +272,7 @@ app.delete('/api/bets/:id', async (req, res) => {
 
 // ============ SETTLEMENT ROUTES ============
 
-app.post('/api/settlement/run', async (req, res) => {
+app.post('/api/settlement/run', auth.authenticateToken, async (req, res) => {
     console.log('[Settlement] === RUNNING SETTLEMENT ===');
     try {
         const pendingBets = await database.getPendingBets();
@@ -315,7 +338,7 @@ app.post('/api/settlement/run', async (req, res) => {
     }
 });
 
-app.get('/api/settlement/status', async (req, res) => {
+app.get('/api/settlement/status', auth.authenticateToken, async (req, res) => {
     try {
         const status = await redis.getSettlementStatus();
         res.json({ success: true, status });
@@ -324,7 +347,7 @@ app.get('/api/settlement/status', async (req, res) => {
     }
 });
 
-app.post('/api/settlement/manual/:id', async (req, res) => {
+app.post('/api/settlement/manual/:id', auth.authenticateToken, async (req, res) => {
     console.log('[Settlement] Manual settlement for:', req.params.id);
     try {
         const { status, finalScore } = req.body;
@@ -359,7 +382,7 @@ app.post('/api/settlement/manual/:id', async (req, res) => {
 
 // ============ TRAINING POOL ROUTES ============
 
-app.get('/api/training/all', async (req, res) => {
+app.get('/api/training/all', auth.authenticateToken, async (req, res) => {
     console.log('[Training] Fetching all training data...');
     try {
         const data = await database.getAllTrainingData();
@@ -371,7 +394,7 @@ app.get('/api/training/all', async (req, res) => {
     }
 });
 
-app.get('/api/training/stats', async (req, res) => {
+app.get('/api/training/stats', auth.authenticateToken, async (req, res) => {
     console.log('[Training] Fetching stats...');
     try {
         const stats = await database.getTrainingStats();
@@ -383,7 +406,7 @@ app.get('/api/training/stats', async (req, res) => {
     }
 });
 
-app.delete('/api/training/:id', async (req, res) => {
+app.delete('/api/training/:id', auth.authenticateToken, async (req, res) => {
     try {
         await database.deleteTrainingEntry(req.params.id);
         res.json({ success: true });
@@ -392,7 +415,7 @@ app.delete('/api/training/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/training', async (req, res) => {
+app.delete('/api/training', auth.authenticateToken, async (req, res) => {
     try {
         await database.clearTrainingPool();
         res.json({ success: true });

@@ -7,6 +7,7 @@ import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Live from "./pages/Live";
 import Predictions from "./pages/Predictions";
@@ -20,6 +21,7 @@ import Analysis from "./pages/Analysis";
 import ApprovedBets from "./pages/ApprovedBets";
 import TrainingPool from "./pages/TrainingPool";
 import AdminPanel from "./pages/AdminPanel";
+import RequireAuth from "@/components/auth/RequireAuth";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,7 @@ const App = () => (
                     <Route path="/about" element={<About />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/login" element={<Login />} />
 
                     {/* App Pages */}
                     <Route path="/dashboard" element={<Dashboard />} />
@@ -50,7 +53,11 @@ const App = () => (
                     <Route path="/analysis" element={<Analysis />} />
                     <Route path="/approved" element={<ApprovedBets />} />
                     <Route path="/training" element={<TrainingPool />} />
-                    <Route path="/admin" element={<AdminPanel />} />
+
+                    {/* Protected Admin Routes */}
+                    <Route element={<RequireAuth />}>
+                        <Route path="/admin" element={<AdminPanel />} />
+                    </Route>
 
                     <Route path="*" element={<NotFound />} />
                 </Routes>
