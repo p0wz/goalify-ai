@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import Analysis from "./pages/Analysis";
 import ApprovedBets from "./pages/ApprovedBets";
 import TrainingPool from "./pages/TrainingPool";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
                     <Route path="/analysis" element={<Analysis />} />
                     <Route path="/approved" element={<ApprovedBets />} />
                     <Route path="/training" element={<TrainingPool />} />
+                    <Route path="/admin" element={<AdminPanel />} />
 
                     <Route path="*" element={<NotFound />} />
                 </Routes>
