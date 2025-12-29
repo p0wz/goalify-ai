@@ -104,13 +104,30 @@ const AdminPanel = () => {
     const [training, setTraining] = useState<TrainingEntry[]>([]);
     const [trainingStats, setTrainingStats] = useState<any>(null);
 
+
     // Load data on mount
     useEffect(() => {
+        loadCachedAnalysis();
         loadBets();
         loadTraining();
     }, []);
 
     // ============ ANALYSIS FUNCTIONS ============
+
+    const loadCachedAnalysis = async () => {
+        setAnalysisLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/analysis/results`);
+            const data = await safeJson(res);
+            if (data.success && data.results && data.results.length > 0) {
+                setResults(data.results);
+                toast.success(`${data.results.length} analiz önbellekten yüklendi`);
+            }
+        } catch (err: any) {
+            console.error('Cache load error:', err);
+        }
+        setAnalysisLoading(false);
+    };
 
     const runAnalysis = async () => {
         setAnalysisLoading(true);
