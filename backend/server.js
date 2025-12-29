@@ -10,6 +10,7 @@ const flashscore = require('./lib/flashscore');
 const analyzer = require('./lib/analyzer');
 const settlement = require('./lib/settlement');
 const database = require('./lib/database');
+const redis = require('./lib/redis');
 const ALLOWED_LEAGUES = require('./data/leagues');
 
 const app = express();
@@ -18,16 +19,27 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
-// Store analysis results in memory
+// Store analysis results in memory (fallback if no Redis)
 let lastAnalysisResults = null;
 
 // ============ ANALYSIS ROUTES ============
 
 app.post('/api/analysis/run', async (req, res) => {
     try {
+        // Rate limiting
+        const rateCheck = await redis.checkRateLimit('analysis', 5, 60);
+        if (!rateCheck.allowed) {
+            return res.status(429).json({
+                success: false,
+                error: 'Rate limit exceeded. Try again in a minute.',
+                remaining: rateCheck.remaining
+            });
+        }
+
         const { limit = 50, leagueFilter = true } = req.body;
 
         console.log(`[Analysis] Starting with limit=${limit}, leagueFilter=${leagueFilter}`);
+        await redis.incrementStat('analysisRuns');
 
         const leagues = leagueFilter ? ALLOWED_LEAGUES : [];
         const matches = await flashscore.fetchDayMatches(1, leagues);
@@ -40,6 +52,7 @@ app.post('/api/analysis/run', async (req, res) => {
         for (const match of matches) {
             if (processed >= limit) break;
 
+            await redis.incrementStat('apiCalls');
             const h2hData = await flashscore.fetchH2H(match.matchId);
             if (!h2hData) continue;
 
@@ -76,7 +89,9 @@ app.post('/api/analysis/run', async (req, res) => {
             console.log(`[Analysis] ${processed}/${limit} - ${match.homeTeam} vs ${match.awayTeam}: ${analysis.passedMarkets.length} markets`);
         }
 
+        // Cache results
         lastAnalysisResults = results;
+        await redis.cacheAnalysisResults(results);
 
         res.json({
             success: true,
@@ -91,10 +106,17 @@ app.post('/api/analysis/run', async (req, res) => {
     }
 });
 
-app.get('/api/analysis/results', (req, res) => {
+app.get('/api/analysis/results', async (req, res) => {
+    // Try Redis cache first
+    const cached = await redis.getCachedAnalysisResults();
+    if (cached) {
+        return res.json({ success: true, results: cached, cached: true });
+    }
+
     res.json({
         success: true,
-        results: lastAnalysisResults || []
+        results: lastAnalysisResults || [],
+        cached: false
     });
 });
 
@@ -113,6 +135,9 @@ app.post('/api/bets/approve', async (req, res) => {
             odds,
             matchTime
         });
+
+        await redis.incrementStat('betsApproved');
+        await redis.invalidateAnalysisCache();
 
         res.json({ success: true, id: result.id });
     } catch (error) {
@@ -191,13 +216,26 @@ app.post('/api/settlement/run', async (req, res) => {
                 awayGoals: result.awayGoals
             });
 
+            await redis.incrementStat('betsSettled');
             settled++;
             results.push({ bet, status: result.status, score: result.finalScore });
         }
 
+        // Update settlement status in Redis
+        await redis.setSettlementStatus({ settled, skipped, errors, lastRun: new Date().toISOString() });
+
         res.json({ success: true, settled, skipped, errors, results });
     } catch (error) {
         console.error('[Settlement] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/api/settlement/status', async (req, res) => {
+    try {
+        const status = await redis.getSettlementStatus();
+        res.json({ success: true, status });
+    } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -227,6 +265,7 @@ app.post('/api/settlement/manual/:id', async (req, res) => {
             awayGoals
         });
 
+        await redis.incrementStat('betsSettled');
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -271,15 +310,40 @@ app.delete('/api/training', async (req, res) => {
     }
 });
 
+// ============ HEALTH & STATS ROUTES ============
+
+app.get('/api/health', async (req, res) => {
+    const redisStatus = await redis.ping();
+    const stats = await redis.getStats();
+
+    res.json({
+        success: true,
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        services: {
+            database: 'ok',
+            redis: redisStatus.connected ? 'ok' : 'not configured',
+            flashscore: process.env.RAPIDAPI_KEY ? 'configured' : 'not configured'
+        },
+        stats
+    });
+});
+
 // ============ STARTUP ============
 
 async function start() {
     await database.initDatabase();
 
+    // Test Redis connection
+    const redisStatus = await redis.ping();
+    console.log(`[Redis] Status: ${redisStatus.connected ? 'Connected' : redisStatus.reason}`);
+
     app.listen(PORT, () => {
         console.log(`[Server] Running on port ${PORT}`);
         console.log(`[Server] RAPIDAPI_KEY: ${process.env.RAPIDAPI_KEY ? 'Set' : 'NOT SET'}`);
+        console.log(`[Server] UPSTASH_REDIS: ${process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'NOT SET'}`);
     });
 }
 
 start();
+
