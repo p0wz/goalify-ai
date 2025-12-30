@@ -18,13 +18,20 @@ async function authenticateToken(req, res, next) {
 
     try {
         console.log(`[Auth] Verifying token. Type: ${typeof token}, Length: ${token.length}`);
-        console.log(`[Auth] Secret Type: ${typeof JWT_SECRET}, Length: ${JWT_SECRET.length}`);
 
         // Ensure secret is string
         const secret = String(JWT_SECRET);
-        const decoded = jwt.verify(token, secret);
+        console.log(`[Auth] Secret Type: ${typeof secret}, Length: ${secret.length}`);
 
-        // console.log('[Auth] Decoded:', JSON.stringify(decoded));
+        // Decode without verify to check structure
+        const preDecoded = jwt.decode(token, { complete: true });
+        if (!preDecoded) {
+            console.error('[Auth] Token is malformed (jwt.decode failed)');
+            return res.status(403).json({ success: false, error: 'Access denied: Malformed token' });
+        }
+        console.log('[Auth] Token Header:', JSON.stringify(preDecoded.header));
+
+        const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
 
         // Verify user exists in DB (optional security check)
         const user = await database.getUserById(decoded.id);
