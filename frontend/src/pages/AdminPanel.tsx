@@ -34,7 +34,8 @@ import {
     BarChart3,
     Zap,
     User,
-    Shield
+    Shield,
+    List
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
@@ -64,6 +65,16 @@ interface AnalysisResult {
     stats: any;
     aiPrompt: string;
     rawStats: string;
+}
+
+interface RawMatch {
+    matchId: string;
+    homeTeam: string;
+    awayTeam: string;
+    league: string;
+    timestamp: number;
+    stats: any;
+    detailedStats: string;
 }
 
 interface ApprovedBet {
@@ -102,12 +113,18 @@ interface UserData {
 const AdminPanel = () => {
     // Analysis State
     const [results, setResults] = useState<AnalysisResult[]>([]);
+    const [allMatches, setAllMatches] = useState<RawMatch[]>([]);
     const [analysisLoading, setAnalysisLoading] = useState(false);
     const [marketFilter, setMarketFilter] = useState("all");
     const [oddsInputs, setOddsInputs] = useState<Record<string, string>>({});
 
+    // Raw Match Manual Selection State
+    const [rawMarketSelections, setRawMarketSelections] = useState<Record<string, string>>({});
+    const [rawOddsInputs, setRawOddsInputs] = useState<Record<string, string>>({});
+
     // Approved Bets State
     const [bets, setBets] = useState<ApprovedBet[]>([]);
+    const [betsFilter, setBetsFilter] = useState("all");
     const [betsLoading, setBetsLoading] = useState(false);
 
     // Calculate Real-time Win Rates for Approved Bets
@@ -195,10 +212,11 @@ const AdminPanel = () => {
                 body: JSON.stringify({ limit, leagueFilter })
             });
             handleAuthError(res);
-            const data = await safeJson(res);
+            const data = await safeJson(res); // Removed duplicate declaration
             if (data.success) {
                 setResults(data.results);
-                toast.success(`${data.count} aday bulundu!`);
+                setAllMatches(data.allMatches || []);
+                toast.success(`${data.count} aday bulundu! (${data.totalMatches || 0} toplam maç)`);
             } else {
                 toast.error(data.error || 'Analiz hatası');
             }
@@ -267,6 +285,51 @@ const AdminPanel = () => {
         });
         const text = unique.map(r => r.rawStats).join('\n\n');
         copyToClipboard(text);
+    };
+
+    const copyAllRawDetailedPrompts = () => {
+        const text = allMatches.map(m => m.detailedStats).join('\n\n---\n\n');
+        copyToClipboard(text);
+    };
+
+    const approveRawMatch = async (match: RawMatch) => {
+        const market = rawMarketSelections[match.matchId];
+        const odds = rawOddsInputs[match.matchId];
+
+        if (!market) {
+            toast.error("Lütfen bir market seçin");
+            return;
+        }
+        if (!odds) {
+            toast.error("Lütfen oran girin");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/bets/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({
+                    matchId: match.matchId,
+                    homeTeam: match.homeTeam,
+                    awayTeam: match.awayTeam,
+                    league: match.league,
+                    market: market,
+                    odds,
+                    matchTime: match.timestamp
+                })
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                toast.success('Manuel bahis onaylandı!');
+                loadBets();
+            } else {
+                toast.error(data.error || 'Onay hatası');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        }
     };
 
     // ============ BETS FUNCTIONS ============
@@ -448,10 +511,20 @@ const AdminPanel = () => {
                 {/* Tabs */}
                 {/* Tabs */}
                 <Tabs defaultValue="analysis" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="analysis" className="flex items-center gap-2">
+                    <TabsList className="grid w-full grid-cols-5">
+                        <TabsTrigger value="analysis" className="relative flex items-center gap-2">
                             <Zap className="h-4 w-4" />
                             Analiz
+                            {results.length > 0 && (
+                                <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1">{results.length}</Badge>
+                            )}
+                        </TabsTrigger>
+                        <TabsTrigger value="matches" className="flex items-center gap-2">
+                            <List className="h-4 w-4" />
+                            Tüm Maçlar
+                            {allMatches.length > 0 && (
+                                <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1">{allMatches.length}</Badge>
+                            )}
                         </TabsTrigger>
                         <TabsTrigger value="bets" className="flex items-center gap-2">
                             <BarChart3 className="h-4 w-4" />
@@ -599,37 +672,52 @@ const AdminPanel = () => {
 
                     {/* ============ BETS TAB ============ */}
                     <TabsContent value="bets" className="space-y-4">
-                        <div className="flex gap-3">
-                            <Button onClick={runSettlement} disabled={settling} className="gradient-primary text-white shadow-glow-primary">
-                                {settling ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Çalışıyor...</> : <><Play className="mr-2 h-4 w-4" />Settlement Çalıştır</>}
-                            </Button>
-                            <Button variant="outline" onClick={loadBets} disabled={betsLoading}>
-                                <RefreshCw className={`mr-2 h-4 w-4 ${betsLoading ? 'animate-spin' : ''}`} />Yenile
-                            </Button>
-                            <Button variant="outline" onClick={loadBets} disabled={betsLoading}>
-                                <RefreshCw className={`mr-2 h-4 w-4 ${betsLoading ? 'animate-spin' : ''}`} />Yenile
-                            </Button>
+                        <div className="flex justify-between items-center bg-card p-4 rounded-lg border">
+                            <div className="flex gap-2 items-center">
+                                <h3 className="font-semibold mr-2">Market Filtresi:</h3>
+                                <Select value={betsFilter} onValueChange={setBetsFilter}>
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="Tümü" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tümü</SelectItem>
+                                        <SelectItem value="First Half Over 0.5">IY 0.5 Üst</SelectItem>
+                                        <SelectItem value="Home Wins Either Half">Ev Sahibi İki Yarıdan Birini Kazanır</SelectItem>
+                                        <SelectItem value="Match Winner Home">Maç Sonucu 1</SelectItem>
+                                        <SelectItem value="Over 2.5 Goals">2.5 Üst</SelectItem>
+                                        {/* Add other markets as they appear dynamically if needed, or static list */}
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                            <Button variant="secondary" onClick={async () => {
-                                const force = confirm('Zaman kısıtlamasını yoksayarak TÜM bekleyen bahisleri sonuçlandırmak istiyor musunuz? (Force Mode)');
-                                try {
-                                    await fetch(`${API_BASE}/settlement/trigger`, {
-                                        method: 'POST',
-                                        headers: {
-                                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                                            'Content-Type': 'application/json'
-                                        },
-                                        body: JSON.stringify({ force })
-                                    });
-                                    alert(`İşlem başlatıldı. ${force ? '(FORCE MODU AKTİF)' : ''} Logları kontrol edin.`);
-                                    // Refresh after a delay
-                                    setTimeout(loadBets, 3000);
-                                } catch (e) {
-                                    alert('Hata oluştu');
-                                }
-                            }}>
-                                <Play className="mr-2 h-4 w-4" /> {betsLoading ? 'İşleniyor...' : 'Sonuçlandır'}
-                            </Button>
+                            <div className="flex gap-3">
+                                <Button onClick={runSettlement} disabled={settling} className="gradient-primary text-white shadow-glow-primary">
+                                    {settling ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Çalışıyor...</> : <><Play className="mr-2 h-4 w-4" />Settlement Çalıştır</>}
+                                </Button>
+                                <Button variant="outline" onClick={loadBets} disabled={betsLoading}>
+                                    <RefreshCw className={`mr-2 h-4 w-4 ${betsLoading ? 'animate-spin' : ''}`} />Yenile
+                                </Button>
+                                <Button variant="secondary" onClick={async () => {
+                                    const force = confirm('Zaman kısıtlamasını yoksayarak TÜM bekleyen bahisleri sonuçlandırmak istiyor musunuz? (Force Mode)');
+                                    try {
+                                        await fetch(`${API_BASE}/settlement/trigger`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({ force })
+                                        });
+                                        alert(`İşlem başlatıldı. ${force ? '(FORCE MODU AKTİF)' : ''} Logları kontrol edin.`);
+                                        // Refresh after a delay
+                                        setTimeout(loadBets, 3000);
+                                    } catch (e) {
+                                        alert('Hata oluştu');
+                                    }
+                                }}>
+                                    <Play className="mr-2 h-4 w-4" /> {betsLoading ? 'İşleniyor...' : 'Sonuçlandır'}
+                                </Button>
+                            </div>
                         </div>
 
                         {/* Live Performance Stats */}
@@ -671,20 +759,22 @@ const AdminPanel = () => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {bets.map(bet => (
-                                            <TableRow key={bet.id}>
-                                                <TableCell className="font-medium">{bet.homeTeam} vs {bet.awayTeam}</TableCell>
-                                                <TableCell>{bet.market}</TableCell>
-                                                <TableCell>{bet.odds || '-'}</TableCell>
-                                                <TableCell>{getStatusBadge(bet.status)}</TableCell>
-                                                <TableCell>{bet.finalScore || '-'}</TableCell>
-                                                <TableCell>
-                                                    <Button variant="ghost" size="icon" onClick={() => deleteBet(bet.id)} className="text-destructive">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {bets
+                                            .filter(bet => betsFilter === 'all' || bet.market === betsFilter)
+                                            .map(bet => (
+                                                <TableRow key={bet.id}>
+                                                    <TableCell className="font-medium">{bet.homeTeam} vs {bet.awayTeam}</TableCell>
+                                                    <TableCell>{bet.market}</TableCell>
+                                                    <TableCell>{bet.odds || '-'}</TableCell>
+                                                    <TableCell>{getStatusBadge(bet.status)}</TableCell>
+                                                    <TableCell>{bet.finalScore || '-'}</TableCell>
+                                                    <TableCell>
+                                                        <Button variant="ghost" size="icon" onClick={() => deleteBet(bet.id)} className="text-destructive">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
                                     </TableBody>
                                 </Table>
                             </Card>
@@ -822,6 +912,75 @@ const AdminPanel = () => {
                                     </TableBody>
                                 </Table>
                             </Card>
+                        )}
+                    </TabsContent>
+
+                    {/* ============ ALL MATCHES TAB ============ */}
+                    <TabsContent value="matches" className="space-y-4">
+                        <div className="flex justify-between items-center bg-card p-4 rounded-lg border">
+                            <span>Günlük Fikstür ({allMatches.length})</span>
+                            <Button onClick={copyAllRawDetailedPrompts} disabled={allMatches.length === 0}>
+                                <Copy className="mr-2 h-4 w-4" /> Detaylı İstatistikleri Kopyala
+                            </Button>
+                        </div>
+
+                        {allMatches.length === 0 ? (
+                            <Card className="glass-card">
+                                <CardContent className="flex flex-col items-center justify-center py-16">
+                                    <h3 className="text-xl font-semibold mb-2">Henüz Analiz Yapılmadı</h3>
+                                    <p className="text-muted-foreground">Analiz sekmesinden tarama başlatın.</p>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="grid gap-4">
+                                {allMatches.map(match => (
+                                    <Card key={match.matchId} className="glass-card">
+                                        <CardContent className="p-4 grid grid-cols-12 gap-4 items-center">
+                                            <div className="col-span-4">
+                                                <div className="font-semibold text-lg flex items-center gap-2">
+                                                    {match.homeTeam} <span className="text-muted-foreground text-sm">vs</span> {match.awayTeam}
+                                                </div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    {match.league} • {new Date(match.timestamp * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            </div>
+
+                                            <div className="col-span-3">
+                                                <Select
+                                                    value={rawMarketSelections[match.matchId] || ""}
+                                                    onValueChange={(val) => setRawMarketSelections(prev => ({ ...prev, [match.matchId]: val }))}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Market Seç" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="First Half Over 0.5">IY 0.5 Üst</SelectItem>
+                                                        <SelectItem value="Home Wins Either Half">Ev İki Yarıdan Birini Kazanır</SelectItem>
+                                                        <SelectItem value="Match Winner Home">Maç Sonucu 1</SelectItem>
+                                                        <SelectItem value="Over 2.5 Goals">2.5 Üst</SelectItem>
+                                                        <SelectItem value="Both Teams To Score">KG Var</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            <div className="col-span-2">
+                                                <Input
+                                                    type="number"
+                                                    placeholder="Oran"
+                                                    value={rawOddsInputs[match.matchId] || ""}
+                                                    onChange={(e) => setRawOddsInputs(prev => ({ ...prev, [match.matchId]: e.target.value }))}
+                                                />
+                                            </div>
+
+                                            <div className="col-span-3 text-right">
+                                                <Button onClick={() => approveRawMatch(match)}>
+                                                    <CheckCircle className="mr-2 h-4 w-4" /> Onayla
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
                         )}
                     </TabsContent>
 

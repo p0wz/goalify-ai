@@ -222,6 +222,7 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
         }
 
         const results = [];
+        const allMatches = []; // New: Collect ALL matches regardless of market
         let processed = 0;
 
         for (const match of matches) {
@@ -238,38 +239,54 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
             }
 
             const analysis = await analyzer.analyzeMatch(match, h2hData);
-            if (!analysis || analysis.passedMarkets.length === 0) {
-                console.log(`[Analysis] No markets passed for ${match.matchId}`);
-                continue;
-            }
 
-            console.log(`[Analysis] ${analysis.passedMarkets.length} markets passed for ${match.matchId}`);
-
-            // Fetch odds
-            const odds = await flashscore.fetchMatchOdds(match.matchId);
-            const oddsText = flashscore.formatOddsForPrompt(odds);
-
-            // Generate prompts for each passed market
-            for (const pm of analysis.passedMarkets) {
-                // Pass full market object (pm) to include verification stats
-                const aiPrompt = analyzer.generateAIPrompt(match, analysis.stats, pm, oddsText);
-                const rawStats = analyzer.generateRawStats(match, analysis.stats, oddsText);
-
-                results.push({
-                    id: `${match.matchId}_${pm.key}`,
+            // Store Basic Match Data (Marketless)
+            if (analysis && analysis.stats) {
+                const detailedStats = analyzer.generateDetailedStats(match, analysis.stats, h2hData.mutual);
+                allMatches.push({
                     matchId: match.matchId,
                     homeTeam: match.homeTeam,
                     awayTeam: match.awayTeam,
                     league: match.league,
-                    timestamp: match.timestamp,
-                    market: pm.market,
-                    marketKey: pm.key,
-                    stats: analysis.stats,
-                    aiPrompt,
-                    rawStats,
-                    odds: null,
-                    oddsData: odds
+                    timestamp: match.timestamp, // Ensure this is present
+                    detailedStats: detailedStats,
+                    stats: analysis.stats
                 });
+            }
+
+            if (!analysis || analysis.passedMarkets.length === 0) {
+                console.log(`[Analysis] No markets passed for ${match.matchId}`);
+                // Continue to next match, but we already saved it to allMatches
+            } else {
+
+                console.log(`[Analysis] ${analysis.passedMarkets.length} markets passed for ${match.matchId}`);
+
+                // Fetch odds
+                const odds = await flashscore.fetchMatchOdds(match.matchId);
+                const oddsText = flashscore.formatOddsForPrompt(odds);
+
+                // Generate prompts for each passed market
+                for (const pm of analysis.passedMarkets) {
+                    // Pass full market object (pm) to include verification stats
+                    const aiPrompt = analyzer.generateAIPrompt(match, analysis.stats, pm, oddsText);
+                    const rawStats = analyzer.generateRawStats(match, analysis.stats, oddsText);
+
+                    results.push({
+                        id: `${match.matchId}_${pm.key}`,
+                        matchId: match.matchId,
+                        homeTeam: match.homeTeam,
+                        awayTeam: match.awayTeam,
+                        league: match.league,
+                        timestamp: match.timestamp,
+                        market: pm.market,
+                        marketKey: pm.key,
+                        stats: analysis.stats,
+                        aiPrompt,
+                        rawStats,
+                        odds: null,
+                        oddsData: odds
+                    });
+                }
             }
 
             processed++;
@@ -279,17 +296,25 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
             await new Promise(r => setTimeout(r, 1500));
         }
 
-        // Cache results
-        lastAnalysisResults = results;
-        await redis.cacheAnalysisResults(results);
+        // Cache results (both filtered and all)
+        lastAnalysisResults = { results, allMatches };
 
-        console.log(`[Analysis] === COMPLETED: ${results.length} results ===`);
+        // Update Redis Cache method in redis.js if needed, or just store object
+        // NOTE: We'll modify the redis helper separately if it expects array, but 
+        // strictly speaking we should just update the return object here.
+        // Assuming redis.cacheAnalysisResults handles simple JSON stringify.
+        // If not, we might need to check redis.js.
+        await redis.cacheAnalysisResults({ results, allMatches });
+
+        console.log(`[Analysis] === COMPLETED: ${results.length} signals, ${allMatches.length} total matches ===`);
 
         res.json({
             success: true,
             count: results.length,
+            totalMatches: allMatches.length,
             processed,
-            results
+            results,
+            allMatches // Send to frontend
         });
 
     } catch (error) {
