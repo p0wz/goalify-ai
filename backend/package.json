@@ -7,9 +7,6 @@
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "engines": {
-    "node": "20.x"
-  },
   "dependencies": {
     "@libsql/client": "^0.4.0",
     "@upstash/redis": "^1.36.0",
