@@ -374,12 +374,14 @@ async function analyzeMatch(match, h2hData) {
 
     // 12. Ev Herhangi Yarı (Detailed Verification)
     const homeHalf_cond = {
+        // Relaxed constraints: If they win the match often, they likely won a half.
+        // Don't enforce specific H1/H2 win rates strictly if overall 'either' rate is good.
         either: (homeHomeStats.eitherHalfWinRate || 0) >= 70,
-        h1: (homeHomeStats.firstHalfWinRate || 0) >= 45,
-        h2: (homeHomeStats.secondHalfWinRate || 0) >= 45,
-        win: homeHomeStats.winRate >= 55,
-        score: homeHomeStats.scoringRate >= 85,
-        awayOpp: (awayAwayStats.eitherHalfWinRate || 0) < 45
+        win: homeHomeStats.winRate >= 60, // Increased slightly from 55 to ensure quality
+        score: homeHomeStats.scoringRate >= 80, // Slightly relaxed from 85 to catching more potential
+        // Removed specific h1/h2 > 45 requirements as they are too restrictive for 'Either Half' market
+        // (A team could be a 2nd half monster and fail H1 requirement)
+        awayOpp: true // Removed away restriction to focus on Home team dominance
     };
 
     if (Object.values(homeHalf_cond).every(v => v)) {
