@@ -314,491 +314,493 @@ const AdminPanel = () => {
             console.error(err);
             // Silent fail on initial load
         }
-        // ============ USERS FUNCTIONS ============
+    };
 
-        const loadUsers = async () => {
-            setUsersLoading(true);
-            try {
-                const res = await fetch(`${API_BASE}/users`, { headers: getAuthHeaders() as any });
-                handleAuthError(res);
-                const data = await safeJson(res);
-                if (data.success) setUsers(data.users || []);
-            } catch (err) {
-                console.error(err);
+    // ============ USERS FUNCTIONS ============
+
+    const loadUsers = async () => {
+        setUsersLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/users`, { headers: getAuthHeaders() as any });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) setUsers(data.users || []);
+        } catch (err) {
+            console.error(err);
+        }
+        setUsersLoading(false);
+    };
+
+    const togglePlan = async (userId: string, currentPlan: string) => {
+        const newPlan = currentPlan === 'free' ? 'pro' : 'free';
+        try {
+            const res = await fetch(`${API_BASE}/users/${userId}/plan`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ plan: newPlan })
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                toast.success(`Kullanıcı planı güncellendi: ${newPlan.toUpperCase()}`);
+                loadUsers();
+            } else {
+                toast.error(data.error);
             }
-            setUsersLoading(false);
-        };
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
 
-        const togglePlan = async (userId: string, currentPlan: string) => {
-            const newPlan = currentPlan === 'free' ? 'pro' : 'free';
-            try {
-                const res = await fetch(`${API_BASE}/users/${userId}/plan`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                    body: JSON.stringify({ plan: newPlan })
-                });
-                handleAuthError(res);
-                const data = await safeJson(res);
-                if (data.success) {
-                    toast.success(`Kullanıcı planı güncellendi: ${newPlan.toUpperCase()}`);
-                    loadUsers();
-                } else {
-                    toast.error(data.error);
-                }
-            } catch (err: any) {
-                toast.error(err.message);
-            }
-        };
+    // ============ HELPERS ============
 
-        // ============ HELPERS ============
+    const filteredResults = marketFilter === 'all' ? results : results.filter(r => r.marketKey === marketFilter);
+    const markets = [...new Set(results.map(r => r.marketKey))];
+    const pendingCount = bets.filter(b => b.status === 'PENDING').length;
+    const wonCount = bets.filter(b => b.status === 'WON').length;
+    const lostCount = bets.filter(b => b.status === 'LOST').length;
 
-        const filteredResults = marketFilter === 'all' ? results : results.filter(r => r.marketKey === marketFilter);
-        const markets = [...new Set(results.map(r => r.marketKey))];
-        const pendingCount = bets.filter(b => b.status === 'PENDING').length;
-        const wonCount = bets.filter(b => b.status === 'WON').length;
-        const lostCount = bets.filter(b => b.status === 'LOST').length;
+    const getStatusBadge = (status: string) => {
+        switch (status?.toUpperCase()) {
+            case 'WON':
+                return <Badge className="bg-win text-white"><CheckCircle className="mr-1 h-3 w-3" />WON</Badge>;
+            case 'LOST':
+                return <Badge className="bg-lose text-white"><XCircle className="mr-1 h-3 w-3" />LOST</Badge>;
+            default:
+                return <Badge className="bg-draw text-white"><Clock className="mr-1 h-3 w-3" />PENDING</Badge>;
+        }
+    };
 
-        const getStatusBadge = (status: string) => {
-            switch (status?.toUpperCase()) {
-                case 'WON':
-                    return <Badge className="bg-win text-white"><CheckCircle className="mr-1 h-3 w-3" />WON</Badge>;
-                case 'LOST':
-                    return <Badge className="bg-lose text-white"><XCircle className="mr-1 h-3 w-3" />LOST</Badge>;
-                default:
-                    return <Badge className="bg-draw text-white"><Clock className="mr-1 h-3 w-3" />PENDING</Badge>;
-            }
-        };
-
-        return (
-            <AppLayout>
-                <div className="space-y-6 animate-slide-up">
-                    {/* Header */}
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold font-display flex items-center gap-3">
-                                <Settings className="h-8 w-8 text-primary" />
-                                Admin Panel
-                            </h1>
-                            <p className="text-muted-foreground mt-1">Analiz, Settlement ve Training Pool Yönetimi</p>
-                        </div>
+    return (
+        <AppLayout>
+            <div className="space-y-6 animate-slide-up">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold font-display flex items-center gap-3">
+                            <Settings className="h-8 w-8 text-primary" />
+                            Admin Panel
+                        </h1>
+                        <p className="text-muted-foreground mt-1">Analiz, Settlement ve Training Pool Yönetimi</p>
                     </div>
+                </div>
 
-                    {/* Quick Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <Card className="glass-card card-hover">
-                            <CardContent className="p-4 text-center">
-                                <div className="text-3xl font-bold text-primary">{results.length}</div>
-                                <div className="text-sm text-muted-foreground">Aday</div>
-                            </CardContent>
-                        </Card>
-                        <Card className="glass-card card-hover">
-                            <CardContent className="p-4 text-center">
-                                <div className="text-3xl font-bold text-draw">{pendingCount}</div>
-                                <div className="text-sm text-muted-foreground">Bekleyen</div>
-                            </CardContent>
-                        </Card>
-                        <Card className="glass-card card-hover">
-                            <CardContent className="p-4 text-center">
-                                <div className="text-3xl font-bold text-win">{wonCount}</div>
-                                <div className="text-sm text-muted-foreground">Kazanan</div>
-                            </CardContent>
-                        </Card>
-                        <Card className="glass-card card-hover">
-                            <CardContent className="p-4 text-center">
-                                <div className="text-3xl font-bold text-lose">{lostCount}</div>
-                                <div className="text-sm text-muted-foreground">Kaybeden</div>
-                            </CardContent>
-                        </Card>
-                        <Card className="glass-card-premium card-hover">
-                            <CardContent className="p-4 text-center">
-                                <div className="text-3xl font-bold text-gradient">{trainingStats?.winRate || 0}%</div>
-                                <div className="text-sm text-muted-foreground">Win Rate</div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <Card className="glass-card card-hover">
+                        <CardContent className="p-4 text-center">
+                            <div className="text-3xl font-bold text-primary">{results.length}</div>
+                            <div className="text-sm text-muted-foreground">Aday</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="glass-card card-hover">
+                        <CardContent className="p-4 text-center">
+                            <div className="text-3xl font-bold text-draw">{pendingCount}</div>
+                            <div className="text-sm text-muted-foreground">Bekleyen</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="glass-card card-hover">
+                        <CardContent className="p-4 text-center">
+                            <div className="text-3xl font-bold text-win">{wonCount}</div>
+                            <div className="text-sm text-muted-foreground">Kazanan</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="glass-card card-hover">
+                        <CardContent className="p-4 text-center">
+                            <div className="text-3xl font-bold text-lose">{lostCount}</div>
+                            <div className="text-sm text-muted-foreground">Kaybeden</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="glass-card-premium card-hover">
+                        <CardContent className="p-4 text-center">
+                            <div className="text-3xl font-bold text-gradient">{trainingStats?.winRate || 0}%</div>
+                            <div className="text-sm text-muted-foreground">Win Rate</div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                    {/* Tabs */}
-                    {/* Tabs */}
-                    <Tabs defaultValue="analysis" className="space-y-4">
-                        <TabsList className="grid w-full grid-cols-4">
-                            <TabsTrigger value="analysis" className="flex items-center gap-2">
-                                <Zap className="h-4 w-4" />
-                                Analiz
-                            </TabsTrigger>
-                            <TabsTrigger value="bets" className="flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4" />
-                                Bahisler
-                            </TabsTrigger>
-                            <TabsTrigger value="training" className="flex items-center gap-2">
-                                <Brain className="h-4 w-4" />
-                                Training
-                            </TabsTrigger>
-                            <TabsTrigger value="users" className="flex items-center gap-2">
-                                <User className="h-4 w-4" />
-                                Kullanıcılar
-                            </TabsTrigger>
-                        </TabsList>
+                {/* Tabs */}
+                {/* Tabs */}
+                <Tabs defaultValue="analysis" className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="analysis" className="flex items-center gap-2">
+                            <Zap className="h-4 w-4" />
+                            Analiz
+                        </TabsTrigger>
+                        <TabsTrigger value="bets" className="flex items-center gap-2">
+                            <BarChart3 className="h-4 w-4" />
+                            Bahisler
+                        </TabsTrigger>
+                        <TabsTrigger value="training" className="flex items-center gap-2">
+                            <Brain className="h-4 w-4" />
+                            Training
+                        </TabsTrigger>
+                        <TabsTrigger value="users" className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            Kullanıcılar
+                        </TabsTrigger>
+                    </TabsList>
 
-                        {/* ============ ANALYSIS TAB ============ */}
-                        <TabsContent value="analysis" className="space-y-4">
-                            <div className="flex flex-wrap gap-3 items-center">
-                                <Button
-                                    onClick={runAnalysis}
-                                    disabled={analysisLoading}
-                                    className="gradient-primary text-white shadow-glow-primary"
-                                >
-                                    {analysisLoading ? (
-                                        <><Activity className="mr-2 h-4 w-4 animate-spin" />Analiz Ediliyor...</>
-                                    ) : (
-                                        <><Play className="mr-2 h-4 w-4" />Analizi Başlat</>
-                                    )}
-                                </Button>
-                                {results.length > 0 && (
-                                    <>
-                                        <Button variant="outline" onClick={copyAllPrompts}>
-                                            <Copy className="mr-2 h-4 w-4" />Tüm AI Promptlar
-                                        </Button>
-                                        <Button variant="outline" onClick={copyAllRawStats}>
-                                            <FileText className="mr-2 h-4 w-4" />Ham İstatistik
-                                        </Button>
-                                        <Select value={marketFilter} onValueChange={setMarketFilter}>
-                                            <SelectTrigger className="w-[200px]">
-                                                <SelectValue placeholder="Market Filtresi" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Tüm Marketler ({results.length})</SelectItem>
-                                                {markets.map(m => (
-                                                    <SelectItem key={m} value={m}>{m} ({results.filter(r => r.marketKey === m).length})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </>
+                    {/* ============ ANALYSIS TAB ============ */}
+                    <TabsContent value="analysis" className="space-y-4">
+                        <div className="flex flex-wrap gap-3 items-center">
+                            <Button
+                                onClick={runAnalysis}
+                                disabled={analysisLoading}
+                                className="gradient-primary text-white shadow-glow-primary"
+                            >
+                                {analysisLoading ? (
+                                    <><Activity className="mr-2 h-4 w-4 animate-spin" />Analiz Ediliyor...</>
+                                ) : (
+                                    <><Play className="mr-2 h-4 w-4" />Analizi Başlat</>
                                 )}
-                            </div>
-
-                            {results.length === 0 ? (
-                                <Card className="glass-card">
-                                    <CardContent className="flex flex-col items-center justify-center py-16">
-                                        <Target className="h-16 w-16 text-muted-foreground mb-4" />
-                                        <h3 className="text-xl font-semibold mb-2">Henüz Analiz Yapılmadı</h3>
-                                        <p className="text-muted-foreground">"Analizi Başlat" butonuna tıklayın.</p>
-                                    </CardContent>
-                                </Card>
-                            ) : (
-                                <div className="grid gap-4">
-                                    {filteredResults.map((item, index) => (
-                                        <Card key={item.id} className="glass-card card-hover" style={{ animationDelay: `${index * 30}ms` }}>
-                                            <CardHeader className="pb-2">
-                                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="h-10 w-10 rounded-full gradient-primary flex items-center justify-center">
-                                                            <TrendingUp className="h-5 w-5 text-white" />
-                                                        </div>
-                                                        <div>
-                                                            <CardTitle className="text-lg">{item.homeTeam} vs {item.awayTeam}</CardTitle>
-                                                            <CardDescription>{item.league}</CardDescription>
-                                                        </div>
-                                                    </div>
-                                                    <Badge className="gradient-accent text-white w-fit">{item.market}</Badge>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-                                                    <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                                                        <div className="text-lg font-bold text-primary">{item.stats?.leagueAvg?.toFixed(1) || '-'}</div>
-                                                        <div className="text-xs text-muted-foreground">Lig Ort.</div>
-                                                    </div>
-                                                    <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                                                        <div className="text-lg font-bold text-win">{item.stats?.homeForm?.over25Rate?.toFixed(0) || '-'}%</div>
-                                                        <div className="text-xs text-muted-foreground">Ev O2.5</div>
-                                                    </div>
-                                                    <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                                                        <div className="text-lg font-bold text-accent">{item.stats?.awayForm?.over25Rate?.toFixed(0) || '-'}%</div>
-                                                        <div className="text-xs text-muted-foreground">Dep O2.5</div>
-                                                    </div>
-                                                    <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                                                        <div className="text-lg font-bold">{item.stats?.homeHomeStats?.scoringRate?.toFixed(0) || '-'}%</div>
-                                                        <div className="text-xs text-muted-foreground">Ev Gol%</div>
-                                                    </div>
-                                                    <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                                                        <div className="text-lg font-bold">{item.stats?.awayAwayStats?.scoringRate?.toFixed(0) || '-'}%</div>
-                                                        <div className="text-xs text-muted-foreground">Dep Gol%</div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border">
-                                                    <Input
-                                                        type="text"
-                                                        placeholder="Oran"
-                                                        className="w-24"
-                                                        value={oddsInputs[item.id] || ''}
-                                                        onChange={e => setOddsInputs({ ...oddsInputs, [item.id]: e.target.value })}
-                                                    />
-                                                    <Button variant="outline" size="sm" onClick={() => {
-                                                        let prompt = item.aiPrompt;
-                                                        if (oddsInputs[item.id]) {
-                                                            prompt = prompt.replace(`Market: ${item.market}`, `Market: ${item.market}\nOdds: ${oddsInputs[item.id]}`);
-                                                        }
-                                                        copyToClipboard(prompt);
-                                                    }}>
-                                                        <Copy className="mr-2 h-4 w-4" />AI Prompt
-                                                    </Button>
-                                                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(item.rawStats)}>
-                                                        <FileText className="mr-2 h-4 w-4" />Ham İstatistik
-                                                    </Button>
-                                                    <Button size="sm" className="gradient-success text-white" onClick={() => approveBet(item)}>
-                                                        <Check className="mr-2 h-4 w-4" />Onayla
-                                                    </Button>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            )}
-                        </TabsContent>
-
-                        {/* ============ BETS TAB ============ */}
-                        <TabsContent value="bets" className="space-y-4">
-                            <div className="flex gap-3">
-                                <Button onClick={runSettlement} disabled={settling} className="gradient-primary text-white shadow-glow-primary">
-                                    {settling ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Çalışıyor...</> : <><Play className="mr-2 h-4 w-4" />Settlement Çalıştır</>}
-                                </Button>
-                                <Button variant="outline" onClick={loadBets} disabled={betsLoading}>
-                                    <RefreshCw className={`mr-2 h-4 w-4 ${betsLoading ? 'animate-spin' : ''}`} />Yenile
-                                </Button>
-                            </div>
-
-                            {bets.length === 0 ? (
-                                <Card className="glass-card">
-                                    <CardContent className="flex flex-col items-center justify-center py-16">
-                                        <Target className="h-16 w-16 text-muted-foreground mb-4" />
-                                        <h3 className="text-xl font-semibold mb-2">Henüz Onaylanmış Bahis Yok</h3>
-                                    </CardContent>
-                                </Card>
-                            ) : (
-                                <Card className="glass-card overflow-hidden">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Maç</TableHead>
-                                                <TableHead>Market</TableHead>
-                                                <TableHead>Oran</TableHead>
-                                                <TableHead>Durum</TableHead>
-                                                <TableHead>Sonuç</TableHead>
-                                                <TableHead></TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {bets.map(bet => (
-                                                <TableRow key={bet.id}>
-                                                    <TableCell className="font-medium">{bet.home_team} vs {bet.away_team}</TableCell>
-                                                    <TableCell>{bet.market}</TableCell>
-                                                    <TableCell>{bet.odds || '-'}</TableCell>
-                                                    <TableCell>{getStatusBadge(bet.status)}</TableCell>
-                                                    <TableCell>{bet.final_score || '-'}</TableCell>
-                                                    <TableCell>
-                                                        <Button variant="ghost" size="icon" onClick={() => deleteBet(bet.id)} className="text-destructive">
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </Card>
-                            )}
-                        </TabsContent>
-
-                        {/* ============ TRAINING TAB ============ */}
-                        <TabsContent value="training" className="space-y-4">
-                            <div className="flex justify-end">
-                                <Button variant="destructive" onClick={async () => {
-                                    if (!confirm('Tüm eğitim verilerini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
-                                    try {
-                                        const res = await fetch(`${API_BASE}/training`, {
-                                            method: 'DELETE',
-                                            headers: getAuthHeaders() as any
-                                        });
-                                        handleAuthError(res);
-                                        const data = await safeJson(res);
-                                        if (data.success) {
-                                            toast.success('Training pool temizlendi');
-                                            loadTraining();
-                                        } else {
-                                            toast.error(data.error || 'Hata oluştu');
-                                        }
-                                    } catch (err: any) {
-                                        toast.error(err.message);
-                                    }
-                                }}>
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    İstatistikleri Sıfırla
-                                </Button>
-                            </div>
-
-                            {trainingStats && (
+                            </Button>
+                            {results.length > 0 && (
                                 <>
-                                    {/* Global Stats */}
-                                    <Card className="glass-card-premium mb-6">
+                                    <Button variant="outline" onClick={copyAllPrompts}>
+                                        <Copy className="mr-2 h-4 w-4" />Tüm AI Promptlar
+                                    </Button>
+                                    <Button variant="outline" onClick={copyAllRawStats}>
+                                        <FileText className="mr-2 h-4 w-4" />Ham İstatistik
+                                    </Button>
+                                    <Select value={marketFilter} onValueChange={setMarketFilter}>
+                                        <SelectTrigger className="w-[200px]">
+                                            <SelectValue placeholder="Market Filtresi" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Tüm Marketler ({results.length})</SelectItem>
+                                            {markets.map(m => (
+                                                <SelectItem key={m} value={m}>{m} ({results.filter(r => r.marketKey === m).length})</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </>
+                            )}
+                        </div>
+
+                        {results.length === 0 ? (
+                            <Card className="glass-card">
+                                <CardContent className="flex flex-col items-center justify-center py-16">
+                                    <Target className="h-16 w-16 text-muted-foreground mb-4" />
+                                    <h3 className="text-xl font-semibold mb-2">Henüz Analiz Yapılmadı</h3>
+                                    <p className="text-muted-foreground">"Analizi Başlat" butonuna tıklayın.</p>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="grid gap-4">
+                                {filteredResults.map((item, index) => (
+                                    <Card key={item.id} className="glass-card card-hover" style={{ animationDelay: `${index * 30}ms` }}>
                                         <CardHeader className="pb-2">
-                                            <CardTitle className="flex items-center gap-2">
-                                                <TrendingUp className="h-5 w-5 text-primary" />
-                                                Genel Performans ({trainingStats.total} Bahis)
-                                            </CardTitle>
+                                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-full gradient-primary flex items-center justify-center">
+                                                        <TrendingUp className="h-5 w-5 text-white" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-lg">{item.homeTeam} vs {item.awayTeam}</CardTitle>
+                                                        <CardDescription>{item.league}</CardDescription>
+                                                    </div>
+                                                </div>
+                                                <Badge className="gradient-accent text-white w-fit">{item.market}</Badge>
+                                            </div>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <div className="flex justify-between text-sm mb-1">
-                                                        <span>Kazanma Oranı</span>
-                                                        <span className="font-semibold text-win">{trainingStats.winRate}%</span>
-                                                    </div>
-                                                    <div className="h-4 bg-secondary rounded-full overflow-hidden flex">
-                                                        <div className="h-full bg-win" style={{ width: `${(trainingStats.won / (trainingStats.total || 1)) * 100}%` }} />
-                                                        <div className="h-full bg-lose" style={{ width: `${(trainingStats.lost / (trainingStats.total || 1)) * 100}%` }} />
-                                                    </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                                                <div className="bg-secondary/50 rounded-lg p-3 text-center">
+                                                    <div className="text-lg font-bold text-primary">{item.stats?.leagueAvg?.toFixed(1) || '-'}</div>
+                                                    <div className="text-xs text-muted-foreground">Lig Ort.</div>
                                                 </div>
-                                                <div className="flex justify-center gap-6 text-sm">
-                                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-win" /><span>Kazanan ({trainingStats.won})</span></div>
-                                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-lose" /><span>Kaybeden ({trainingStats.lost})</span></div>
-                                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-muted" /><span>İade ({trainingStats.refund})</span></div>
+                                                <div className="bg-secondary/50 rounded-lg p-3 text-center">
+                                                    <div className="text-lg font-bold text-win">{item.stats?.homeForm?.over25Rate?.toFixed(0) || '-'}%</div>
+                                                    <div className="text-xs text-muted-foreground">Ev O2.5</div>
                                                 </div>
+                                                <div className="bg-secondary/50 rounded-lg p-3 text-center">
+                                                    <div className="text-lg font-bold text-accent">{item.stats?.awayForm?.over25Rate?.toFixed(0) || '-'}%</div>
+                                                    <div className="text-xs text-muted-foreground">Dep O2.5</div>
+                                                </div>
+                                                <div className="bg-secondary/50 rounded-lg p-3 text-center">
+                                                    <div className="text-lg font-bold">{item.stats?.homeHomeStats?.scoringRate?.toFixed(0) || '-'}%</div>
+                                                    <div className="text-xs text-muted-foreground">Ev Gol%</div>
+                                                </div>
+                                                <div className="bg-secondary/50 rounded-lg p-3 text-center">
+                                                    <div className="text-lg font-bold">{item.stats?.awayAwayStats?.scoringRate?.toFixed(0) || '-'}%</div>
+                                                    <div className="text-xs text-muted-foreground">Dep Gol%</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border">
+                                                <Input
+                                                    type="text"
+                                                    placeholder="Oran"
+                                                    className="w-24"
+                                                    value={oddsInputs[item.id] || ''}
+                                                    onChange={e => setOddsInputs({ ...oddsInputs, [item.id]: e.target.value })}
+                                                />
+                                                <Button variant="outline" size="sm" onClick={() => {
+                                                    let prompt = item.aiPrompt;
+                                                    if (oddsInputs[item.id]) {
+                                                        prompt = prompt.replace(`Market: ${item.market}`, `Market: ${item.market}\nOdds: ${oddsInputs[item.id]}`);
+                                                    }
+                                                    copyToClipboard(prompt);
+                                                }}>
+                                                    <Copy className="mr-2 h-4 w-4" />AI Prompt
+                                                </Button>
+                                                <Button variant="outline" size="sm" onClick={() => copyToClipboard(item.rawStats)}>
+                                                    <FileText className="mr-2 h-4 w-4" />Ham İstatistik
+                                                </Button>
+                                                <Button size="sm" className="gradient-success text-white" onClick={() => approveBet(item)}>
+                                                    <Check className="mr-2 h-4 w-4" />Onayla
+                                                </Button>
                                             </div>
                                         </CardContent>
                                     </Card>
-
-                                    {/* Market Stats Grid */}
-                                    <h3 className="text-xl font-semibold mb-4 px-1">Market Performansı</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                                        {trainingStats.byMarket?.map((m: any) => (
-                                            <Card key={m.market} className="glass-card border-l-4 border-l-primary/50">
-                                                <CardHeader className="pb-2 pt-4">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <CardTitle className="text-base font-bold">{m.market}</CardTitle>
-                                                            <CardDescription>{m.total} Bahis</CardDescription>
-                                                        </div>
-                                                        <Badge className={m.winRate >= 70 ? "bg-win text-white" : m.winRate >= 50 ? "bg-warning text-black" : "bg-lose text-white"}>
-                                                            %{m.winRate}
-                                                        </Badge>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="pb-4">
-                                                    <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                                                        <div className="bg-win/10 p-2 rounded">
-                                                            <div className="font-bold text-win">{m.won}</div>
-                                                            <div className="text-xs opacity-70">W</div>
-                                                        </div>
-                                                        <div className="bg-lose/10 p-2 rounded">
-                                                            <div className="font-bold text-lose">{m.lost}</div>
-                                                            <div className="text-xs opacity-70">L</div>
-                                                        </div>
-                                                        <div className="bg-muted/10 p-2 rounded">
-                                                            <div className="font-bold text-muted-foreground">{m.refund}</div>
-                                                            <div className="text-xs opacity-70">R</div>
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-
-                            {training.length === 0 ? (
-                                <Card className="glass-card">
-                                    <CardContent className="flex flex-col items-center justify-center py-16">
-                                        <Brain className="h-16 w-16 text-muted-foreground mb-4" />
-                                        <h3 className="text-xl font-semibold mb-2">Training Pool Boş</h3>
-                                    </CardContent>
-                                </Card>
-                            ) : (
-                                <Card className="glass-card overflow-hidden">
-                                    <div className="p-4 border-b border-border">
-                                        <h3 className="font-semibold">Son İşlemler</h3>
-                                    </div>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Maç</TableHead>
-                                                <TableHead>Market</TableHead>
-                                                <TableHead>Oran</TableHead>
-                                                <TableHead>Sonuç</TableHead>
-                                                <TableHead>Skor</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {training.map(item => (
-                                                <TableRow key={item.id}>
-                                                    <TableCell className="font-medium">{item.match}</TableCell>
-                                                    <TableCell>{item.market}</TableCell>
-                                                    <TableCell>{item.odds || '-'}</TableCell>
-                                                    <TableCell>{getStatusBadge(item.result)}</TableCell>
-                                                    <TableCell>{item.final_score}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </Card>
-                            )}
-                        </TabsContent>
-
-                        {/* ============ USERS TAB ============ */}
-                        <TabsContent value="users" className="space-y-4">
-                            <div className="flex justify-end">
-                                <Button variant="outline" onClick={loadUsers} disabled={usersLoading}>
-                                    <RefreshCw className={`mr-2 h-4 w-4 ${usersLoading ? 'animate-spin' : ''}`} />Yenile
-                                </Button>
+                                ))}
                             </div>
+                        )}
+                    </TabsContent>
+
+                    {/* ============ BETS TAB ============ */}
+                    <TabsContent value="bets" className="space-y-4">
+                        <div className="flex gap-3">
+                            <Button onClick={runSettlement} disabled={settling} className="gradient-primary text-white shadow-glow-primary">
+                                {settling ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Çalışıyor...</> : <><Play className="mr-2 h-4 w-4" />Settlement Çalıştır</>}
+                            </Button>
+                            <Button variant="outline" onClick={loadBets} disabled={betsLoading}>
+                                <RefreshCw className={`mr-2 h-4 w-4 ${betsLoading ? 'animate-spin' : ''}`} />Yenile
+                            </Button>
+                        </div>
+
+                        {bets.length === 0 ? (
+                            <Card className="glass-card">
+                                <CardContent className="flex flex-col items-center justify-center py-16">
+                                    <Target className="h-16 w-16 text-muted-foreground mb-4" />
+                                    <h3 className="text-xl font-semibold mb-2">Henüz Onaylanmış Bahis Yok</h3>
+                                </CardContent>
+                            </Card>
+                        ) : (
                             <Card className="glass-card overflow-hidden">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Email</TableHead>
-                                            <TableHead>Rol</TableHead>
-                                            <TableHead>Plan</TableHead>
-                                            <TableHead>Kayıt Tarihi</TableHead>
-                                            <TableHead>İşlem</TableHead>
+                                            <TableHead>Maç</TableHead>
+                                            <TableHead>Market</TableHead>
+                                            <TableHead>Oran</TableHead>
+                                            <TableHead>Durum</TableHead>
+                                            <TableHead>Sonuç</TableHead>
+                                            <TableHead></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {users.map(user => (
-                                            <TableRow key={user.id}>
-                                                <TableCell>{user.email}</TableCell>
+                                        {bets.map(bet => (
+                                            <TableRow key={bet.id}>
+                                                <TableCell className="font-medium">{bet.home_team} vs {bet.away_team}</TableCell>
+                                                <TableCell>{bet.market}</TableCell>
+                                                <TableCell>{bet.odds || '-'}</TableCell>
+                                                <TableCell>{getStatusBadge(bet.status)}</TableCell>
+                                                <TableCell>{bet.final_score || '-'}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline" className={user.role === 'admin' ? 'border-red-500/50 text-red-500' : ''}>
-                                                        {user.role}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge className={user.plan === 'pro' ? 'gradient-accent text-white' : 'bg-secondary'}>
-                                                        {user.plan === 'pro' ? 'PRO' : 'FREE'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">
-                                                    {new Date(user.created_at).toLocaleDateString('tr-TR')}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {user.role !== 'admin' && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant={user.plan === 'pro' ? 'destructive' : 'default'}
-                                                            className={user.plan === 'free' ? 'gradient-success text-white' : ''}
-                                                            onClick={() => togglePlan(user.id, user.plan)}
-                                                        >
-                                                            {user.plan === 'pro' ? 'Pro İptal' : 'Pro Yap'}
-                                                        </Button>
-                                                    )}
+                                                    <Button variant="ghost" size="icon" onClick={() => deleteBet(bet.id)} className="text-destructive">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
                             </Card>
-                        </TabsContent>
-                    </Tabs>
-                </div>
-            </AppLayout>
-        );
-    };
+                        )}
+                    </TabsContent>
 
-    export default AdminPanel;
+                    {/* ============ TRAINING TAB ============ */}
+                    <TabsContent value="training" className="space-y-4">
+                        <div className="flex justify-end">
+                            <Button variant="destructive" onClick={async () => {
+                                if (!confirm('Tüm eğitim verilerini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+                                try {
+                                    const res = await fetch(`${API_BASE}/training`, {
+                                        method: 'DELETE',
+                                        headers: getAuthHeaders() as any
+                                    });
+                                    handleAuthError(res);
+                                    const data = await safeJson(res);
+                                    if (data.success) {
+                                        toast.success('Training pool temizlendi');
+                                        loadTraining();
+                                    } else {
+                                        toast.error(data.error || 'Hata oluştu');
+                                    }
+                                } catch (err: any) {
+                                    toast.error(err.message);
+                                }
+                            }}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                İstatistikleri Sıfırla
+                            </Button>
+                        </div>
+
+                        {trainingStats && (
+                            <>
+                                {/* Global Stats */}
+                                <Card className="glass-card-premium mb-6">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="flex items-center gap-2">
+                                            <TrendingUp className="h-5 w-5 text-primary" />
+                                            Genel Performans ({trainingStats.total} Bahis)
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <div className="flex justify-between text-sm mb-1">
+                                                    <span>Kazanma Oranı</span>
+                                                    <span className="font-semibold text-win">{trainingStats.winRate}%</span>
+                                                </div>
+                                                <div className="h-4 bg-secondary rounded-full overflow-hidden flex">
+                                                    <div className="h-full bg-win" style={{ width: `${(trainingStats.won / (trainingStats.total || 1)) * 100}%` }} />
+                                                    <div className="h-full bg-lose" style={{ width: `${(trainingStats.lost / (trainingStats.total || 1)) * 100}%` }} />
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-center gap-6 text-sm">
+                                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-win" /><span>Kazanan ({trainingStats.won})</span></div>
+                                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-lose" /><span>Kaybeden ({trainingStats.lost})</span></div>
+                                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-muted" /><span>İade ({trainingStats.refund})</span></div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Market Stats Grid */}
+                                <h3 className="text-xl font-semibold mb-4 px-1">Market Performansı</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                                    {trainingStats.byMarket?.map((m: any) => (
+                                        <Card key={m.market} className="glass-card border-l-4 border-l-primary/50">
+                                            <CardHeader className="pb-2 pt-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <CardTitle className="text-base font-bold">{m.market}</CardTitle>
+                                                        <CardDescription>{m.total} Bahis</CardDescription>
+                                                    </div>
+                                                    <Badge className={m.winRate >= 70 ? "bg-win text-white" : m.winRate >= 50 ? "bg-warning text-black" : "bg-lose text-white"}>
+                                                        %{m.winRate}
+                                                    </Badge>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="pb-4">
+                                                <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                                                    <div className="bg-win/10 p-2 rounded">
+                                                        <div className="font-bold text-win">{m.won}</div>
+                                                        <div className="text-xs opacity-70">W</div>
+                                                    </div>
+                                                    <div className="bg-lose/10 p-2 rounded">
+                                                        <div className="font-bold text-lose">{m.lost}</div>
+                                                        <div className="text-xs opacity-70">L</div>
+                                                    </div>
+                                                    <div className="bg-muted/10 p-2 rounded">
+                                                        <div className="font-bold text-muted-foreground">{m.refund}</div>
+                                                        <div className="text-xs opacity-70">R</div>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {training.length === 0 ? (
+                            <Card className="glass-card">
+                                <CardContent className="flex flex-col items-center justify-center py-16">
+                                    <Brain className="h-16 w-16 text-muted-foreground mb-4" />
+                                    <h3 className="text-xl font-semibold mb-2">Training Pool Boş</h3>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card className="glass-card overflow-hidden">
+                                <div className="p-4 border-b border-border">
+                                    <h3 className="font-semibold">Son İşlemler</h3>
+                                </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Maç</TableHead>
+                                            <TableHead>Market</TableHead>
+                                            <TableHead>Oran</TableHead>
+                                            <TableHead>Sonuç</TableHead>
+                                            <TableHead>Skor</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {training.map(item => (
+                                            <TableRow key={item.id}>
+                                                <TableCell className="font-medium">{item.match}</TableCell>
+                                                <TableCell>{item.market}</TableCell>
+                                                <TableCell>{item.odds || '-'}</TableCell>
+                                                <TableCell>{getStatusBadge(item.result)}</TableCell>
+                                                <TableCell>{item.final_score}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </Card>
+                        )}
+                    </TabsContent>
+
+                    {/* ============ USERS TAB ============ */}
+                    <TabsContent value="users" className="space-y-4">
+                        <div className="flex justify-end">
+                            <Button variant="outline" onClick={loadUsers} disabled={usersLoading}>
+                                <RefreshCw className={`mr-2 h-4 w-4 ${usersLoading ? 'animate-spin' : ''}`} />Yenile
+                            </Button>
+                        </div>
+                        <Card className="glass-card overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead>Rol</TableHead>
+                                        <TableHead>Plan</TableHead>
+                                        <TableHead>Kayıt Tarihi</TableHead>
+                                        <TableHead>İşlem</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {users.map(user => (
+                                        <TableRow key={user.id}>
+                                            <TableCell>{user.email}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className={user.role === 'admin' ? 'border-red-500/50 text-red-500' : ''}>
+                                                    {user.role}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className={user.plan === 'pro' ? 'gradient-accent text-white' : 'bg-secondary'}>
+                                                    {user.plan === 'pro' ? 'PRO' : 'FREE'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground text-sm">
+                                                {new Date(user.created_at).toLocaleDateString('tr-TR')}
+                                            </TableCell>
+                                            <TableCell>
+                                                {user.role !== 'admin' && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant={user.plan === 'pro' ? 'destructive' : 'default'}
+                                                        className={user.plan === 'free' ? 'gradient-success text-white' : ''}
+                                                        onClick={() => togglePlan(user.id, user.plan)}
+                                                    >
+                                                        {user.plan === 'pro' ? 'Pro İptal' : 'Pro Yap'}
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </div>
+        </AppLayout>
+    );
+};
+
+export default AdminPanel;
