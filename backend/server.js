@@ -16,6 +16,66 @@ const auth = require('./lib/auth');
 const cron = require('node-cron');
 const ALLOWED_LEAGUES = require('./data/leagues');
 
+// ============ SETTLEMENT JOB ============
+
+async function runSettlementCycle() {
+    console.log('[Settlement] Starting settlement cycle...');
+    try {
+        // 1. Get Pending Bets
+        const pendingBets = await database.getPendingBets();
+        console.log(`[Settlement] Found ${pendingBets.length} pending bets.`);
+
+        if (pendingBets.length === 0) return;
+
+        let settledCount = 0;
+        for (const bet of pendingBets) {
+            // Check if ready
+            if (!settlement.isReadyForSettlement(bet)) {
+                continue;
+            }
+
+            // Settle
+            const result = await settlement.settleBet(bet);
+            if (result.success) {
+                // Update DB
+                await database.settleBetInDB(bet.id, result.status, result.finalScore);
+
+                // Add to training pool
+                await database.addToTrainingPool({
+                    ...bet,
+                    result: result.status,
+                    finalScore: result.finalScore,
+                    homeGoals: result.homeGoals,
+                    awayGoals: result.awayGoals,
+                    stats: { htHome: result.htHome, htAway: result.htAway }
+                });
+
+                console.log(`[Settlement] Bet ${bet.id} settled as ${result.status} (${result.finalScore})`);
+                settledCount++;
+            } else {
+                console.error(`[Settlement] Failed to settle bet ${bet.id}: ${result.error}`);
+            }
+
+            // Rate limit protection
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        console.log(`[Settlement] Cycle finished. Settled ${settledCount} bets.`);
+
+        // Invalidate cache if anything changed
+        if (settledCount > 0) {
+            await redis.invalidateAnalysisCache();
+        }
+
+    } catch (error) {
+        console.error('[Settlement] Cycle Error:', error.message);
+    }
+}
+
+// Schedule: Run every 10 minutes
+cron.schedule('*/10 * * * *', runSettlementCycle);
+console.log('[Cron] Settlement job scheduled (Every 10 mins)');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
