@@ -138,22 +138,26 @@ function analyzeFirstHalf(homeHistory, awayHistory, h2hHistory, homeTeam, awayTe
 
     const homePot = calculatePotential(homeLastHome);
     const awayPot = calculatePotential(awayLastAway);
-    const h2hPot = calculatePotential(h2hHistory.slice(0, 5));
+    // User Update: Ignore H2H for IY 0.5, focus purely on recent form + verification
 
-    let homeScore = homePot >= 80 ? 40 : homePot >= 60 ? 30 : homePot >= 40 ? 20 : 10;
-    let awayScore = awayPot >= 80 ? 40 : awayPot >= 60 ? 30 : awayPot >= 40 ? 20 : 10;
-    let h2hScore = h2hPot >= 80 ? 20 : h2hPot >= 60 ? 15 : h2hPot >= 40 ? 10 : 0;
+    // New Weights (Total 100 based only on Home/Away)
+    // Scale: >80% = 50pts, >60% = 40pts, >40% = 25pts, else 10pts
+    let homeScore = homePot >= 80 ? 50 : homePot >= 60 ? 40 : homePot >= 40 ? 25 : 10;
+    let awayScore = awayPot >= 80 ? 50 : awayPot >= 60 ? 40 : awayPot >= 40 ? 25 : 10;
 
-    let totalScore = homeScore + awayScore + h2hScore;
+    let totalScore = homeScore + awayScore;
     if (totalScore > 100) totalScore = 100;
     if (totalScore < 0) totalScore = 0;
 
     return {
-        signal: totalScore >= 75,
+        // Lower threshold slightly to allow more into verification (was 75)
+        // If both are >60% (40+40=80) -> Pass
+        // If one >80% (50) and one >40% (25) -> 75 -> Pass
+        // Threshold 70 captures these cases
+        signal: totalScore >= 70,
         score: totalScore,
         homePot,
-        awayPot,
-        h2hPot
+        awayPot
     };
 }
 
