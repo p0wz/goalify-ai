@@ -68,15 +68,16 @@ interface AnalysisResult {
 
 interface ApprovedBet {
     id: string;
-    match_id: string;
-    home_team: string;
-    away_team: string;
+    matchId: string;
+    homeTeam: string;
+    awayTeam: string;
     league: string;
     market: string;
     odds: string;
     status: string;
-    final_score: string;
-    approved_at: string;
+    finalScore: string;
+    approvedAt: string;
+    matchTime?: string;
 }
 
 interface TrainingEntry {

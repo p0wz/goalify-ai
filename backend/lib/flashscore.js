@@ -61,7 +61,8 @@ async function fetchDayMatches(day = 1, allowedLeagues = []) {
                 if (!isAllowed) return;
             }
 
-            tournament.matches.forEach(match => {
+            tournament.matches.forEach((match, index) => {
+                if (index === 0) console.log('[Flashscore] RAW Match Sample:', JSON.stringify(match));
                 const matchTime = match.timestamp ? match.timestamp * 1000 : 0;
                 if (matchTime < now) return; // Skip started/finished matches
 

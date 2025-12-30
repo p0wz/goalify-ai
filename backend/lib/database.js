@@ -104,10 +104,27 @@ async function approveBet(betData) {
     return { success: true, id };
 }
 
+function mapBetFromDB(row) {
+    return {
+        id: row.id,
+        matchId: row.match_id,
+        homeTeam: row.home_team,
+        awayTeam: row.away_team,
+        league: row.league,
+        market: row.market,
+        odds: row.odds,
+        status: row.status,
+        finalScore: row.final_score,
+        approvedAt: row.approved_at,
+        settledAt: row.settled_at,
+        matchTime: row.match_time
+    };
+}
+
 async function getAllApprovedBets() {
     const client = getClient();
     const result = await client.execute('SELECT * FROM approved_bets ORDER BY approved_at DESC');
-    return result.rows;
+    return result.rows.map(mapBetFromDB);
 }
 
 async function getPendingBets() {
@@ -116,7 +133,7 @@ async function getPendingBets() {
         sql: 'SELECT * FROM approved_bets WHERE status = ? ORDER BY approved_at DESC',
         args: ['PENDING']
     });
-    return result.rows;
+    return result.rows.map(mapBetFromDB);
 }
 
 async function settleBetInDB(id, status, finalScore) {

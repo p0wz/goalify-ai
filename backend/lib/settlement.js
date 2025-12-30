@@ -74,7 +74,8 @@ function evaluatePrediction(market, homeGoals, awayGoals, htHome = null, htAway 
         if (htHome !== null && htAway !== null) {
             return result((htHome + htAway) >= 1);
         }
-        return result(totalGoals >= 1); // Fallback
+        console.log(`[Settlement] Missing HT scores for ${market} (HT: ${htHome}-${htAway})`);
+        return null; // Do NOT use FT result as fallback
     }
 
     // MS1 & 1.5 Üst
