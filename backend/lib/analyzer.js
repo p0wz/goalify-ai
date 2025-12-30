@@ -420,7 +420,11 @@ async function analyzeMatch(match, h2hData) {
         const validWins = details.filter(d => checkEitherHalfWin(d, true)).length;
 
         if (validWins >= 2) { // At least 2 out of 3 recent home matches must have 'either half win'
-            passedMarkets.push({ market: 'Ev Herhangi Yarı', key: 'homeWinsHalf' });
+            passedMarkets.push({
+                market: 'Ev Herhangi Yarı',
+                key: 'homeWinsHalf',
+                validation: { validWins, total: 3 }
+            });
             console.log(`${logPrefix} PASSED: Ev Herhangi Yarı (Verified: ${validWins}/3)`);
         } else {
             console.log(`${logPrefix} FAILED: Ev Herhangi Yarı (Validation Failed: ${validWins}/3)`);
@@ -463,12 +467,19 @@ async function analyzeMatch(match, h2hData) {
 /**
  * Generate AI prompt for a match
  */
-function generateAIPrompt(match, stats, market, odds = null) {
+/**
+ * Generate AI prompt for a match
+ */
+function generateAIPrompt(match, stats, marketData, odds = null) {
     const { homeForm, awayForm, homeHomeStats, awayAwayStats, mutual, leagueAvg } = stats;
+
+    // Handle both string and object input for backward compatibility
+    const marketName = typeof marketData === 'string' ? marketData : marketData.market;
+    const verification = typeof marketData === 'object' ? marketData : null;
 
     let prompt = `Match: ${match.homeTeam} vs ${match.awayTeam}
 League: ${match.league}
-Market: ${market}${odds ? `\nOdds: ${odds}` : ''}
+Market: ${marketName}${odds ? `\nOdds: ${odds}` : ''}
 
 ══════════════════════════════════════════════════
 1. LEAGUE CONTEXT
@@ -492,6 +503,24 @@ Market: ${market}${odds ? `\nOdds: ${odds}` : ''}
     });
 
     prompt += '\n══════════════════════════════════════════════════';
+
+    // Add Verification Stats if available
+    if (verification) {
+        if (verification.key === 'firstHalfOver05' && verification.validation) {
+            prompt += `\n\n★ VERIFIED STATS (First Half Analysis):
+   - Detailed Check: Last 3 matches each analyzed
+   - Home FH Goal Rate: ${verification.validation.homeHTRate.toFixed(0)}%
+   - Away FH Goal Rate: ${verification.validation.awayHTRate.toFixed(0)}%
+   - Combined Rate: ${verification.validation.combinedRate.toFixed(0)}%`;
+        }
+
+        if (verification.key === 'homeWinsHalf' && verification.validation) {
+            prompt += `\n\n★ VERIFIED STATS (Home Wins Either Half):
+   - Detailed Check: Last 3 Home matches analyzed
+   - Valid Wins: ${verification.validation.validWins}/3 matches
+   - Status: PASSED (Required 2/3)`;
+        }
+    }
 
     return prompt;
 }

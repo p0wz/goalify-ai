@@ -188,7 +188,8 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
 
             // Generate prompts for each passed market
             for (const pm of analysis.passedMarkets) {
-                const aiPrompt = analyzer.generateAIPrompt(match, analysis.stats, pm.market);
+                // Pass full market object (pm) to include verification stats
+                const aiPrompt = analyzer.generateAIPrompt(match, analysis.stats, pm, oddsText);
                 const rawStats = analyzer.generateRawStats(match, analysis.stats, oddsText);
 
                 results.push({
