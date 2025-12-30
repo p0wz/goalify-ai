@@ -107,13 +107,30 @@ function analyzeFirstHalf(homeHistory, awayHistory, h2hHistory, homeTeam, awayTe
     const calculatePotential = (matches) => {
         if (!matches || matches.length === 0) return 0;
         let totalWeight = 0;
+        let validMatches = 0;
+
         matches.forEach(m => {
-            const total = (parseInt(m.home_team?.score) || 0) + (parseInt(m.away_team?.score) || 0);
-            if (total >= 3) totalWeight += 1.0;
-            else if (total === 2) totalWeight += 0.65;
-            else if (total === 1) totalWeight += 0.30;
+            let htTotal = null;
+
+            // Try to extract HT score directly
+            if (m.home_team?.score_1st_half !== undefined && m.away_team?.score_1st_half !== undefined) {
+                htTotal = (parseInt(m.home_team.score_1st_half) || 0) + (parseInt(m.away_team.score_1st_half) || 0);
+            }
+
+            if (htTotal !== null) {
+                validMatches++;
+                if (htTotal >= 1) totalWeight += 1.0;
+            } else {
+                // Fallback: Use FT score as weak proxy (Weighted less)
+                const ftTotal = (parseInt(m.home_team?.score) || 0) + (parseInt(m.away_team?.score) || 0);
+                validMatches++;
+                if (ftTotal >= 3) totalWeight += 0.7; // High scoring match likely had HT goal
+                else if (ftTotal >= 1) totalWeight += 0.3; // Low chance
+            }
         });
-        return (totalWeight / matches.length) * 100;
+
+        if (validMatches === 0) return 0;
+        return (totalWeight / validMatches) * 100;
     };
 
     const homeLastHome = homeHistory.filter(m => m.home_team?.name === homeTeam).slice(0, 8);
