@@ -101,10 +101,51 @@ const Login = () => {
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                </div>
-                        </div>
-                    </div>
-                    );
+                                    required
+                                    className="pl-4 h-12 bg-secondary/50 border-input rounded-xl"
+                                />
+                            </div>
+
+                            {error && (
+                                <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>{error}</AlertDescription>
+                                </Alert>
+                            )}
+
+                            <Button
+                                type="submit"
+                                className="w-full h-12 text-lg font-medium gradient-primary shadow-glow-primary transition-all hover:scale-[1.02]"
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <span className="flex items-center gap-2">
+                                        <Zap className="animate-spin h-5 w-5" />
+                                        İşleniyor...
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-2">
+                                        {isRegistering ? "Kayıt Ol" : "Giriş Yap"} <ArrowRight className="w-5 h-5" />
+                                    </span>
+                                )}
+                            </Button>
+
+                            <div className="text-center mt-4">
+                                <Button
+                                    variant="link"
+                                    type="button"
+                                    onClick={() => setIsRegistering(!isRegistering)}
+                                    className="text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                    {isRegistering ? "Zaten hesabın var mı? Giriş Yap" : "Hesabınız yok mu? Kayıt Ol"}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
 };
 
-                    export default Login;
+export default Login;
