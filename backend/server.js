@@ -210,6 +210,9 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
 
             processed++;
             console.log(`[Analysis] Progress: ${processed}/${limit}`);
+
+            // Rate limiting pause between matches
+            await new Promise(r => setTimeout(r, 1500));
         }
 
         // Cache results

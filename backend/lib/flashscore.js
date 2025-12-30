@@ -15,14 +15,14 @@ const FLASHSCORE_API = {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function fetchWithRetry(url, options, retries = 2, delay = 1000) {
+async function fetchWithRetry(url, options, retries = 5, delay = 2000) {
     try {
         return await axios.get(url, options);
     } catch (error) {
         if (error.response && error.response.status === 429 && retries > 0) {
-            console.log(`[Flashscore] Rate limit (429). Waiting ${delay / 1000}s...`);
+            console.log(`[Flashscore] Rate limit (429). Waiting ${delay / 1000}s... (Retries left: ${retries})`);
             await sleep(delay);
-            return fetchWithRetry(url, options, retries - 1, delay * 2);
+            return fetchWithRetry(url, options, retries - 1, delay * 2); // Exponential backoff
         }
         throw error;
     }
@@ -47,16 +47,16 @@ async function fetchDayMatches(day = 1, allowedLeagues = []) {
 
         list.forEach(tournament => {
             if (!tournament.matches || !Array.isArray(tournament.matches)) return;
-            
+
             const leagueName = tournament.name || 'Unknown League';
-            
+
             // League filter
             if (allowedLeagues.length > 0) {
                 const normalizedLeague = normalizeText(leagueName);
                 const isAllowed = allowedLeagues.some(allowed => {
                     const normalizedAllowed = normalizeText(allowed);
                     return normalizedLeague.includes(normalizedAllowed) ||
-                           normalizedAllowed.includes(normalizedLeague);
+                        normalizedAllowed.includes(normalizedLeague);
                 });
                 if (!isAllowed) return;
             }
@@ -95,7 +95,7 @@ async function fetchH2H(matchId) {
             `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/h2h/${matchId}`,
             { headers: FLASHSCORE_API.headers, timeout: 15000 }
         );
-        
+
         const data = response.data;
         return Array.isArray(data) ? data : (data.DATA || []);
     } catch (error) {
