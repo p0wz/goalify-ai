@@ -673,11 +673,11 @@ const AdminPanel = () => {
                                     <TableBody>
                                         {bets.map(bet => (
                                             <TableRow key={bet.id}>
-                                                <TableCell className="font-medium">{bet.home_team} vs {bet.away_team}</TableCell>
+                                                <TableCell className="font-medium">{bet.homeTeam} vs {bet.awayTeam}</TableCell>
                                                 <TableCell>{bet.market}</TableCell>
                                                 <TableCell>{bet.odds || '-'}</TableCell>
                                                 <TableCell>{getStatusBadge(bet.status)}</TableCell>
-                                                <TableCell>{bet.final_score || '-'}</TableCell>
+                                                <TableCell>{bet.finalScore || '-'}</TableCell>
                                                 <TableCell>
                                                     <Button variant="ghost" size="icon" onClick={() => deleteBet(bet.id)} className="text-destructive">
                                                         <Trash2 className="h-4 w-4" />
