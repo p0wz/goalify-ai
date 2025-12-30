@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -108,6 +108,31 @@ const AdminPanel = () => {
     // Approved Bets State
     const [bets, setBets] = useState<ApprovedBet[]>([]);
     const [betsLoading, setBetsLoading] = useState(false);
+
+    // Calculate Real-time Win Rates for Approved Bets
+    const betStats = useMemo(() => {
+        const stats: Record<string, { total: number, won: number, lost: number, refund: number }> = {};
+        bets.forEach(bet => {
+            if (bet.status === 'PENDING') return; // Skip pending
+            if (!stats[bet.market]) stats[bet.market] = { total: 0, won: 0, lost: 0, refund: 0 };
+
+            stats[bet.market].total++;
+            if (bet.status === 'WON') stats[bet.market].won++;
+            if (bet.status === 'LOST') stats[bet.market].lost++;
+            if (bet.status === 'REFUND') stats[bet.market].refund++; // Refunds don't count as lost but affected total? usually excluded from WR.
+            // Let's keep WR = Won / (Won + Lost) for betting accuracy, or Won / Total (including refund)?
+            // Standard: Refund is push. Won / (Won + Lost).
+        });
+
+        return Object.entries(stats).map(([market, data]) => {
+            const decided = data.won + data.lost;
+            return {
+                market,
+                ...data,
+                winRate: decided > 0 ? Math.round((data.won / decided) * 100) : 0
+            };
+        }).sort((a, b) => b.total - a.total);
+    }, [bets]);
     const [settling, setSettling] = useState(false);
 
     // Training Pool State
@@ -581,6 +606,24 @@ const AdminPanel = () => {
                                 <RefreshCw className={`mr-2 h-4 w-4 ${betsLoading ? 'animate-spin' : ''}`} />Yenile
                             </Button>
                         </div>
+
+                        {/* Live Performance Stats */}
+                        {betStats.length > 0 && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+                                {betStats.map(stat => (
+                                    <Card key={stat.market} className="glass-card p-3 flex flex-col items-center justify-center border-t-2 border-t-primary/50">
+                                        <div className="text-xs text-muted-foreground font-medium text-center mb-1 h-8 flex items-center">{stat.market}</div>
+                                        <div className={`text-2xl font-bold ${stat.winRate >= 60 ? 'text-win' : stat.winRate >= 50 ? 'text-warning' : 'text-lose'}`}>
+                                            %{stat.winRate}
+                                        </div>
+                                        <div className="text-xs flex gap-2 mt-1 opacity-70">
+                                            <span className="text-win">{stat.won}W</span>
+                                            <span className="text-lose">{stat.lost}L</span>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
 
                         {bets.length === 0 ? (
                             <Card className="glass-card">
