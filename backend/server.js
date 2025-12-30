@@ -18,8 +18,8 @@ const ALLOWED_LEAGUES = require('./data/leagues');
 
 // ============ SETTLEMENT JOB ============
 
-async function runSettlementCycle() {
-    console.log('[Settlement] Starting settlement cycle...');
+async function runSettlementCycle(force = false) {
+    console.log(`[Settlement] Starting settlement cycle... (Force: ${force})`);
     try {
         // 1. Get Pending Bets
         const pendingBets = await database.getPendingBets();
@@ -30,7 +30,10 @@ async function runSettlementCycle() {
         let settledCount = 0;
         for (const bet of pendingBets) {
             // Check if ready
-            if (!settlement.isReadyForSettlement(bet)) {
+            if (!force && !settlement.isReadyForSettlement(bet)) {
+                // Log strictly to help debugging
+                const matchTime = bet.matchTime ? new Date(parseFloat(bet.matchTime) * 1000).toLocaleString() : 'N/A';
+                console.log(`[Settlement] Bet ${bet.id} NOT READY. MatchTime: ${matchTime} (Skipping)`);
                 continue;
             }
 

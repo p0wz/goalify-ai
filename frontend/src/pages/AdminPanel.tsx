@@ -605,18 +605,29 @@ const AdminPanel = () => {
                             <Button variant="outline" onClick={loadBets} disabled={betsLoading}>
                                 <RefreshCw className={`mr-2 h-4 w-4 ${betsLoading ? 'animate-spin' : ''}`} />Yenile
                             </Button>
+                            <Button variant="outline" onClick={loadBets} disabled={betsLoading}>
+                                <RefreshCw className={`mr-2 h-4 w-4 ${betsLoading ? 'animate-spin' : ''}`} />Yenile
+                            </Button>
+
                             <Button variant="secondary" onClick={async () => {
+                                const force = confirm('Zaman kısıtlamasını yoksayarak TÜM bekleyen bahisleri sonuçlandırmak istiyor musunuz? (Force Mode)');
                                 try {
                                     await fetch(`${API_BASE}/settlement/trigger`, {
                                         method: 'POST',
-                                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                                        headers: {
+                                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({ force })
                                     });
-                                    alert('Sonuçlandırma işlemi başlatıldı. Logları kontrol edin.');
+                                    alert(`İşlem başlatıldı. ${force ? '(FORCE MODU AKTİF)' : ''} Logları kontrol edin.`);
+                                    // Refresh after a delay
+                                    setTimeout(loadBets, 3000);
                                 } catch (e) {
                                     alert('Hata oluştu');
                                 }
                             }}>
-                                <Play className="mr-2 h-4 w-4" /> Sonuçlandır
+                                <Play className="mr-2 h-4 w-4" /> {betsLoading ? 'İşleniyor...' : 'Sonuçlandır'}
                             </Button>
                         </div>
 
