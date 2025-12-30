@@ -160,13 +160,13 @@ const AdminPanel = () => {
         }
     };
 
-    const runAnalysis = async () => {
+    const runAnalysis = async (limit: number = 500, leagueFilter: boolean = true) => {
         setAnalysisLoading(true);
         try {
             const res = await fetch(`${API_BASE}/analysis/run`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                body: JSON.stringify({ limit: 50, leagueFilter: true })
+                body: JSON.stringify({ limit, leagueFilter })
             });
             handleAuthError(res);
             const data = await safeJson(res);
@@ -445,14 +445,27 @@ const AdminPanel = () => {
                     <TabsContent value="analysis" className="space-y-4">
                         <div className="flex flex-wrap gap-3 items-center">
                             <Button
-                                onClick={runAnalysis}
+                                onClick={() => runAnalysis(500, true)}
                                 disabled={analysisLoading}
                                 className="gradient-primary text-white shadow-glow-primary"
                             >
                                 {analysisLoading ? (
                                     <><Activity className="mr-2 h-4 w-4 animate-spin" />Analiz Ediliyor...</>
                                 ) : (
-                                    <><Play className="mr-2 h-4 w-4" />Analizi Başlat</>
+                                    <><Play className="mr-2 h-4 w-4" />Analizi Başlat (Filtreli)</>
+                                )}
+                            </Button>
+
+                            <Button
+                                onClick={() => runAnalysis(500, false)}
+                                disabled={analysisLoading}
+                                variant="outline"
+                                className="border-primary/50 text-foreground hover:bg-primary/10"
+                            >
+                                {analysisLoading ? (
+                                    <><Activity className="mr-2 h-4 w-4 animate-spin" />Analiz Ediliyor...</>
+                                ) : (
+                                    <><Play className="mr-2 h-4 w-4" />Analizi Başlat (Tüm Ligler)</>
                                 )}
                             </Button>
                             {results.length > 0 && (
