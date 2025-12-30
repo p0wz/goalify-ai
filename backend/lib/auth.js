@@ -17,8 +17,14 @@ async function authenticateToken(req, res, next) {
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        // console.log('[Auth] Decoded token:', JSON.stringify(decoded));
+        console.log(`[Auth] Verifying token. Type: ${typeof token}, Length: ${token.length}`);
+        console.log(`[Auth] Secret Type: ${typeof JWT_SECRET}, Length: ${JWT_SECRET.length}`);
+
+        // Ensure secret is string
+        const secret = String(JWT_SECRET);
+        const decoded = jwt.verify(token, secret);
+
+        // console.log('[Auth] Decoded:', JSON.stringify(decoded));
 
         // Verify user exists in DB (optional security check)
         const user = await database.getUserById(decoded.id);
