@@ -605,6 +605,19 @@ const AdminPanel = () => {
                             <Button variant="outline" onClick={loadBets} disabled={betsLoading}>
                                 <RefreshCw className={`mr-2 h-4 w-4 ${betsLoading ? 'animate-spin' : ''}`} />Yenile
                             </Button>
+                            <Button variant="secondary" onClick={async () => {
+                                try {
+                                    await fetch(`${API_BASE}/settlement/trigger`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                                    });
+                                    alert('Sonuçlandırma işlemi başlatıldı. Logları kontrol edin.');
+                                } catch (e) {
+                                    alert('Hata oluştu');
+                                }
+                            }}>
+                                <Play className="mr-2 h-4 w-4" /> Sonuçlandır
+                            </Button>
                         </div>
 
                         {/* Live Performance Stats */}

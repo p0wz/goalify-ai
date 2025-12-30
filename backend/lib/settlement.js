@@ -138,20 +138,33 @@ function isReadyForSettlement(bet) {
  * Settle a single bet
  */
 async function settleBet(bet) {
+    console.log(`[Settlement] Processing bet ${bet.id} (Match: ${bet.matchId}, Market: ${bet.market})`);
+
+    // 1. Fetch Match Details
+    console.log(`[Settlement] Fetching details for match ${bet.matchId}...`);
     const result = await flashscore.fetchMatchDetails(bet.matchId);
     if (!result) {
+        console.error(`[Settlement] FAILED: Could not fetch match details for ${bet.matchId}`);
         return { success: false, error: 'Could not fetch match details' };
     }
 
+    // 2. Parse Result
     const parsed = flashscore.parseMatchResult(result);
     if (!parsed) {
+        console.error(`[Settlement] FAILED: Could not parse match result for ${bet.matchId}`);
+        console.log(`[Settlement] Raw Result Data Preview:`, JSON.stringify(result).substring(0, 200));
         return { success: false, error: 'Could not parse match result' };
     }
 
+    console.log(`[Settlement] Parsed Result:`, JSON.stringify(parsed));
+
     if (!parsed.isFinished) {
+        console.log(`[Settlement] SKIPPED: Match not finished yet (Status: ${parsed.status})`);
         return { success: false, error: 'Match not finished yet' };
     }
 
+    // 3. Evaluate Result
+    console.log(`[Settlement] Evaluating market '${bet.market}' against result...`);
     const evalResult = evaluatePrediction(
         bet.market,
         parsed.homeGoals,
@@ -161,8 +174,11 @@ async function settleBet(bet) {
     );
 
     if (evalResult === null) {
+        console.error(`[Settlement] FAILED: Unknown market type '${bet.market}'`);
         return { success: false, error: 'Unknown market type' };
     }
+
+    console.log(`[Settlement] Evaluation Outcome: ${evalResult}`);
 
     const status = evalResult;
 

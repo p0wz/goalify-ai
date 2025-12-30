@@ -290,6 +290,17 @@ app.post('/api/bets/approve', auth.authenticateToken, async (req, res) => {
     }
 });
 
+// ============ SETTLEMENT ROUTES ============
+
+app.post('/api/settlement/trigger', auth.authenticateToken, async (req, res) => {
+    console.log('[Settlement] Manual trigger received');
+
+    // Run asynchronously to not block response
+    runSettlementCycle().catch(err => console.error('[Settlement] Async Trigger Error:', err));
+
+    res.json({ success: true, message: 'Settlement cycle started' });
+});
+
 app.get('/api/bets/approved', auth.authenticateToken, async (req, res) => {
     console.log('[Bets] Fetching approved bets...');
     try {
