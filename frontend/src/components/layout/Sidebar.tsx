@@ -1,10 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  TrendingUp, 
-  Radio, 
+import {
+  LayoutDashboard,
+  TrendingUp,
+  Radio,
   Trophy,
-  Settings, 
+  Settings,
   Bell,
   Crown,
   LogOut,
@@ -31,7 +31,7 @@ export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <aside 
+    <aside
       className={cn(
         "fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-all duration-300 flex flex-col",
         collapsed ? "w-20" : "w-64"
@@ -52,7 +52,7 @@ export const Sidebar = () => {
             <Trophy className="w-5 h-5 text-primary-foreground" />
           </div>
         )}
-        <button 
+        <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
             "p-2 rounded-lg hover:bg-secondary transition-colors",
@@ -73,8 +73,8 @@ export const Sidebar = () => {
               to={item.path}
               className={cn(
                 "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group",
-                isActive 
-                  ? "gradient-primary text-primary-foreground shadow-glow-primary" 
+                isActive
+                  ? "gradient-primary text-primary-foreground shadow-glow-primary"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
@@ -109,8 +109,8 @@ export const Sidebar = () => {
               to={item.path}
               className={cn(
                 "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200",
-                isActive 
-                  ? "bg-secondary text-foreground" 
+                isActive
+                  ? "bg-secondary text-foreground"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
@@ -119,8 +119,12 @@ export const Sidebar = () => {
             </Link>
           );
         })}
-        
+
         <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            window.location.href = "/login";
+          }}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200",
             "text-destructive hover:bg-destructive/10",
