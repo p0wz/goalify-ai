@@ -617,7 +617,42 @@ Last ${mutual.length} Meetings:`;
         text += `\n\n─────────── BETTING ODDS ───────────\n${odds}`;
     }
 
-    text += `
+    text += '\n══════════════════════════════════════════════════';
+    return text;
+}
+
+function generateDetailedStats(match, stats, mutual) {
+    const { homeForm, awayForm, homeHomeStats, awayAwayStats } = stats;
+    const kickoff = new Date(match.timestamp * 1000).toLocaleString('tr-TR');
+
+    let text = `══════════════════════════════════════════════════
+MATCH REPORT: ${match.homeTeam} vs ${match.awayTeam}
+LEAGUE: ${match.league}
+DATE: ${kickoff}
+
+─────────── HOME TEAM: ${match.homeTeam} ───────────
+A. GENERAL FORM (Last 5):
+   • Record: ${homeForm.matches} Matches
+   • Performance: Win ${homeForm.winRate}% | Draw ${homeForm.drawRate || 0}% | Loss ${homeForm.lossRate || 0}%
+   • Goals: Scored ${homeForm.avgScored.toFixed(2)} | Conceded ${homeForm.avgConceded.toFixed(2)}
+   • Clean Sheets: ${homeForm.cleanSheetRate}% | Failed to Score: ${(100 - homeForm.scoringRate).toFixed(0)}%
+   • Key Lines:
+     - Over 1.5: ${homeForm.over15Rate}%
+     - Over 2.5: ${homeForm.over25Rate}%
+     - Under 2.5: ${homeForm.under25Rate}%
+     - BTTS: ${homeForm.bttsRate}%
+
+B. HOME PERFORMANCE (Last 8 Home):
+   • Win Rate: ${homeHomeStats.winRate.toFixed(1)}%
+   • Scoring Rate: ${homeHomeStats.scoringRate.toFixed(0)}%
+   • Avg Goals: Scored ${homeHomeStats.avgScored.toFixed(2)} | Conceded ${homeHomeStats.avgConceded.toFixed(2)}
+   • First Half: Win ${(homeHomeStats.firstHalfWinRate || 0).toFixed(0)}% | Draw ${(homeHomeStats.firstHalfDrawRate || 0).toFixed(0)}%
+   • Second Half: Win ${(homeHomeStats.secondHalfWinRate || 0).toFixed(0)}% | Draw ${(homeHomeStats.secondHalfDrawRate || 0).toFixed(0)}%
+   • Sequences:
+     - Scored in last ${homeHomeStats.scoringSequence || 0} home matches
+     - Conceded in last ${homeHomeStats.concedingSequence || 0} home matches
+
+─────────── AWAY TEAM: ${match.awayTeam} ───────────
 A. GENERAL FORM (Last 5):
    • Record: ${awayForm.matches} Matches
    • Performance: Win ${awayForm.winRate}% | Draw ${awayForm.drawRate || 0}% | Loss ${awayForm.lossRate || 0}%
@@ -641,14 +676,14 @@ B. AWAY PERFORMANCE (Last 8 Away):
 
 ─────────── HEAD TO HEAD (H2H) ───────────
 Last ${mutual.length} Meetings:
-    `;
+`;
 
     mutual.forEach(g => {
         const date = new Date(g.timestamp * 1000).toLocaleDateString('tr-TR');
         const ht = (g.home_team && g.away_team && g.home_team.score_1st_half != null)
-            ? `(HT: ${g.home_team.score_1st_half} - ${g.away_team.score_1st_half})`
+            ? `(HT: ${g.home_team.score_1st_half}-${g.away_team.score_1st_half})`
             : '';
-        text += `   • ${date}: ${g.home_team?.name} ${g.home_team?.score} -${g.away_team?.score} ${g.away_team?.name} ${ht} \n`;
+        text += `   • ${date}: ${g.home_team?.name} ${g.home_team?.score}-${g.away_team?.score} ${g.away_team?.name} ${ht}\n`;
     });
 
     text += '══════════════════════════════════════════════════';
