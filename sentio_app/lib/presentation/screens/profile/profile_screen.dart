@@ -4,190 +4,194 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/glass_card.dart';
 import '../../widgets/common/gradient_button.dart';
 
-/// Profile Screen
-/// Shows user info, stats, and menu options - or login prompt if not authenticated
+/// Profile Screen - Premium Design with i18n
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    final strings = ref.watch(stringsProvider);
 
-    // If not authenticated, show login prompt
     if (!authState.isAuthenticated) {
-      return _buildLoginPrompt(context);
+      return _buildLoginPrompt(context, strings);
     }
 
-    // Authenticated - show profile
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/settings'),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          children: [
-            // Profile Header
-            _buildProfileHeader(context, authState),
-            const SizedBox(height: AppSpacing.xxl),
-
-            // Stats Grid
-            _buildStatsGrid(context),
-            const SizedBox(height: AppSpacing.xxl),
-
-            // Menu Items
-            _buildMenuSection(context, ref),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              title: Text(strings.profile),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => context.push('/settings'),
+                ),
+              ],
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildProfileHeader(context, authState, strings),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _buildStatsGrid(context, strings),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _buildMenuSection(context, ref, strings),
+                ]),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLoginPrompt(BuildContext context) {
+  Widget _buildLoginPrompt(BuildContext context, AppStrings strings) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryPurple.withAlpha(25),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.person_outline_rounded,
-                  size: 48,
-                  color: AppColors.primaryPurple.withAlpha(128),
-                ),
-              ).animate().fadeIn().scale(),
-              const SizedBox(height: AppSpacing.xl),
-              Text(
-                'Hesabınıza Giriş Yapın',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ).animate().fadeIn(delay: 100.ms),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Tahminlerinizi kaydedin, istatistiklerinizi takip edin',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-                ),
-              ).animate().fadeIn(delay: 200.ms),
-              const SizedBox(height: AppSpacing.xxl),
-              GradientButton(
-                text: 'Giriş Yap',
-                onPressed: () => context.go('/login'),
-              ).animate().fadeIn(delay: 300.ms),
-              const SizedBox(height: AppSpacing.md),
-              TextButton(
-                onPressed: () => context.go('/register'),
-                child: const Text('Hesabınız yok mu? Kayıt olun'),
-              ).animate().fadeIn(delay: 400.ms),
-            ],
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xxl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.gradientPrimary,
+                    shape: BoxShape.circle,
+                    boxShadow: [AppShadows.primaryGlow],
+                  ),
+                  child: const Icon(
+                    Icons.person_outline_rounded,
+                    size: 56,
+                    color: Colors.white,
+                  ),
+                ).animate().fadeIn().scale(),
+                const SizedBox(height: AppSpacing.xxl),
+                Text(
+                  strings.loginToProfile,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ).animate().fadeIn(delay: 100.ms),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  strings.loginToProfileSubtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withAlpha(153),
+                    fontSize: 15,
+                  ),
+                ).animate().fadeIn(delay: 200.ms),
+                const SizedBox(height: AppSpacing.xxxl),
+                GradientButton(
+                  text: strings.login,
+                  onPressed: () => context.go('/login'),
+                ).animate().fadeIn(delay: 300.ms),
+                const SizedBox(height: AppSpacing.md),
+                TextButton(
+                  onPressed: () => context.go('/register'),
+                  child: Text('${strings.noAccount} ${strings.register}'),
+                ).animate().fadeIn(delay: 400.ms),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, AuthState authState) {
+  Widget _buildProfileHeader(
+    BuildContext context,
+    AuthState authState,
+    AppStrings strings,
+  ) {
     final user = authState.user;
-    final email = user?.email ?? 'kullanici@email.com';
+    final email = user?.email ?? '';
     final name = user?.name ?? email.split('@').first;
     final initials = name.isNotEmpty ? name[0].toUpperCase() : 'U';
     final isPremium = user?.isPremium ?? false;
 
     return Column(
       children: [
-        // Avatar
+        // Avatar with glow
         Container(
-          width: 100,
-          height: 100,
           decoration: BoxDecoration(
-            gradient: AppColors.gradientPrimary,
             shape: BoxShape.circle,
-            boxShadow: [AppShadows.primaryGlow],
+            boxShadow: [AppShadows.primaryGlowStrong],
           ),
-          child: Center(
-            child: Text(
-              initials,
-              style: const TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+          child: Container(
+            width: 110,
+            height: 110,
+            decoration: BoxDecoration(
+              gradient: AppColors.gradientPrimary,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
-        ).animate().fadeIn(duration: 400.ms).scale(delay: 100.ms),
+        ).animate().fadeIn(duration: 500.ms).scale(delay: 100.ms),
 
         const SizedBox(height: AppSpacing.lg),
 
-        // Name
         Text(
           name,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
         ).animate().fadeIn(delay: 200.ms),
-
-        const SizedBox(height: AppSpacing.xs),
-
-        // Badge
-        if (isPremium)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              gradient: AppColors.gradientPremium,
-              borderRadius: BorderRadius.circular(AppRadius.full),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.star_rounded, size: 14, color: Colors.white),
-                SizedBox(width: 4),
-                Text(
-                  'Pro Üye',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fadeIn(delay: 300.ms)
-        else
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(AppRadius.full),
-              border: Border.all(color: Theme.of(context).dividerColor),
-            ),
-            child: const Text(
-              'Ücretsiz Plan',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-            ),
-          ).animate().fadeIn(delay: 300.ms),
 
         const SizedBox(height: AppSpacing.sm),
 
-        // Email
+        // Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: isPremium ? AppColors.gradientPremium : null,
+            color: isPremium ? null : AppColors.darkMuted,
+            borderRadius: BorderRadius.circular(AppRadius.full),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isPremium) ...[
+                const Icon(Icons.star_rounded, size: 16, color: Colors.white),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                isPremium ? strings.proPlan : strings.freePlan,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(delay: 300.ms),
+
+        const SizedBox(height: AppSpacing.sm),
+
         Text(
           email,
           style: TextStyle(
@@ -199,33 +203,33 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatsGrid(BuildContext context) {
+  Widget _buildStatsGrid(BuildContext context, AppStrings strings) {
     return Row(
       children: [
         Expanded(
           child: _buildStatItem(
             context,
-            value: '-',
-            label: 'Tahmin',
-            color: AppColors.primaryPurple,
+            '-',
+            strings.totalPredictions,
+            AppColors.primaryPurple,
           ),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: _buildStatItem(
             context,
-            value: '-',
-            label: 'Başarı',
-            color: AppColors.winGreen,
+            '-',
+            strings.successRate,
+            AppColors.winGreen,
           ),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: _buildStatItem(
             context,
-            value: '-',
-            label: 'Kazanılan',
-            color: AppColors.accentOrange,
+            '-',
+            strings.won,
+            AppColors.accentOrange,
           ),
         ),
       ],
@@ -233,14 +237,13 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildStatItem(
-    BuildContext context, {
-    required String value,
-    required String label,
-    required Color color,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    BuildContext context,
+    String value,
+    String label,
+    Color color,
+  ) {
     return GlassCard(
+      variant: GlassCardVariant.elevated,
       padding: const EdgeInsets.symmetric(
         vertical: AppSpacing.lg,
         horizontal: AppSpacing.sm,
@@ -250,42 +253,49 @@ class ProfileScreen extends ConsumerWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
               color: color,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark
-                  ? AppColors.darkMutedForeground
-                  : AppColors.lightMutedForeground,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMenuSection(BuildContext context, WidgetRef ref) {
+  Widget _buildMenuSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppStrings strings,
+  ) {
     final menuItems = [
       {
-        'icon': Icons.star_outline_rounded,
-        'title': 'Premium',
+        'icon': Icons.workspace_premium_rounded,
+        'title': strings.premium,
         'route': '/premium',
       },
       {
         'icon': Icons.notifications_outlined,
-        'title': 'Bildirimler',
+        'title': strings.notifications,
         'route': '/notifications',
       },
       {
         'icon': Icons.settings_outlined,
-        'title': 'Ayarlar',
+        'title': strings.settings,
         'route': '/settings',
+      },
+      {
+        'icon': Icons.help_outline_rounded,
+        'title': strings.help,
+        'route': '/help',
       },
     ];
 
@@ -302,9 +312,17 @@ class ProfileScreen extends ConsumerWidget {
               return Column(
                 children: [
                   ListTile(
-                    leading: Icon(
-                      item['icon'] as IconData,
-                      color: AppColors.primaryPurple,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryPurple.withAlpha(25),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        item['icon'] as IconData,
+                        color: AppColors.primaryPurple,
+                        size: 20,
+                      ),
                     ),
                     title: Text(
                       item['title'] as String,
@@ -321,7 +339,7 @@ class ProfileScreen extends ConsumerWidget {
                   if (!isLast)
                     Divider(
                       height: 1,
-                      indent: 56,
+                      indent: 64,
                       color: Theme.of(context).dividerColor,
                     ),
                 ],
@@ -332,51 +350,64 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: AppSpacing.lg),
         // Logout Button
         GlassCard(
+          variant: GlassCardVariant.danger,
           padding: EdgeInsets.zero,
+          onTap: () => _handleLogout(context, ref, strings),
           child: ListTile(
-            leading: const Icon(Icons.logout_rounded, color: AppColors.loseRed),
-            title: const Text(
-              'Çıkış Yap',
-              style: TextStyle(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.loseRed.withAlpha(25),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: AppColors.loseRed,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              strings.logout,
+              style: const TextStyle(
                 fontWeight: FontWeight.w500,
                 color: AppColors.loseRed,
               ),
             ),
-            onTap: () async {
-              // Show confirmation dialog
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Çıkış Yap'),
-                  content: const Text(
-                    'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('İptal'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text(
-                        'Çıkış Yap',
-                        style: TextStyle(color: AppColors.loseRed),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm == true) {
-                await ref.read(authProvider.notifier).logout();
-                if (context.mounted) {
-                  context.go('/login');
-                }
-              }
-            },
           ),
         ),
       ],
-    ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0);
+    ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.05);
+  }
+
+  void _handleLogout(
+    BuildContext context,
+    WidgetRef ref,
+    AppStrings strings,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.logout),
+        content: Text(strings.logoutConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(strings.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              strings.logout,
+              style: const TextStyle(color: AppColors.loseRed),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await ref.read(authProvider.notifier).logout();
+      if (context.mounted) context.go('/login');
+    }
   }
 }

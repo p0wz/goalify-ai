@@ -4,13 +4,14 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 
 /// Glass Card Widget
-/// Implements glassmorphism effect with blur and transparency
+/// Premium glassmorphism effect with blur, glow, and gradient borders
 class GlassCard extends StatelessWidget {
   final Widget child;
   final GlassCardVariant variant;
   final EdgeInsets padding;
   final VoidCallback? onTap;
   final double? borderRadius;
+  final bool showGlow;
 
   const GlassCard({
     super.key,
@@ -19,6 +20,7 @@ class GlassCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(AppSpacing.lg),
     this.onTap,
     this.borderRadius,
+    this.showGlow = false,
   });
 
   @override
@@ -29,50 +31,130 @@ class GlassCard extends StatelessWidget {
     Color backgroundColor;
     double blur;
     Color borderColor;
+    List<BoxShadow> shadows = [];
 
     switch (variant) {
       case GlassCardVariant.defaultVariant:
         backgroundColor = isDark
-            ? AppColors.darkCard.withOpacity(0.7)
-            : AppColors.lightCard.withOpacity(0.8);
+            ? AppColors.darkCard.withAlpha(230)
+            : AppColors.lightCard.withAlpha(240);
         blur = 10;
         borderColor = isDark
-            ? AppColors.darkBorder.withOpacity(0.5)
-            : AppColors.lightBorder.withOpacity(0.5);
+            ? Colors.white.withAlpha(13)
+            : AppColors.lightBorder.withAlpha(128);
+        if (isDark) {
+          shadows.add(
+            BoxShadow(
+              color: Colors.black.withAlpha(38),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          );
+        }
         break;
-      case GlassCardVariant.strong:
+
+      case GlassCardVariant.elevated:
         backgroundColor = isDark
-            ? AppColors.darkCard.withOpacity(0.9)
-            : AppColors.lightCard.withOpacity(0.95);
-        blur = 20;
-        borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+            ? AppColors.darkCardElevated.withAlpha(242)
+            : AppColors.lightCard;
+        blur = 15;
+        borderColor = isDark
+            ? Colors.white.withAlpha(20)
+            : AppColors.lightBorder;
+        shadows.add(
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 51 : 13),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
+          ),
+        );
         break;
+
       case GlassCardVariant.premium:
         backgroundColor = isDark
-            ? AppColors.primaryPurple.withOpacity(0.15)
-            : AppColors.primaryPurple.withOpacity(0.08);
+            ? AppColors.primaryPurple.withAlpha(25)
+            : AppColors.primaryPurple.withAlpha(13);
         blur = 15;
-        borderColor = AppColors.primaryPurple.withOpacity(0.3);
+        borderColor = AppColors.primaryPurple.withAlpha(77);
+        shadows.add(
+          BoxShadow(
+            color: AppColors.primaryPurple.withAlpha(isDark ? 51 : 25),
+            blurRadius: 30,
+            offset: const Offset(0, 8),
+          ),
+        );
+        break;
+
+      case GlassCardVariant.success:
+        backgroundColor = isDark
+            ? AppColors.winGreen.withAlpha(20)
+            : AppColors.winGreen.withAlpha(10);
+        blur = 12;
+        borderColor = AppColors.winGreen.withAlpha(64);
+        shadows.add(
+          BoxShadow(
+            color: AppColors.winGreen.withAlpha(38),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        );
+        break;
+
+      case GlassCardVariant.danger:
+        backgroundColor = isDark
+            ? AppColors.loseRed.withAlpha(20)
+            : AppColors.loseRed.withAlpha(10);
+        blur = 12;
+        borderColor = AppColors.loseRed.withAlpha(64);
+        shadows.add(
+          BoxShadow(
+            color: AppColors.loseRed.withAlpha(38),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        );
         break;
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(radius),
-            child: Container(
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: BorderRadius.circular(radius),
-                border: Border.all(color: borderColor, width: 1),
+    if (showGlow) {
+      shadows.add(AppShadows.primaryGlow);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: shadows,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(radius),
+              splashColor: AppColors.primaryPurple.withAlpha(25),
+              highlightColor: AppColors.primaryPurple.withAlpha(13),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(radius),
+                  border: Border.all(color: borderColor, width: 1),
+                  gradient: isDark
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withAlpha(5),
+                            Colors.transparent,
+                          ],
+                        )
+                      : null,
+                ),
+                padding: padding,
+                child: child,
               ),
-              padding: padding,
-              child: child,
             ),
           ),
         ),
@@ -81,4 +163,4 @@ class GlassCard extends StatelessWidget {
   }
 }
 
-enum GlassCardVariant { defaultVariant, strong, premium }
+enum GlassCardVariant { defaultVariant, elevated, premium, success, danger }
