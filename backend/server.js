@@ -108,16 +108,16 @@ app.use((req, res, next) => {
 
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { name, email, password } = req.body;
         if (!email || !password) {
             return res.status(400).json({ success: false, error: 'Email and password required' });
         }
 
         const passwordHash = await auth.hashPassword(password);
-        const user = await database.createUser({ email, passwordHash });
+        const user = await database.createUser({ name, email, passwordHash });
 
         const token = auth.generateToken(user);
-        res.json({ success: true, token, user: { id: user.id, email: user.email, role: user.role, plan: user.plan } });
+        res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role, plan: user.plan } });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }
