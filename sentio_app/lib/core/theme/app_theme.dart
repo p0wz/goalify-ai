@@ -88,7 +88,7 @@ class AppTheme {
       labelStyle: TextStyle(color: AppColors.lightMutedForeground),
       hintStyle: TextStyle(color: AppColors.lightMutedForeground),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.lightCard,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -96,7 +96,7 @@ class AppTheme {
         side: BorderSide(color: AppColors.lightBorder),
       ),
     ),
-    tabBarTheme: TabBarTheme(
+    tabBarTheme: TabBarThemeData(
       labelColor: AppColors.primaryPurple,
       unselectedLabelColor: AppColors.lightMutedForeground,
       indicatorColor: AppColors.primaryPurple,
@@ -106,7 +106,7 @@ class AppTheme {
         fontWeight: FontWeight.w500,
       ),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: AppColors.lightCard,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -204,7 +204,7 @@ class AppTheme {
       labelStyle: TextStyle(color: AppColors.darkMutedForeground),
       hintStyle: TextStyle(color: AppColors.darkMutedForeground),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.darkCard,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -212,7 +212,7 @@ class AppTheme {
         side: BorderSide(color: AppColors.darkBorder),
       ),
     ),
-    tabBarTheme: TabBarTheme(
+    tabBarTheme: TabBarThemeData(
       labelColor: AppColors.primaryPurple,
       unselectedLabelColor: AppColors.darkMutedForeground,
       indicatorColor: AppColors.primaryPurple,
@@ -222,7 +222,7 @@ class AppTheme {
         fontWeight: FontWeight.w500,
       ),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: AppColors.darkCardElevated,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.xl),
