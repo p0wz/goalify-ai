@@ -638,7 +638,7 @@ app.get('/api/mobile-bets', async (req, res) => {
 });
 
 // Add bet to mobile (admin only)
-app.post('/api/mobile-bets', auth.requireAdmin, async (req, res) => {
+app.post('/api/mobile-bets', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
     try {
         const { betId, homeTeam, awayTeam, league, market, odds, matchTime, status } = req.body;
 
@@ -666,7 +666,7 @@ app.post('/api/mobile-bets', auth.requireAdmin, async (req, res) => {
 });
 
 // Update mobile bet status (admin only)
-app.patch('/api/mobile-bets/:id', auth.requireAdmin, async (req, res) => {
+app.patch('/api/mobile-bets/:id', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const { status, finalScore } = req.body;
@@ -680,7 +680,7 @@ app.patch('/api/mobile-bets/:id', auth.requireAdmin, async (req, res) => {
 });
 
 // Delete mobile bet (admin only)
-app.delete('/api/mobile-bets/:id', auth.requireAdmin, async (req, res) => {
+app.delete('/api/mobile-bets/:id', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         await database.deleteMobileBet(id);
