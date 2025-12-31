@@ -75,6 +75,23 @@ async function initDatabase() {
     )
         `);
 
+    // Create mobile_bets table
+    await client.execute(`
+        CREATE TABLE IF NOT EXISTS mobile_bets (
+            id TEXT PRIMARY KEY,
+            bet_id TEXT,
+            home_team TEXT,
+            away_team TEXT,
+            league TEXT,
+            market TEXT,
+            odds TEXT,
+            status TEXT DEFAULT 'PENDING',
+            final_score TEXT,
+            match_time TEXT,
+            created_at TEXT
+        )
+    `);
+
     console.log('[Database] Initialized');
 }
 
@@ -310,6 +327,82 @@ async function updateUserPlan(id, plan) {
     return { success: true };
 }
 
+// ============ MOBILE BETS ============
+
+async function addToMobileBets(betData) {
+    const client = getClient();
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    await client.execute({
+        sql: `INSERT INTO mobile_bets(id, bet_id, home_team, away_team, league, market, odds, status, match_time, created_at)
+              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+            id,
+            betData.betId || null,
+            betData.homeTeam,
+            betData.awayTeam,
+            betData.league,
+            betData.market,
+            betData.odds || null,
+            betData.status || 'PENDING',
+            betData.matchTime || null,
+            now
+        ]
+    });
+
+    return { success: true, id };
+}
+
+function mapMobileBetFromDB(row) {
+    return {
+        id: row.id,
+        betId: row.bet_id,
+        homeTeam: row.home_team,
+        awayTeam: row.away_team,
+        league: row.league,
+        market: row.market,
+        odds: row.odds,
+        status: row.status,
+        finalScore: row.final_score,
+        matchTime: row.match_time,
+        createdAt: row.created_at
+    };
+}
+
+async function getAllMobileBets() {
+    const client = getClient();
+    const result = await client.execute('SELECT * FROM mobile_bets ORDER BY created_at DESC');
+    return result.rows.map(mapMobileBetFromDB);
+}
+
+async function getMobileBetsByStatus(status) {
+    const client = getClient();
+    const result = await client.execute({
+        sql: 'SELECT * FROM mobile_bets WHERE status = ? ORDER BY created_at DESC',
+        args: [status]
+    });
+    return result.rows.map(mapMobileBetFromDB);
+}
+
+async function updateMobileBetStatus(id, status, finalScore = null) {
+    const client = getClient();
+    await client.execute({
+        sql: 'UPDATE mobile_bets SET status = ?, final_score = ? WHERE id = ?',
+        args: [status, finalScore, id]
+    });
+    return { success: true };
+}
+
+async function deleteMobileBet(id) {
+    const client = getClient();
+    await client.execute({
+        sql: 'DELETE FROM mobile_bets WHERE id = ?',
+        args: [id]
+    });
+    return { success: true };
+}
+
 module.exports = {
     initDatabase,
     // Approved Bets
@@ -329,5 +422,11 @@ module.exports = {
     getUserByEmail,
     getUserById,
     getAllUsers,
-    updateUserPlan
+    updateUserPlan,
+    // Mobile Bets
+    addToMobileBets,
+    getAllMobileBets,
+    getMobileBetsByStatus,
+    updateMobileBetStatus,
+    deleteMobileBet
 };

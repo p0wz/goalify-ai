@@ -1,23 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../data/services/api_service.dart';
 import '../../widgets/common/glass_card.dart';
-import '../../widgets/match/match_card.dart';
 
-/// Predictions Screen
-/// Shows upcoming matches with AI predictions
-class PredictionsScreen extends StatefulWidget {
+/// Mobile Bet Model
+class MobileBet {
+  final String id;
+  final String homeTeam;
+  final String awayTeam;
+  final String league;
+  final String market;
+  final String? odds;
+  final String status;
+  final String? finalScore;
+  final String? matchTime;
+  final String? createdAt;
+
+  MobileBet({
+    required this.id,
+    required this.homeTeam,
+    required this.awayTeam,
+    required this.league,
+    required this.market,
+    this.odds,
+    required this.status,
+    this.finalScore,
+    this.matchTime,
+    this.createdAt,
+  });
+
+  factory MobileBet.fromJson(Map<String, dynamic> json) {
+    return MobileBet(
+      id: json['id'] ?? '',
+      homeTeam: json['homeTeam'] ?? '',
+      awayTeam: json['awayTeam'] ?? '',
+      league: json['league'] ?? '',
+      market: json['market'] ?? '',
+      odds: json['odds'],
+      status: json['status'] ?? 'PENDING',
+      finalScore: json['finalScore'],
+      matchTime: json['matchTime'],
+      createdAt: json['createdAt'],
+    );
+  }
+}
+
+/// Mobile Bets Provider
+final mobileBetsProvider = FutureProvider<List<MobileBet>>((ref) async {
+  try {
+    final response = await apiService.getMobileBets();
+    if (response['success'] == true) {
+      final bets =
+          (response['bets'] as List?)
+              ?.map((e) => MobileBet.fromJson(e))
+              .toList() ??
+          [];
+      return bets;
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+});
+
+/// Predictions Screen - Now shows Mobile Bets
+class PredictionsScreen extends ConsumerStatefulWidget {
   const PredictionsScreen({super.key});
 
   @override
-  State<PredictionsScreen> createState() => _PredictionsScreenState();
+  ConsumerState<PredictionsScreen> createState() => _PredictionsScreenState();
 }
 
-class _PredictionsScreenState extends State<PredictionsScreen>
+class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<String> _tabs = ['Bugün', 'Yarın', 'Haftalık', 'Tümü'];
+  final List<String> _tabs = ['Bekleyen', 'Sonuçlanan'];
 
   @override
   void initState() {
@@ -33,377 +93,283 @@ class _PredictionsScreenState extends State<PredictionsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final betsAsync = ref.watch(mobileBetsProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tahminler'),
+        title: const Text('Bahisler'),
         actions: [
-          IconButton(icon: const Icon(Icons.search_rounded), onPressed: () {}),
           IconButton(
-            icon: const Icon(Icons.filter_list_rounded),
-            onPressed: () {},
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => ref.refresh(mobileBetsProvider),
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: AppColors.primaryPurple,
+          indicatorWeight: 3,
           labelColor: AppColors.primaryPurple,
           unselectedLabelColor: Theme.of(
             context,
           ).colorScheme.onSurface.withAlpha(128),
-          indicatorColor: AppColors.primaryPurple,
-          tabs: _tabs.map((t) => Tab(text: t)).toList(),
+          tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: _tabs.map((tab) => _buildPredictionsList(context)).toList(),
-      ),
-    );
-  }
+      body: betsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: AppColors.loseRed,
+              ),
+              const SizedBox(height: 16),
+              Text('Hata: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.refresh(mobileBetsProvider),
+                child: const Text('Yeniden Dene'),
+              ),
+            ],
+          ),
+        ),
+        data: (bets) {
+          final pendingBets = bets.where((b) => b.status == 'PENDING').toList();
+          final settledBets = bets.where((b) => b.status != 'PENDING').toList();
 
-  Widget _buildPredictionsList(BuildContext context) {
-    // Mock data - will be replaced with API data
-    final matches = [
-      {
-        'homeTeam': 'Galatasaray',
-        'awayTeam': 'Fenerbahçe',
-        'league': 'Süper Lig',
-        'time': '20:00',
-        'prediction': 'Galatasaray Kazanır',
-        'confidence': 85.0,
-      },
-      {
-        'homeTeam': 'Beşiktaş',
-        'awayTeam': 'Trabzonspor',
-        'league': 'Süper Lig',
-        'time': '22:00',
-        'prediction': 'Berabere',
-        'confidence': 62.0,
-      },
-      {
-        'homeTeam': 'Barcelona',
-        'awayTeam': 'Real Madrid',
-        'league': 'La Liga',
-        'time': '23:00',
-        'prediction': 'Over 2.5',
-        'confidence': 78.0,
-      },
-      {
-        'homeTeam': 'Man City',
-        'awayTeam': 'Liverpool',
-        'league': 'Premier League',
-        'time': '19:30',
-        'prediction': 'BTTS - KG Var',
-        'confidence': 71.0,
-      },
-      {
-        'homeTeam': 'Bayern Munich',
-        'awayTeam': 'Dortmund',
-        'league': 'Bundesliga',
-        'time': '21:30',
-        'prediction': 'Bayern Kazanır',
-        'confidence': 88.0,
-      },
-    ];
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        // TODO: Refresh predictions from API
-        await Future.delayed(const Duration(seconds: 1));
-      },
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        itemCount: matches.length,
-        itemBuilder: (context, index) {
-          final match = matches[index];
-          return MatchCard(
-            homeTeam: match['homeTeam'] as String,
-            awayTeam: match['awayTeam'] as String,
-            league: match['league'] as String,
-            matchTime: match['time'] as String,
-            prediction: match['prediction'] as String?,
-            confidence: match['confidence'] as double?,
-            onTap: () => _showMatchDetail(context, match),
-          ).animate().fadeIn(
-            delay: Duration(milliseconds: index * 100),
-            duration: 300.ms,
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              _buildBetsList(pendingBets, isPending: true),
+              _buildBetsList(settledBets, isPending: false),
+            ],
           );
         },
       ),
     );
   }
 
-  void _showMatchDetail(BuildContext context, Map<String, dynamic> match) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildMatchDetailSheet(context, match),
+  Widget _buildBetsList(List<MobileBet> bets, {required bool isPending}) {
+    if (bets.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isPending
+                  ? Icons.hourglass_empty_rounded
+                  : Icons.check_circle_outline_rounded,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(77),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isPending ? 'Bekleyen bahis yok' : 'Sonuçlanmış bahis yok',
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => ref.refresh(mobileBetsProvider),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        itemCount: bets.length,
+        itemBuilder: (context, index) {
+          final bet = bets[index];
+          return _buildBetCard(bet, index);
+        },
+      ),
     );
   }
 
-  Widget _buildMatchDetailSheet(
-    BuildContext context,
-    Map<String, dynamic> match,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildBetCard(MobileBet bet, int index) {
+    final isWon = bet.status == 'WON';
+    final isLost = bet.status == 'LOST';
+    final isPending = bet.status == 'PENDING';
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppRadius.xxl),
-        ),
-      ),
-      child: Column(
-        children: [
-          // Handle bar
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: AppSpacing.md),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkMuted : AppColors.lightMuted,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+    Color statusColor = AppColors.primaryPurple;
+    IconData statusIcon = Icons.hourglass_empty_rounded;
+    String statusText = 'Bekliyor';
 
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xxl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Teams header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildTeamColumn(match['homeTeam'] as String),
-                      Column(
+    if (isWon) {
+      statusColor = AppColors.winGreen;
+      statusIcon = Icons.check_circle_rounded;
+      statusText = 'Kazandı';
+    } else if (isLost) {
+      statusColor = AppColors.loseRed;
+      statusIcon = Icons.cancel_rounded;
+      statusText = 'Kaybetti';
+    }
+
+    return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: GlassCard(
+            variant: isPending
+                ? GlassCardVariant.premium
+                : GlassCardVariant.defaultVariant,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Row
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            match['time'] as String,
+                            '${bet.homeTeam} vs ${bet.awayTeam}',
                             style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            match['league'] as String,
+                            bet.league,
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark
-                                  ? AppColors.darkMutedForeground
-                                  : AppColors.lightMutedForeground,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withAlpha(153),
                             ),
                           ),
                         ],
                       ),
-                      _buildTeamColumn(match['awayTeam'] as String),
-                    ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withAlpha(25),
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, size: 14, color: statusColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: statusColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // Market and Odds
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface.withAlpha(128),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
-
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // AI Prediction Card
-                  GlassCard(
-                    variant: GlassCardVariant.premium,
-                    child: Column(
-                      children: [
-                        Row(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tahmin',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withAlpha(128),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            bet.market,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (bet.odds != null)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                gradient: AppColors.gradientPrimary,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.md,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.psychology_rounded,
-                                color: Colors.white,
-                                size: 24,
+                            Text(
+                              'Oran',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withAlpha(128),
                               ),
                             ),
-                            const SizedBox(width: AppSpacing.lg),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'AI Tahmini',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.primaryPurple,
-                                    ),
-                                  ),
-                                  Text(
-                                    match['prediction'] as String,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(height: 2),
+                            Text(
+                              bet.odds!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryPurple,
                               ),
-                            ),
-                            _buildLargeConfidenceMeter(
-                              match['confidence'] as double,
                             ),
                           ],
                         ),
-
-                        const SizedBox(height: AppSpacing.lg),
-                        const Divider(),
-                        const SizedBox(height: AppSpacing.lg),
-
-                        // Probability bars
-                        _buildProbabilityBar('Ev Sahibi Kazanır', 0.68),
-                        const SizedBox(height: AppSpacing.md),
-                        _buildProbabilityBar('Berabere', 0.18),
-                        const SizedBox(height: AppSpacing.md),
-                        _buildProbabilityBar('Deplasman Kazanır', 0.14),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Action buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.favorite_border_rounded),
-                          label: const Text('Favorilere Ekle'),
+                      if (bet.finalScore != null)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Skor',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withAlpha(128),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              bet.finalScore!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: isWon
+                                    ? AppColors.winGreen
+                                    : (isLost ? AppColors.loseRed : null),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.add_rounded),
-                          label: const Text('Tahmin Kaydet'),
-                        ),
-                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTeamColumn(String teamName) {
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: AppColors.primaryPurple.withAlpha(25),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              teamName.isNotEmpty ? teamName[0].toUpperCase() : '?',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primaryPurple,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        SizedBox(
-          width: 80,
-          child: Text(
-            teamName,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLargeConfidenceMeter(double confidence) {
-    Color meterColor;
-    if (confidence >= 80) {
-      meterColor = AppColors.winGreen;
-    } else if (confidence >= 60) {
-      meterColor = AppColors.primaryPurple;
-    } else if (confidence >= 40) {
-      meterColor = AppColors.drawYellow;
-    } else {
-      meterColor = AppColors.loseRed;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: meterColor.withAlpha(25),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '${confidence.toInt()}%',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: meterColor,
-            ),
-          ),
-          Text(
-            'Güven',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              color: meterColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProbabilityBar(String label, double probability) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 120,
-          child: Text(label, style: const TextStyle(fontSize: 13)),
-        ),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: probability,
-              backgroundColor: AppColors.primaryPurple.withAlpha(25),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                AppColors.primaryPurple,
-              ),
-              minHeight: 8,
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Text(
-          '${(probability * 100).toInt()}%',
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
+        )
+        .animate()
+        .fadeIn(
+          delay: Duration(milliseconds: index * 50),
+          duration: 300.ms,
+        )
+        .slideY(begin: 0.05, end: 0);
   }
 }

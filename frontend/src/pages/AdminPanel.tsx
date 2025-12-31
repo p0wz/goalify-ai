@@ -35,7 +35,8 @@ import {
     Zap,
     User,
     Shield,
-    List
+    List,
+    Smartphone
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
@@ -110,6 +111,20 @@ interface UserData {
     created_at: string;
 }
 
+interface MobileBet {
+    id: string;
+    betId: string;
+    homeTeam: string;
+    awayTeam: string;
+    league: string;
+    market: string;
+    odds: string;
+    status: string;
+    finalScore: string;
+    matchTime: string;
+    createdAt: string;
+}
+
 const AdminPanel = () => {
     // Analysis State
     const [results, setResults] = useState<AnalysisResult[]>([]);
@@ -161,6 +176,10 @@ const AdminPanel = () => {
     const [users, setUsers] = useState<UserData[]>([]);
     const [usersLoading, setUsersLoading] = useState(false);
 
+    // Mobile Bets State
+    const [mobileBets, setMobileBets] = useState<MobileBet[]>([]);
+    const [mobileBetsLoading, setMobileBetsLoading] = useState(false);
+
 
     // Load data on mount
     useEffect(() => {
@@ -168,6 +187,7 @@ const AdminPanel = () => {
         loadBets();
         loadTraining();
         loadUsers();
+        loadMobileBets();
     }, []);
 
     // ============ ANALYSIS FUNCTIONS ============
@@ -441,6 +461,65 @@ const AdminPanel = () => {
         }
     };
 
+    // ============ MOBILE BETS FUNCTIONS ============
+
+    const loadMobileBets = async () => {
+        setMobileBetsLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/mobile-bets`, { headers: getAuthHeaders() as any });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) setMobileBets(data.bets || []);
+        } catch (err) {
+            console.error(err);
+        }
+        setMobileBetsLoading(false);
+    };
+
+    const addToMobile = async (bet: ApprovedBet) => {
+        try {
+            const res = await fetch(`${API_BASE}/mobile-bets`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({
+                    betId: bet.id,
+                    homeTeam: bet.homeTeam,
+                    awayTeam: bet.awayTeam,
+                    league: bet.league,
+                    market: bet.market,
+                    odds: bet.odds,
+                    matchTime: bet.matchTime,
+                    status: bet.status
+                })
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                toast.success('Bahis mobile eklendi!');
+                loadMobileBets();
+            } else {
+                toast.error(data.error || 'Hata oluştu');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
+
+    const deleteMobileBet = async (id: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/mobile-bets/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders() as any
+            });
+            handleAuthError(res);
+            await safeJson(res);
+            loadMobileBets();
+            toast.success('Mobil bahis silindi');
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
+
     // ============ HELPERS ============
 
     const filteredResults = marketFilter === 'all' ? results : results.filter(r => r.marketKey === marketFilter);
@@ -511,7 +590,7 @@ const AdminPanel = () => {
                 {/* Tabs */}
                 {/* Tabs */}
                 <Tabs defaultValue="analysis" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-6">
                         <TabsTrigger value="analysis" className="relative flex items-center gap-2">
                             <Zap className="h-4 w-4" />
                             Analiz
@@ -529,6 +608,13 @@ const AdminPanel = () => {
                         <TabsTrigger value="bets" className="flex items-center gap-2">
                             <BarChart3 className="h-4 w-4" />
                             Bahisler
+                        </TabsTrigger>
+                        <TabsTrigger value="mobile" className="flex items-center gap-2">
+                            <Smartphone className="h-4 w-4" />
+                            Mobil
+                            {mobileBets.length > 0 && (
+                                <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1">{mobileBets.length}</Badge>
+                            )}
                         </TabsTrigger>
                         <TabsTrigger value="training" className="flex items-center gap-2">
                             <Brain className="h-4 w-4" />
@@ -768,13 +854,67 @@ const AdminPanel = () => {
                                                     <TableCell>{bet.odds || '-'}</TableCell>
                                                     <TableCell>{getStatusBadge(bet.status)}</TableCell>
                                                     <TableCell>{bet.finalScore || '-'}</TableCell>
-                                                    <TableCell>
+                                                    <TableCell className="flex gap-1">
+                                                        <Button variant="outline" size="sm" onClick={() => addToMobile(bet)} className="text-primary">
+                                                            <Smartphone className="h-4 w-4 mr-1" />Mobil
+                                                        </Button>
                                                         <Button variant="ghost" size="icon" onClick={() => deleteBet(bet.id)} className="text-destructive">
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
+                                    </TableBody>
+                                </Table>
+                            </Card>
+                        )}
+                    </TabsContent>
+
+                    {/* ============ MOBILE TAB ============ */}
+                    <TabsContent value="mobile" className="space-y-4">
+                        <div className="flex justify-between items-center bg-card p-4 rounded-lg border">
+                            <h3 className="font-semibold">Mobil Uygulamadaki Bahisler</h3>
+                            <Button variant="outline" onClick={loadMobileBets} disabled={mobileBetsLoading}>
+                                <RefreshCw className={`mr-2 h-4 w-4 ${mobileBetsLoading ? 'animate-spin' : ''}`} />Yenile
+                            </Button>
+                        </div>
+
+                        {mobileBets.length === 0 ? (
+                            <Card className="glass-card">
+                                <CardContent className="flex flex-col items-center justify-center py-16">
+                                    <Smartphone className="h-16 w-16 text-muted-foreground mb-4" />
+                                    <h3 className="text-xl font-semibold mb-2">Mobil'de Bahis Yok</h3>
+                                    <p className="text-muted-foreground">Bahisler sekmesinden "Mobil" butonuna tıklayarak ekleyin.</p>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card className="glass-card overflow-hidden">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Maç</TableHead>
+                                            <TableHead>Market</TableHead>
+                                            <TableHead>Oran</TableHead>
+                                            <TableHead>Durum</TableHead>
+                                            <TableHead>Sonuç</TableHead>
+                                            <TableHead></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {mobileBets.map(bet => (
+                                            <TableRow key={bet.id}>
+                                                <TableCell className="font-medium">{bet.homeTeam} vs {bet.awayTeam}</TableCell>
+                                                <TableCell>{bet.market}</TableCell>
+                                                <TableCell>{bet.odds || '-'}</TableCell>
+                                                <TableCell>{getStatusBadge(bet.status)}</TableCell>
+                                                <TableCell>{bet.finalScore || '-'}</TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="icon" onClick={() => deleteMobileBet(bet.id)} className="text-destructive">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
                                     </TableBody>
                                 </Table>
                             </Card>

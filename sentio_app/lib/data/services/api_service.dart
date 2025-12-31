@@ -156,6 +156,21 @@ class ApiService {
     }
   }
 
+  // ============ MOBILE BETS ============
+
+  Future<Map<String, dynamic>> getMobileBets({String? status}) async {
+    try {
+      final queryParams = status != null ? {'status': status} : null;
+      final response = await _dio.get(
+        '/mobile-bets',
+        queryParameters: queryParams,
+      );
+      return response.data;
+    } on DioException catch (e) {
+      return _handleError(e);
+    }
+  }
+
   // ============ ERROR HANDLING ============
 
   Map<String, dynamic> _handleError(DioException e) {

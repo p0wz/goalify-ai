@@ -618,6 +618,79 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
+// ============ MOBILE BETS API ============
+
+// Get all mobile bets (public endpoint for mobile app)
+app.get('/api/mobile-bets', async (req, res) => {
+    try {
+        const { status } = req.query;
+        let bets;
+        if (status) {
+            bets = await database.getMobileBetsByStatus(status.toUpperCase());
+        } else {
+            bets = await database.getAllMobileBets();
+        }
+        res.json({ success: true, bets });
+    } catch (error) {
+        console.error('[Mobile Bets] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Add bet to mobile (admin only)
+app.post('/api/mobile-bets', auth.requireAdmin, async (req, res) => {
+    try {
+        const { betId, homeTeam, awayTeam, league, market, odds, matchTime, status } = req.body;
+
+        if (!homeTeam || !awayTeam || !market) {
+            return res.status(400).json({ success: false, error: 'homeTeam, awayTeam, market gerekli' });
+        }
+
+        const result = await database.addToMobileBets({
+            betId,
+            homeTeam,
+            awayTeam,
+            league,
+            market,
+            odds,
+            matchTime,
+            status: status || 'PENDING'
+        });
+
+        console.log(`[Mobile Bets] Added: ${homeTeam} vs ${awayTeam} - ${market}`);
+        res.json({ success: true, id: result.id });
+    } catch (error) {
+        console.error('[Mobile Bets] Add Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update mobile bet status (admin only)
+app.patch('/api/mobile-bets/:id', auth.requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, finalScore } = req.body;
+
+        await database.updateMobileBetStatus(id, status, finalScore);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Mobile Bets] Update Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete mobile bet (admin only)
+app.delete('/api/mobile-bets/:id', auth.requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        await database.deleteMobileBet(id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Mobile Bets] Delete Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ STARTUP ============
 
 async function start() {

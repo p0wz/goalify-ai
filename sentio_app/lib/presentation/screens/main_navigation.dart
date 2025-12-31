@@ -12,9 +12,7 @@ class MainNavigation extends StatelessWidget {
   int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/predictions')) return 1;
-    if (location.startsWith('/live')) return 2;
-    if (location.startsWith('/leagues')) return 3;
-    if (location.startsWith('/profile')) return 4;
+    if (location.startsWith('/profile')) return 2;
     return 0; // Dashboard
   }
 
@@ -27,12 +25,6 @@ class MainNavigation extends StatelessWidget {
         context.go('/predictions');
         break;
       case 2:
-        context.go('/live');
-        break;
-      case 3:
-        context.go('/leagues');
-        break;
-      case 4:
         context.go('/profile');
         break;
     }
@@ -50,7 +42,7 @@ class MainNavigation extends StatelessWidget {
           color: isDark ? AppColors.darkCard : AppColors.lightCard,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withAlpha(25),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -58,7 +50,7 @@ class MainNavigation extends StatelessWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -69,31 +61,17 @@ class MainNavigation extends StatelessWidget {
                   isSelected: selectedIndex == 0,
                   onTap: () => _onItemTapped(context, 0),
                 ),
-                _buildNavItem(
-                  context,
-                  icon: Icons.track_changes_rounded,
-                  label: 'Tahminler',
-                  isSelected: selectedIndex == 1,
-                  onTap: () => _onItemTapped(context, 1),
-                ),
                 _buildCenterNavItem(
                   context,
-                  isSelected: selectedIndex == 2,
-                  onTap: () => _onItemTapped(context, 2),
-                ),
-                _buildNavItem(
-                  context,
-                  icon: Icons.emoji_events_rounded,
-                  label: 'Ligler',
-                  isSelected: selectedIndex == 3,
-                  onTap: () => _onItemTapped(context, 3),
+                  isSelected: selectedIndex == 1,
+                  onTap: () => _onItemTapped(context, 1),
                 ),
                 _buildNavItem(
                   context,
                   icon: Icons.person_rounded,
                   label: 'Profil',
-                  isSelected: selectedIndex == 4,
-                  onTap: () => _onItemTapped(context, 4),
+                  isSelected: selectedIndex == 2,
+                  onTap: () => _onItemTapped(context, 2),
                 ),
               ],
             ),
@@ -115,7 +93,7 @@ class MainNavigation extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -123,18 +101,18 @@ class MainNavigation extends StatelessWidget {
               icon,
               color: isSelected
                   ? AppColors.primaryPurple
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                  : Theme.of(context).colorScheme.onSurface.withAlpha(128),
               size: 24,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 color: isSelected
                     ? AppColors.primaryPurple
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                    : Theme.of(context).colorScheme.onSurface.withAlpha(128),
               ),
             ),
           ],
@@ -151,14 +129,14 @@ class MainNavigation extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 56,
-        height: 56,
+        width: 64,
+        height: 64,
         decoration: BoxDecoration(
           gradient: AppColors.gradientPrimary,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryPurple.withOpacity(0.4),
+              color: AppColors.primaryPurple.withAlpha(102),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -167,11 +145,11 @@ class MainNavigation extends StatelessWidget {
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.bolt_rounded, color: Colors.white, size: 24),
+            Icon(Icons.track_changes_rounded, color: Colors.white, size: 26),
             Text(
-              'Canlı',
+              'Bahisler',
               style: TextStyle(
-                fontSize: 8,
+                fontSize: 9,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
