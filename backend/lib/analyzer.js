@@ -665,4 +665,3 @@ module.exports = {
     generateDetailedStats,
     ALLOWED_LEAGUES
 };
-```
