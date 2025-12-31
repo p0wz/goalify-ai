@@ -621,7 +621,8 @@ Last ${mutual.length} Meetings:`;
     return text;
 }
 
-function generateDetailedStats(match, stats, mutual) {
+function generateDetailedStats(match, stats, mutual = []) {
+    mutual = mutual || []; // Ensure mutual is always an array
     const { homeForm, awayForm, homeHomeStats, awayAwayStats } = stats;
     const kickoff = new Date(match.timestamp * 1000).toLocaleString('tr-TR');
 
