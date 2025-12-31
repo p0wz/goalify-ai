@@ -1,25 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/common/gradient_button.dart';
 import '../../widgets/common/glass_card.dart';
 
-/// Login Screen
-class LoginScreen extends StatefulWidget {
+/// Login Screen with Riverpod integration
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -30,20 +31,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+      final success = await ref
+          .read(authProvider.notifier)
+          .login(_emailController.text.trim(), _passwordController.text);
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (success && mounted) {
         context.go('/');
+      } else if (mounted) {
+        // Show error snackbar
+        final error = ref.read(authProvider).error;
+        if (error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error), backgroundColor: AppColors.loseRed),
+          );
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -85,9 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 'AI Destekli Futbol Tahmin Platformu',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
                 ),
               ).animate().fadeIn(delay: 300.ms),
 
@@ -167,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     GradientButton(
                       text: 'Giriş Yap',
                       onPressed: _handleLogin,
-                      isLoading: _isLoading,
+                      isLoading: authState.isLoading,
                     ).animate().fadeIn(delay: 700.ms),
 
                     const SizedBox(height: AppSpacing.xxl),
@@ -188,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ?.copyWith(
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.onSurface.withOpacity(0.5),
+                                  ).colorScheme.onSurface.withAlpha(128),
                                 ),
                           ),
                         ),

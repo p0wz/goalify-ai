@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/common/gradient_button.dart';
 
-/// Register Screen
-class RegisterScreen extends StatefulWidget {
+/// Register Screen with Riverpod integration
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -22,7 +24,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -35,14 +36,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _handleRegister() async {
     if (_formKey.currentState!.validate() && _acceptTerms) {
-      setState(() => _isLoading = true);
+      final success = await ref
+          .read(authProvider.notifier)
+          .register(
+            _nameController.text.trim(),
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (success && mounted) {
         context.go('/');
+      } else if (mounted) {
+        // Show error snackbar
+        final error = ref.read(authProvider).error;
+        if (error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error), backgroundColor: AppColors.loseRed),
+          );
+        }
       }
     } else if (!_acceptTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -53,6 +64,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -79,9 +92,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Text(
                 'AI destekli tahminlere hemen başla',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
                 ),
               ).animate().fadeIn(delay: 100.ms),
 
@@ -246,7 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     GradientButton(
                       text: 'Kayıt Ol',
                       onPressed: _handleRegister,
-                      isLoading: _isLoading,
+                      isLoading: authState.isLoading,
                     ).animate().fadeIn(delay: 700.ms),
 
                     const SizedBox(height: AppSpacing.xxl),
