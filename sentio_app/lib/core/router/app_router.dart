@@ -6,6 +6,9 @@ import '../../presentation/screens/auth/register_screen.dart';
 import '../../presentation/screens/dashboard/dashboard_screen.dart';
 import '../../presentation/screens/predictions/predictions_screen.dart';
 import '../../presentation/screens/live/live_screen.dart';
+import '../../presentation/screens/leagues/leagues_screen.dart';
+import '../../presentation/screens/profile/profile_screen.dart';
+import '../../presentation/screens/settings/settings_screen.dart';
 import '../../presentation/screens/main_navigation.dart';
 
 /// SENTIO App Router
@@ -34,6 +37,13 @@ class AppRouter {
         builder: (context, state) => const RegisterScreen(),
       ),
 
+      // Settings (outside shell - no bottom nav)
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+
       // Main App (with bottom navigation)
       ShellRoute(
         builder: (context, state, child) => MainNavigation(child: child),
@@ -56,14 +66,12 @@ class AppRouter {
           GoRoute(
             path: '/leagues',
             name: 'leagues',
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Ligler'))),
+            builder: (context, state) => const LeaguesScreen(),
           ),
           GoRoute(
             path: '/profile',
             name: 'profile',
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Profil'))),
+            builder: (context, state) => const ProfileScreen(),
           ),
         ],
       ),
