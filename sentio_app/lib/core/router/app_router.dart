@@ -9,6 +9,8 @@ import '../../presentation/screens/live/live_screen.dart';
 import '../../presentation/screens/leagues/leagues_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
+import '../../presentation/screens/premium/premium_screen.dart';
+import '../../presentation/screens/notifications/notifications_screen.dart';
 import '../../presentation/screens/main_navigation.dart';
 
 /// SENTIO App Router
@@ -42,6 +44,20 @@ class AppRouter {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+
+      // Premium (full screen modal)
+      GoRoute(
+        path: '/premium',
+        name: 'premium',
+        builder: (context, state) => const PremiumScreen(),
+      ),
+
+      // Notifications
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
 
       // Main App (with bottom navigation)
