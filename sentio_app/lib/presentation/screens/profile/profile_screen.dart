@@ -301,9 +301,9 @@ class ProfileScreen extends ConsumerWidget {
                 size: 18,
               ),
             ),
-            title: const Text(
-              strings.logout,
-              style: TextStyle(fontWeight: FontWeight.w600),
+            title: Text(
+              'Çıkış Yap',
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ).animate().fadeIn(delay: 500.ms),
