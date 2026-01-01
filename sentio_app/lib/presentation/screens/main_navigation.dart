@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_spacing.dart';
 import '../../core/l10n/app_strings.dart';
 
-/// Main Navigation Shell - Clean 4 Tab Layout with translucent background
+/// Main Navigation with gradient & blur
 class MainNavigation extends ConsumerWidget {
   final Widget child;
 
@@ -46,17 +47,27 @@ class MainNavigation extends ConsumerWidget {
       extendBody: true,
       bottomNavigationBar: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.navBackgroundTranslucent,
-              border: const Border(
-                top: BorderSide(color: AppColors.border, width: 0.5),
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.background.withAlpha(230),
+                  AppColors.background.withAlpha(204),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              border: Border(
+                top: BorderSide(
+                  color: AppColors.primary.withAlpha(51),
+                  width: 1,
+                ),
               ),
             ),
             child: SafeArea(
               child: SizedBox(
-                height: 60,
+                height: 64,
                 child: Row(
                   children: [
                     _buildNavItem(
@@ -116,10 +127,34 @@ class MainNavigation extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected ? AppColors.navActive : AppColors.navInactive,
-              size: 24,
+            // Icon with glow when active
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: isSelected
+                  ? BoxDecoration(
+                      color: AppColors.primary.withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withAlpha(51),
+                          blurRadius: 12,
+                          spreadRadius: -2,
+                        ),
+                      ],
+                    )
+                  : null,
+              child: ShaderMask(
+                shaderCallback: (bounds) => isSelected
+                    ? AppColors.gradientPrimary.createShader(bounds)
+                    : LinearGradient(
+                        colors: [AppColors.navInactive, AppColors.navInactive],
+                      ).createShader(bounds),
+                child: Icon(
+                  isSelected ? activeIcon : icon,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -127,7 +162,7 @@ class MainNavigation extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? AppColors.navActive : AppColors.navInactive,
+                color: isSelected ? AppColors.primary : AppColors.navInactive,
               ),
             ),
           ],
