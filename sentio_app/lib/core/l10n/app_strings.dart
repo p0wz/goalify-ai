@@ -92,6 +92,12 @@ class AppStrings {
   String get nameRequired => language == AppLanguage.english
       ? AppStringsEn.nameRequired
       : AppStringsTr.nameRequired;
+  String get passwordLength => language == AppLanguage.english
+      ? 'Password must be at least 6 characters'
+      : 'Şifre en az 6 karakter olmalı';
+  String get alreadyHaveAccount => language == AppLanguage.english
+      ? 'Already have an account?'
+      : 'Zaten hesabın var mı?';
 
   // Navigation
   String get home =>
