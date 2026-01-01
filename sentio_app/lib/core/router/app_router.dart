@@ -5,8 +5,7 @@ import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/register_screen.dart';
 import '../../presentation/screens/dashboard/dashboard_screen.dart';
 import '../../presentation/screens/predictions/predictions_screen.dart';
-import '../../presentation/screens/live/live_screen.dart';
-import '../../presentation/screens/leagues/leagues_screen.dart';
+import '../../presentation/screens/stats/stats_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
 import '../../presentation/screens/premium/premium_screen.dart';
@@ -14,7 +13,6 @@ import '../../presentation/screens/notifications/notifications_screen.dart';
 import '../../presentation/screens/main_navigation.dart';
 
 /// SENTIO App Router
-/// Using go_router for declarative navigation
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/splash',
@@ -75,14 +73,9 @@ class AppRouter {
             builder: (context, state) => const PredictionsScreen(),
           ),
           GoRoute(
-            path: '/live',
-            name: 'live',
-            builder: (context, state) => const LiveScreen(),
-          ),
-          GoRoute(
-            path: '/leagues',
-            name: 'leagues',
-            builder: (context, state) => const LeaguesScreen(),
+            path: '/stats',
+            name: 'stats',
+            builder: (context, state) => const StatsScreen(),
           ),
           GoRoute(
             path: '/profile',

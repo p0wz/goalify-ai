@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_strings.dart';
 
-/// Main Navigation Shell
-/// Contains the bottom navigation bar
-class MainNavigation extends StatelessWidget {
+/// Main Navigation Shell - 4 Tab Layout
+class MainNavigation extends ConsumerWidget {
   final Widget child;
 
   const MainNavigation({super.key, required this.child});
@@ -12,8 +13,9 @@ class MainNavigation extends StatelessWidget {
   int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/predictions')) return 1;
-    if (location.startsWith('/profile')) return 2;
-    return 0; // Dashboard
+    if (location.startsWith('/stats')) return 2;
+    if (location.startsWith('/profile')) return 3;
+    return 0;
   }
 
   void _onItemTapped(BuildContext context, int index) {
@@ -25,14 +27,18 @@ class MainNavigation extends StatelessWidget {
         context.go('/predictions');
         break;
       case 2:
+        context.go('/stats');
+        break;
+      case 3:
         context.go('/profile');
         break;
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = _getSelectedIndex(context);
+    final strings = ref.watch(stringsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -40,38 +46,46 @@ class MainNavigation extends StatelessWidget {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkCard : AppColors.lightCard,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(25),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
+          border: Border(
+            top: BorderSide(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              width: 0.5,
             ),
-          ],
+          ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: SizedBox(
+            height: 64,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(
                   context,
                   icon: Icons.home_rounded,
-                  label: 'Ana Sayfa',
+                  label: strings.home,
                   isSelected: selectedIndex == 0,
                   onTap: () => _onItemTapped(context, 0),
                 ),
-                _buildCenterNavItem(
+                _buildNavItem(
                   context,
+                  icon: Icons.track_changes_rounded,
+                  label: strings.bets,
                   isSelected: selectedIndex == 1,
                   onTap: () => _onItemTapped(context, 1),
+                  isPrimary: true,
+                ),
+                _buildNavItem(
+                  context,
+                  icon: Icons.bar_chart_rounded,
+                  label: 'İstatistikler',
+                  isSelected: selectedIndex == 2,
+                  onTap: () => _onItemTapped(context, 2),
                 ),
                 _buildNavItem(
                   context,
                   icon: Icons.person_rounded,
-                  label: 'Profil',
-                  isSelected: selectedIndex == 2,
-                  onTap: () => _onItemTapped(context, 2),
+                  label: strings.profile,
+                  isSelected: selectedIndex == 3,
+                  onTap: () => _onItemTapped(context, 3),
                 ),
               ],
             ),
@@ -87,72 +101,40 @@ class MainNavigation extends StatelessWidget {
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
+    bool isPrimary = false,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    final color = isSelected
+        ? (isPrimary ? AppColors.primaryPurple : AppColors.primaryPurple)
+        : Theme.of(context).colorScheme.onSurface.withAlpha(102);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? AppColors.primaryPurple
-                  : Theme.of(context).colorScheme.onSurface.withAlpha(128),
-              size: 24,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: EdgeInsets.all(isSelected ? 8 : 6),
+              decoration: isSelected
+                  ? BoxDecoration(
+                      color: AppColors.primaryPurple.withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    )
+                  : null,
+              child: Icon(icon, color: color, size: isSelected ? 24 : 22),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected
-                    ? AppColors.primaryPurple
-                    : Theme.of(context).colorScheme.onSurface.withAlpha(128),
+                color: color,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCenterNavItem(
-    BuildContext context, {
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          gradient: AppColors.gradientPrimary,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryPurple.withAlpha(102),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.track_changes_rounded, color: Colors.white, size: 26),
-            Text(
-              'Bahisler',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

@@ -3,360 +3,302 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../data/services/api_service.dart';
 import '../../widgets/common/glass_card.dart';
 
-/// Mobile Bet Model
-class MobileBet {
-  final String id;
-  final String homeTeam;
-  final String awayTeam;
-  final String league;
-  final String market;
-  final String? odds;
-  final String status;
-  final String? finalScore;
-  final String? matchTime;
-  final String? createdAt;
-
-  MobileBet({
-    required this.id,
-    required this.homeTeam,
-    required this.awayTeam,
-    required this.league,
-    required this.market,
-    this.odds,
-    required this.status,
-    this.finalScore,
-    this.matchTime,
-    this.createdAt,
-  });
-
-  factory MobileBet.fromJson(Map<String, dynamic> json) {
-    return MobileBet(
-      id: json['id'] ?? '',
-      homeTeam: json['homeTeam'] ?? '',
-      awayTeam: json['awayTeam'] ?? '',
-      league: json['league'] ?? '',
-      market: json['market'] ?? '',
-      odds: json['odds'],
-      status: json['status'] ?? 'PENDING',
-      finalScore: json['finalScore'],
-      matchTime: json['matchTime'],
-      createdAt: json['createdAt'],
-    );
-  }
-}
-
-/// Mobile Bets Provider
-final mobileBetsProvider = FutureProvider<List<MobileBet>>((ref) async {
+/// Provider for pending bets only
+final pendingBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   try {
-    final response = await apiService.getMobileBets();
-    if (response['success'] == true) {
-      final bets =
-          (response['bets'] as List?)
-              ?.map((e) => MobileBet.fromJson(e))
-              .toList() ??
-          [];
-      return bets;
-    }
-    return [];
+    final response = await apiService.getMobileBets(status: 'PENDING');
+    final bets = (response['bets'] as List?) ?? [];
+    return bets.cast<Map<String, dynamic>>();
   } catch (e) {
     return [];
   }
 });
 
-/// Predictions Screen - Now shows Mobile Bets
-class PredictionsScreen extends ConsumerStatefulWidget {
+/// Predictions/Bets Screen - Shows only PENDING bets
+class PredictionsScreen extends ConsumerWidget {
   const PredictionsScreen({super.key});
 
   @override
-  ConsumerState<PredictionsScreen> createState() => _PredictionsScreenState();
-}
-
-class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final List<String> _tabs = ['Bekleyen', 'Sonuçlanan'];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final betsAsync = ref.watch(mobileBetsProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(stringsProvider);
+    final pendingBetsAsync = ref.watch(pendingBetsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bahisler'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => ref.refresh(mobileBetsProvider),
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primaryPurple,
-          indicatorWeight: 3,
-          labelColor: AppColors.primaryPurple,
-          unselectedLabelColor: Theme.of(
-            context,
-          ).colorScheme.onSurface.withAlpha(128),
-          tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
-        ),
-      ),
-      body: betsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                size: 48,
-                color: AppColors.loseRed,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async => ref.refresh(pendingBetsProvider),
+          color: AppColors.primaryPurple,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                title: Text(strings.bets),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded),
+                    onPressed: () => ref.refresh(pendingBetsProvider),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text('Hata: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.refresh(mobileBetsProvider),
-                child: const Text('Yeniden Dene'),
+              SliverPadding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                sliver: pendingBetsAsync.when(
+                  loading: () => const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (e, _) => SliverFillRemaining(
+                    child: Center(child: Text('${strings.error}: $e')),
+                  ),
+                  data: (bets) {
+                    if (bets.isEmpty) {
+                      return SliverFillRemaining(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.track_changes_rounded,
+                                size: 64,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withAlpha(51),
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              Text(
+                                strings.noPendingBets,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withAlpha(128),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                'Yeni tahminler yakında eklenecek',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withAlpha(102),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    return SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        if (index == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.lg,
+                            ),
+                            child: Text(
+                              'Günün Tahminleri (${bets.length})',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                            ),
+                          );
+                        }
+                        final bet = bets[index - 1];
+                        return _buildBetCard(context, bet, index - 1);
+                      }, childCount: bets.length + 1),
+                    );
+                  },
+                ),
               ),
             ],
           ),
         ),
-        data: (bets) {
-          final pendingBets = bets.where((b) => b.status == 'PENDING').toList();
-          final settledBets = bets.where((b) => b.status != 'PENDING').toList();
-
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              _buildBetsList(pendingBets, isPending: true),
-              _buildBetsList(settledBets, isPending: false),
-            ],
-          );
-        },
       ),
     );
   }
 
-  Widget _buildBetsList(List<MobileBet> bets, {required bool isPending}) {
-    if (bets.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isPending
-                  ? Icons.hourglass_empty_rounded
-                  : Icons.check_circle_outline_rounded,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(77),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              isPending ? 'Bekleyen bahis yok' : 'Sonuçlanmış bahis yok',
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () async => ref.refresh(mobileBetsProvider),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        itemCount: bets.length,
-        itemBuilder: (context, index) {
-          final bet = bets[index];
-          return _buildBetCard(bet, index);
-        },
-      ),
-    );
-  }
-
-  Widget _buildBetCard(MobileBet bet, int index) {
-    final isWon = bet.status == 'WON';
-    final isLost = bet.status == 'LOST';
-    final isPending = bet.status == 'PENDING';
-
-    Color statusColor = AppColors.primaryPurple;
-    IconData statusIcon = Icons.hourglass_empty_rounded;
-    String statusText = 'Bekliyor';
-
-    if (isWon) {
-      statusColor = AppColors.winGreen;
-      statusIcon = Icons.check_circle_rounded;
-      statusText = 'Kazandı';
-    } else if (isLost) {
-      statusColor = AppColors.loseRed;
-      statusIcon = Icons.cancel_rounded;
-      statusText = 'Kaybetti';
-    }
+  Widget _buildBetCard(
+    BuildContext context,
+    Map<String, dynamic> bet,
+    int index,
+  ) {
+    final homeTeam = bet['homeTeam'] ?? '';
+    final awayTeam = bet['awayTeam'] ?? '';
+    final market = bet['market'] ?? '';
+    final odds = bet['odds'] ?? '';
+    final matchTime = bet['matchTime'] ?? '';
+    final league = bet['league'] ?? '';
 
     return Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
           child: GlassCard(
-            variant: isPending
-                ? GlassCardVariant.premium
-                : GlassCardVariant.defaultVariant,
+            variant: GlassCardVariant.elevated,
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Row
+                // League & Time
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (league.isNotEmpty)
+                      Text(
+                        league,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primaryPurple,
+                        ),
+                      ),
+                    if (matchTime.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentOrange.withAlpha(25),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 12,
+                              color: AppColors.accentOrange,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              matchTime,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.accentOrange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                // Teams
                 Row(
                   children: [
                     Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${bet.homeTeam} vs ${bet.awayTeam}',
+                            homeTeam,
                             style: const TextStyle(
-                              fontSize: 15,
                               fontWeight: FontWeight.w600,
+                              fontSize: 15,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            bet.league,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withAlpha(153),
-                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    Container(
+                    Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                        horizontal: AppSpacing.md,
                       ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withAlpha(25),
-                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'VS',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    ),
+                    Expanded(
+                      child: Column(
                         children: [
-                          Icon(statusIcon, size: 14, color: statusColor),
-                          const SizedBox(width: 4),
                           Text(
-                            statusText,
-                            style: TextStyle(
-                              fontSize: 12,
+                            awayTeam,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: statusColor,
+                              fontSize: 15,
                             ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.lg),
 
-                const SizedBox(height: 12),
-
-                // Market and Odds
+                // Prediction & Odds
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface.withAlpha(128),
+                    gradient: AppColors.gradientPrimary.scale(0.3),
                     borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: AppColors.primaryPurple.withAlpha(51),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          Text(
-                            'Tahmin',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withAlpha(128),
-                            ),
+                          const Icon(
+                            Icons.track_changes_rounded,
+                            size: 16,
+                            color: AppColors.primaryPurple,
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(width: 8),
                           Text(
-                            bet.market,
+                            market,
                             style: const TextStyle(
-                              fontSize: 14,
                               fontWeight: FontWeight.w600,
+                              fontSize: 14,
                             ),
                           ),
                         ],
                       ),
-                      if (bet.odds != null)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'Oran',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withAlpha(128),
-                              ),
+                      if (odds.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.winGreen.withAlpha(25),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            odds,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: AppColors.winGreen,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              bet.odds!,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primaryPurple,
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (bet.finalScore != null)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'Skor',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withAlpha(128),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              bet.finalScore!,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: isWon
-                                    ? AppColors.winGreen
-                                    : (isLost ? AppColors.loseRed : null),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                     ],
                   ),
@@ -367,9 +309,21 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         )
         .animate()
         .fadeIn(
-          delay: Duration(milliseconds: index * 50),
-          duration: 300.ms,
+          delay: Duration(milliseconds: index * 80),
+          duration: 400.ms,
         )
-        .slideY(begin: 0.05, end: 0);
+        .slideY(begin: 0.05);
+  }
+}
+
+extension LinearGradientExtension on LinearGradient {
+  LinearGradient scale(double factor) {
+    return LinearGradient(
+      colors: colors
+          .map((c) => c.withAlpha((c.alpha * factor).round()))
+          .toList(),
+      begin: begin,
+      end: end,
+    );
   }
 }
