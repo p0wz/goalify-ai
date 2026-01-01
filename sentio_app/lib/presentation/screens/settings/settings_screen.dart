@@ -1,294 +1,249 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
-import '../../widgets/common/app_card.dart';
+import '../../../core/theme/theme_provider.dart';
+import '../../widgets/common/clean_card.dart';
 
-/// Settings Screen
-class SettingsScreen extends ConsumerStatefulWidget {
+/// Settings Screen with Theme Toggle
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  bool _soundEnabled = true;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final strings = ref.watch(stringsProvider);
-    final currentLang = ref.watch(languageProvider);
+    final themeState = ref.watch(themeProvider);
+    final currentLanguage = ref.watch(languageProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.settings)),
-      body: SingleChildScrollView(
+      appBar: AppBar(
+        title: Text(strings.settings),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSection('Görünüm', [
-              _buildLanguageSelector(context, strings, currentLang),
-            ]),
-            const SizedBox(height: AppSpacing.xxl),
-            _buildSection('Bildirimler', [
-              _buildSwitch(
-                icon: Icons.notifications_outlined,
-                title: 'Bildirimleri Aç',
-                subtitle: 'Push bildirimleri al',
-                value: _notificationsEnabled,
-                onChanged: (v) => setState(() => _notificationsEnabled = v),
-              ),
-              _buildSwitch(
-                icon: Icons.volume_up_outlined,
-                title: 'Ses',
-                subtitle: 'Bildirim sesleri',
-                value: _soundEnabled,
-                onChanged: (v) => setState(() => _soundEnabled = v),
-              ),
-            ]),
-            const SizedBox(height: AppSpacing.xxl),
-            _buildSection('Hakkında', [
-              _buildInfoTile(
-                context,
-                Icons.info_outline_rounded,
-                'Sürüm',
-                '1.0.0',
-              ),
-              _buildInfoTile(
-                context,
-                Icons.description_outlined,
-                'Gizlilik Politikası',
-                null,
-                onTap: () {},
-              ),
-              _buildInfoTile(
-                context,
-                Icons.article_outlined,
-                'Kullanım Koşulları',
-                null,
-                onTap: () {},
-              ),
-            ]),
-            const SizedBox(height: AppSpacing.xxl),
-            _buildDanger(context, strings),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textMuted,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        AppCard(
-          padding: EdgeInsets.zero,
-          child: Column(children: children),
-        ),
-      ],
-    ).animate().fadeIn();
-  }
-
-  Widget _buildLanguageSelector(
-    BuildContext context,
-    AppStrings strings,
-    AppLanguage currentLang,
-  ) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withAlpha(25),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Icon(
-          Icons.language_rounded,
-          color: AppColors.primary,
-          size: 20,
-        ),
-      ),
-      title: const Text('Dil'),
-      subtitle: Text(currentLang == AppLanguage.turkish ? 'Türkçe' : 'English'),
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        color: AppColors.textMuted,
-      ),
-      onTap: () => _showLanguageDialog(context),
-    );
-  }
-
-  void _showLanguageDialog(BuildContext context) {
-    final currentLang = ref.read(languageProvider);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Dil Seç'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('Türkçe'),
-              leading: Radio<AppLanguage>(
-                value: AppLanguage.turkish,
-                groupValue: currentLang,
-                onChanged: (v) {
-                  ref.read(languageProvider.notifier).state =
-                      AppLanguage.turkish;
-                  Navigator.pop(ctx);
-                },
-              ),
+        children: [
+          // Theme Section
+          _buildSectionTitle(context, 'Tema'),
+          const SizedBox(height: AppSpacing.sm),
+          CleanCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _buildThemeOption(
+                  context,
+                  ref,
+                  'Sistem',
+                  'Cihaz ayarlarını takip et',
+                  Icons.settings_system_daydream_outlined,
+                  AppThemeMode.system,
+                  themeState.mode,
+                ),
+                _divider(context),
+                _buildThemeOption(
+                  context,
+                  ref,
+                  'Açık',
+                  'Beyaz tema',
+                  Icons.light_mode_outlined,
+                  AppThemeMode.light,
+                  themeState.mode,
+                ),
+                _divider(context),
+                _buildThemeOption(
+                  context,
+                  ref,
+                  'Koyu',
+                  'Siyah tema',
+                  Icons.dark_mode_outlined,
+                  AppThemeMode.dark,
+                  themeState.mode,
+                ),
+              ],
             ),
-            ListTile(
-              title: const Text('English'),
-              leading: Radio<AppLanguage>(
-                value: AppLanguage.english,
-                groupValue: currentLang,
-                onChanged: (v) {
-                  ref.read(languageProvider.notifier).state =
-                      AppLanguage.english;
-                  Navigator.pop(ctx);
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSwitch({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withAlpha(25),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: AppColors.primary, size: 20),
-      ),
-      title: Text(title),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-      ),
-      trailing: Switch(
-        value: value,
-        onChanged: onChanged,
-        activeColor: AppColors.primary,
-      ),
-    );
-  }
-
-  Widget _buildInfoTile(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String? value, {
-    VoidCallback? onTap,
-  }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withAlpha(25),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: AppColors.primary, size: 20),
-      ),
-      title: Text(title),
-      trailing: value != null
-          ? Text(value, style: TextStyle(color: AppColors.textMuted))
-          : const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-      onTap: onTap,
-    );
-  }
-
-  Widget _buildDanger(BuildContext context, AppStrings strings) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Tehlikeli Bölge',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.danger,
           ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        AppCard(
-          variant: AppCardVariant.danger,
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withAlpha(25),
-                    borderRadius: BorderRadius.circular(8),
+
+          const SizedBox(height: AppSpacing.xxl),
+
+          // Language Section
+          _buildSectionTitle(context, 'Dil'),
+          const SizedBox(height: AppSpacing.sm),
+          CleanCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _buildLanguageOption(
+                  context,
+                  ref,
+                  'Türkçe',
+                  '🇹🇷',
+                  AppLanguage.turkish,
+                  currentLanguage,
+                ),
+                _divider(context),
+                _buildLanguageOption(
+                  context,
+                  ref,
+                  'English',
+                  '🇺🇸',
+                  AppLanguage.english,
+                  currentLanguage,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.xxl),
+
+          // App Info
+          _buildSectionTitle(context, 'Uygulama'),
+          const SizedBox(height: AppSpacing.sm),
+          CleanCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.info_outline_rounded,
+                    color: AppColors.textSecondary(context),
                   ),
-                  child: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppColors.danger,
-                    size: 20,
+                  title: const Text('Versiyon'),
+                  trailing: Text(
+                    '1.0.0',
+                    style: TextStyle(color: AppColors.textMuted(context)),
                   ),
                 ),
-                title: const Text(
-                  'Hesabı Sil',
-                  style: TextStyle(color: AppColors.danger),
+                _divider(context),
+                ListTile(
+                  leading: Icon(
+                    Icons.privacy_tip_outlined,
+                    color: AppColors.textSecondary(context),
+                  ),
+                  title: const Text('Gizlilik Politikası'),
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textMuted(context),
+                  ),
+                  onTap: () {},
                 ),
-                trailing: const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.danger,
+                _divider(context),
+                ListTile(
+                  leading: Icon(
+                    Icons.description_outlined,
+                    color: AppColors.textSecondary(context),
+                  ),
+                  title: const Text('Kullanım Koşulları'),
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textMuted(context),
+                  ),
+                  onTap: () {},
                 ),
-                onTap: () => _showDeleteConfirm(context, strings),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ).animate().fadeIn();
-  }
-
-  void _showDeleteConfirm(BuildContext context, AppStrings strings) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hesabı Sil'),
-        content: const Text(
-          'Bu işlem geri alınamaz. Hesabınız ve tüm verileriniz silinecektir.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(strings.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Sil', style: TextStyle(color: AppColors.danger)),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textSecondary(context),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(
+    BuildContext context,
+    WidgetRef ref,
+    String title,
+    String subtitle,
+    IconData icon,
+    AppThemeMode mode,
+    AppThemeMode currentMode,
+  ) {
+    final isSelected = mode == currentMode;
+
+    return ListTile(
+      onTap: () => ref.read(themeProvider.notifier).setTheme(mode),
+      leading: Icon(
+        icon,
+        color: isSelected
+            ? AppColors.primary
+            : AppColors.textSecondary(context),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: AppColors.textMuted(context)),
+      ),
+      trailing: isSelected
+          ? Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildLanguageOption(
+    BuildContext context,
+    WidgetRef ref,
+    String title,
+    String flag,
+    AppLanguage lang,
+    AppLanguage currentLang,
+  ) {
+    final isSelected = lang == currentLang;
+
+    return ListTile(
+      onTap: () => ref.read(languageProvider.notifier).state = lang,
+      leading: Text(flag, style: const TextStyle(fontSize: 24)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
+      trailing: isSelected
+          ? Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _divider(BuildContext context) =>
+      Divider(height: 1, indent: 60, color: AppColors.border(context));
 }

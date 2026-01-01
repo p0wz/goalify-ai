@@ -6,9 +6,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/common/premium_card.dart';
+import '../../widgets/common/clean_card.dart';
 
-/// Profile Screen - Vibrant Design
+/// Profile Screen - Clean Design
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -22,68 +22,48 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.background, Color(0xFF12101F)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                floating: true,
-                backgroundColor: Colors.transparent,
-                title: Row(
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) =>
-                          AppColors.gradientAccent.createShader(bounds),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(strings.profile),
-                  ],
-                ),
-                actions: [
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.settings_outlined, size: 20),
-                    ),
-                    onPressed: () => context.push('/settings'),
-                  ),
-                  const SizedBox(width: 8),
+      body: SafeArea(
+        bottom: false,
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              backgroundColor: Colors.transparent,
+              title: Row(
+                children: [
+                  Icon(Icons.person_rounded, color: AppColors.primary),
+                  const SizedBox(width: 10),
+                  Text(strings.profile),
                 ],
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  0,
-                  AppSpacing.lg,
-                  120,
+              actions: [
+                IconButton(
+                  icon: Icon(
+                    Icons.settings_outlined,
+                    color: AppColors.textSecondary(context),
+                  ),
+                  onPressed: () => context.push('/settings'),
                 ),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildHeader(context, authState, strings),
-                    const SizedBox(height: AppSpacing.xxxl),
-                    _buildMenu(context, ref, strings),
-                  ]),
-                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                120,
               ),
-            ],
-          ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const SizedBox(height: AppSpacing.xl),
+                  _buildHeader(context, authState, strings),
+                  const SizedBox(height: AppSpacing.xxxl),
+                  _buildMenu(context, ref, strings),
+                ]),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -91,65 +71,52 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildLoginPrompt(BuildContext context, AppStrings strings) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.background, Color(0xFF12101F)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xxl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.gradientPrimary,
-                    shape: BoxShape.circle,
-                    boxShadow: [AppShadows.primaryGlowStrong],
-                  ),
-                  child: const Icon(
-                    Icons.person_outline_rounded,
-                    size: 48,
-                    color: Colors.white,
-                  ),
-                ).animate().fadeIn().scale(),
-                const SizedBox(height: AppSpacing.xxl),
-                Text(
-                  strings.loginToProfile,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  strings.loginToProfileSubtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
+                child: const Icon(
+                  Icons.person_outline_rounded,
+                  size: 48,
+                  color: Colors.white,
                 ),
-                const SizedBox(height: AppSpacing.xxxl),
-                SizedBox(
-                  width: double.infinity,
-                  child: GradientButton(
-                    text: strings.login,
-                    icon: Icons.login_rounded,
-                    onPressed: () => context.go('/login'),
-                  ),
+              ).animate().fadeIn().scale(),
+              const SizedBox(height: AppSpacing.xxl),
+              Text(
+                strings.loginToProfile,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(height: AppSpacing.md),
-                TextButton(
-                  onPressed: () => context.go('/register'),
-                  child: Text(
-                    '${strings.noAccount} ${strings.register}',
-                    style: const TextStyle(color: AppColors.accent),
-                  ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                strings.loginToProfileSubtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textSecondary(context)),
+              ),
+              const SizedBox(height: AppSpacing.xxxl),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => context.go('/login'),
+                  icon: const Icon(Icons.login_rounded),
+                  label: Text(strings.login),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextButton(
+                onPressed: () => context.go('/register'),
+                child: Text('${strings.noAccount} ${strings.register}'),
+              ),
+            ],
           ),
         ),
       ),
@@ -170,17 +137,16 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            gradient: AppColors.gradientPrimary,
+            color: AppColors.primary,
             shape: BoxShape.circle,
-            boxShadow: [AppShadows.primaryGlow],
           ),
           child: Container(
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: AppColors.card(context),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -206,10 +172,11 @@ class ProfileScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            gradient: isPremium ? AppColors.gradientHot : null,
-            color: isPremium ? null : AppColors.card,
+            color: isPremium ? AppColors.warning : AppColors.card(context),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: isPremium ? [AppShadows.warningGlow] : null,
+            border: isPremium
+                ? null
+                : Border.all(color: AppColors.border(context)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -219,7 +186,9 @@ class ProfileScreen extends ConsumerWidget {
                     ? Icons.workspace_premium_rounded
                     : Icons.person_outline_rounded,
                 size: 16,
-                color: isPremium ? Colors.white : AppColors.textSecondary,
+                color: isPremium
+                    ? Colors.white
+                    : AppColors.textSecondary(context),
               ),
               const SizedBox(width: 6),
               Text(
@@ -227,7 +196,9 @@ class ProfileScreen extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isPremium ? Colors.white : AppColors.textSecondary,
+                  color: isPremium
+                      ? Colors.white
+                      : AppColors.textSecondary(context),
                 ),
               ),
             ],
@@ -236,7 +207,7 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: AppSpacing.sm),
         Text(
           email,
-          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+          style: TextStyle(fontSize: 14, color: AppColors.textMuted(context)),
         ).animate().fadeIn(delay: 300.ms),
       ],
     );
@@ -245,7 +216,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget _buildMenu(BuildContext context, WidgetRef ref, AppStrings strings) {
     return Column(
       children: [
-        PremiumCard(
+        CleanCard(
           padding: EdgeInsets.zero,
           child: Column(
             children: [
@@ -256,23 +227,23 @@ class ProfileScreen extends ConsumerWidget {
                 AppColors.warning,
                 () => context.push('/premium'),
               ),
-              _divider(),
+              _divider(context),
               _buildMenuItem(
                 context,
                 Icons.notifications_outlined,
                 strings.notifications,
-                AppColors.accent,
+                AppColors.primary,
                 () => context.push('/notifications'),
               ),
-              _divider(),
+              _divider(context),
               _buildMenuItem(
                 context,
                 Icons.settings_outlined,
                 strings.settings,
-                AppColors.primary,
+                AppColors.textSecondary(context),
                 () => context.push('/settings'),
               ),
-              _divider(),
+              _divider(context),
               _buildMenuItem(
                 context,
                 Icons.help_outline_rounded,
@@ -284,15 +255,15 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ).animate().fadeIn(delay: 400.ms),
         const SizedBox(height: AppSpacing.lg),
-        PremiumCard(
-          variant: PremiumCardVariant.danger,
+        CleanCard(
+          variant: CleanCardVariant.danger,
           padding: EdgeInsets.zero,
           onTap: () => _logout(context, ref, strings),
           child: ListTile(
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: AppColors.gradientDanger,
+                color: AppColors.danger,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -301,9 +272,9 @@ class ProfileScreen extends ConsumerWidget {
                 size: 18,
               ),
             ),
-            title: Text(
+            title: const Text(
               'Çıkış Yap',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ).animate().fadeIn(delay: 500.ms),
@@ -329,20 +300,20 @@ class ProfileScreen extends ConsumerWidget {
         child: Icon(icon, color: color, size: 20),
       ),
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-      trailing: const Icon(
+      trailing: Icon(
         Icons.chevron_right_rounded,
-        color: AppColors.textMuted,
+        color: AppColors.textMuted(context),
       ),
     );
   }
 
-  Widget _divider() => Divider(height: 1, indent: 60, color: AppColors.border);
+  Widget _divider(BuildContext context) =>
+      Divider(height: 1, indent: 60, color: AppColors.border(context));
 
   void _logout(BuildContext context, WidgetRef ref, AppStrings strings) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.cardElevated,
         title: Text(strings.logout),
         content: Text(strings.logoutConfirm),
         actions: [

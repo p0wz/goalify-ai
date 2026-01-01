@@ -5,7 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../data/services/api_service.dart';
-import '../../widgets/common/premium_card.dart';
+import '../../widgets/common/clean_card.dart';
 
 /// Providers
 final selectedMarketProvider = StateProvider<String?>((ref) => null);
@@ -31,7 +31,7 @@ final settledBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
   }
 });
 
-/// Statistics Screen - Vibrant Design
+/// Statistics Screen - Clean Design
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
 
@@ -42,70 +42,54 @@ class StatsScreen extends ConsumerWidget {
     final selectedMarket = ref.watch(selectedMarketProvider);
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.background, Color(0xFF12101F)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: RefreshIndicator(
-            onRefresh: () async => ref.refresh(settledBetsProvider),
-            color: AppColors.primary,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverAppBar(
-                  floating: true,
-                  backgroundColor: Colors.transparent,
-                  title: Row(
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (bounds) =>
-                            AppColors.gradientSuccess.createShader(bounds),
-                        child: const Icon(
-                          Icons.bar_chart_rounded,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text('İstatistikler'),
-                    ],
-                  ),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async => ref.refresh(settledBetsProvider),
+          color: AppColors.primary,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                backgroundColor: Colors.transparent,
+                title: Row(
+                  children: [
+                    Icon(Icons.bar_chart_rounded, color: AppColors.success),
+                    const SizedBox(width: 10),
+                    const Text('İstatistikler'),
+                  ],
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    0,
-                    AppSpacing.lg,
-                    120,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      const SizedBox(height: AppSpacing.lg),
-                      _buildSuccessRate(context, settledBetsAsync),
-                      const SizedBox(height: AppSpacing.xxl),
-                      _buildMarketFilter(
-                        context,
-                        ref,
-                        settledBetsAsync,
-                        selectedMarket,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      _buildBetsList(
-                        context,
-                        strings,
-                        settledBetsAsync,
-                        selectedMarket,
-                      ),
-                    ]),
-                  ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  120,
                 ),
-              ],
-            ),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildSuccessRate(context, settledBetsAsync),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildMarketFilter(
+                      context,
+                      ref,
+                      settledBetsAsync,
+                      selectedMarket,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildBetsList(
+                      context,
+                      strings,
+                      settledBetsAsync,
+                      selectedMarket,
+                    ),
+                  ]),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -117,8 +101,7 @@ class StatsScreen extends ConsumerWidget {
     AsyncValue<List<Map<String, dynamic>>> betsAsync,
   ) {
     return betsAsync.when(
-      loading: () => PremiumCard(
-        variant: PremiumCardVariant.elevated,
+      loading: () => CleanCard(
         child: const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
@@ -129,18 +112,16 @@ class StatsScreen extends ConsumerWidget {
         final won = bets.where((b) => b['status'] == 'WON').length;
         final rate = total > 0 ? (won / total * 100) : 0.0;
 
-        return PremiumCard(
-          variant: PremiumCardVariant.elevated,
-          showGlow: true,
+        return CleanCard(
+          variant: CleanCardVariant.success,
           padding: const EdgeInsets.all(AppSpacing.xl),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  gradient: AppColors.gradientSuccess,
+                  color: AppColors.success,
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: [AppShadows.successGlow],
                 ),
                 child: const Icon(
                   Icons.trending_up_rounded,
@@ -157,20 +138,16 @@ class StatsScreen extends ConsumerWidget {
                       'Başarı Oranı',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textMuted,
+                        color: AppColors.textMuted(context),
                       ),
                     ),
                     const SizedBox(height: 4),
-                    ShaderMask(
-                      shaderCallback: (bounds) =>
-                          AppColors.gradientSuccess.createShader(bounds),
-                      child: Text(
-                        '${rate.toStringAsFixed(1)}%',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
+                    Text(
+                      '${rate.toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.success,
                       ),
                     ),
                   ],
@@ -200,7 +177,10 @@ class StatsScreen extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Kazanılan',
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted(context),
+                    ),
                   ),
                 ],
               ),
@@ -234,9 +214,10 @@ class StatsScreen extends ConsumerWidget {
           children: [
             Text(
               'Market Filtresi',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary(context),
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             SingleChildScrollView(
@@ -283,18 +264,18 @@ class StatsScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          gradient: isSelected ? AppColors.gradientPrimary : null,
-          color: isSelected ? null : AppColors.card,
+          color: isSelected ? AppColors.primary : AppColors.card(context),
           borderRadius: BorderRadius.circular(20),
-          border: isSelected ? null : Border.all(color: AppColors.border),
-          boxShadow: isSelected ? [AppShadows.primaryGlow] : null,
+          border: isSelected
+              ? null
+              : Border.all(color: AppColors.border(context)),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+            color: isSelected ? Colors.white : AppColors.textSecondary(context),
           ),
         ),
       ),
@@ -318,21 +299,21 @@ class StatsScreen extends ConsumerWidget {
             : bets.where((b) => b['market'] == selectedMarket).toList();
 
         if (filtered.isEmpty) {
-          return PremiumCard(
+          return CleanCard(
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.bar_chart_outlined,
                       size: 40,
-                      color: AppColors.textMuted,
+                      color: AppColors.textMuted(context),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
                       strings.noSettledBets,
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: AppColors.textSecondary(context)),
                     ),
                   ],
                 ),
@@ -349,13 +330,17 @@ class StatsScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Sonuçlar',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary(context),
                   ),
                 ),
                 Text(
                   '${filtered.length}',
-                  style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMuted(context),
+                  ),
                 ),
               ],
             ),
@@ -382,18 +367,15 @@ class StatsScreen extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: PremiumCard(
-        variant: isWin ? PremiumCardVariant.success : PremiumCardVariant.danger,
-        showGlow: true,
+      child: CleanCard(
+        variant: isWin ? CleanCardVariant.success : CleanCardVariant.danger,
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                gradient: isWin
-                    ? AppColors.gradientSuccess
-                    : AppColors.gradientDanger,
+                color: isWin ? AppColors.success : AppColors.danger,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -419,7 +401,10 @@ class StatsScreen extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     market,
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted(context),
+                    ),
                   ),
                 ],
               ),
@@ -439,7 +424,10 @@ class StatsScreen extends ConsumerWidget {
                 if (odds.isNotEmpty)
                   Text(
                     odds,
-                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted(context),
+                    ),
                   ),
               ],
             ),

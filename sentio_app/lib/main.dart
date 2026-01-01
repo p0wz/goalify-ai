@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
 
 void main() {
@@ -9,11 +10,13 @@ void main() {
 }
 
 /// SENTIO Main Application
-class SentioApp extends StatelessWidget {
+class SentioApp extends ConsumerWidget {
   const SentioApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeState = ref.watch(themeProvider);
+
     return MaterialApp.router(
       title: 'SENTIO',
       debugShowCheckedModeBanner: false,
@@ -21,7 +24,8 @@ class SentioApp extends StatelessWidget {
       // Theme Configuration
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark, // Default to dark theme
+      themeMode: themeState.themeMode,
+
       // Router Configuration
       routerConfig: AppRouter.router,
     );

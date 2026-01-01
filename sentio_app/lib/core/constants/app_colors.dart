@@ -1,101 +1,83 @@
 import 'package:flutter/material.dart';
 
-/// SENTIO Vibrant Color System - Premium & Electric
+/// SENTIO Color System - Clean & Modern
+/// Supports both Dark and Light themes
 class AppColors {
-  // Background - Deep navy/purple
-  static const Color background = Color(0xFF0F0D1A);
-  static const Color backgroundLight = Color(0xFFF8FAFC);
+  // ============= DARK THEME =============
+  static const Color backgroundDark = Color(0xFF141416);
+  static const Color cardDark = Color(0xFF1E1E22);
+  static const Color cardElevatedDark = Color(0xFF252529);
+  static const Color borderDark = Color(0xFF2A2A2E);
+  static const Color textPrimaryDark = Color(0xFFFAFAFA);
+  static const Color textSecondaryDark = Color(0xFFA1A1AA);
+  static const Color textMutedDark = Color(0xFF71717A);
 
-  // Cards - Rich dark with purple tint
-  static const Color card = Color(0xFF1A1625);
-  static const Color cardElevated = Color(0xFF221D2E);
+  // ============= LIGHT THEME =============
+  static const Color backgroundLight = Color(0xFFF8F9FA);
   static const Color cardLight = Color(0xFFFFFFFF);
-
-  // Borders
-  static const Color border = Color(0xFF2D2640);
+  static const Color cardElevatedLight = Color(0xFFF3F4F6);
   static const Color borderLight = Color(0xFFE5E7EB);
+  static const Color textPrimaryLight = Color(0xFF18181B);
+  static const Color textSecondaryLight = Color(0xFF71717A);
+  static const Color textMutedLight = Color(0xFFA1A1AA);
 
-  // Text
-  static const Color textPrimary = Color(0xFFF9FAFB);
-  static const Color textSecondary = Color(0xFFA1A1AA);
-  static const Color textMuted = Color(0xFF71717A);
+  // ============= ACCENT COLORS (Shared) =============
+  static const Color primary = Color(0xFF7C3AED);
+  static const Color primaryLight = Color(0xFF8B5CF6);
+  static const Color primaryDark = Color(0xFF6D28D9);
 
-  // Primary - Electric Purple
-  static const Color primary = Color(0xFF9333EA);
-  static const Color primaryLight = Color(0xFFA855F7);
-  static const Color primaryDark = Color(0xFF7C3AED);
-
-  // Accent - Cyan
-  static const Color accent = Color(0xFF06B6D4);
-  static const Color accentLight = Color(0xFF22D3EE);
-
-  // Semantic - Vibrant
   static const Color success = Color(0xFF22C55E);
+  static const Color successLight = Color(0xFF4ADE80);
   static const Color successDark = Color(0xFF16A34A);
-  static const Color danger = Color(0xFFF43F5E);
-  static const Color dangerDark = Color(0xFFE11D48);
-  static const Color warning = Color(0xFFF97316);
-  static const Color warningDark = Color(0xFFEA580C);
 
-  // Gradients - Rich & Vibrant
-  static const LinearGradient gradientPrimary = LinearGradient(
-    colors: [Color(0xFF9333EA), Color(0xFF7C3AED)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  static const Color danger = Color(0xFFEF4444);
+  static const Color dangerLight = Color(0xFFF87171);
+  static const Color dangerDark = Color(0xFFDC2626);
 
-  static const LinearGradient gradientAccent = LinearGradient(
-    colors: [Color(0xFF06B6D4), Color(0xFF0EA5E9)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color warningLight = Color(0xFFFBBF24);
+  static const Color warningDark = Color(0xFFD97706);
 
-  static const LinearGradient gradientPremium = LinearGradient(
-    colors: [Color(0xFF9333EA), Color(0xFF3B82F6)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  // ============= HELPERS =============
+  /// Get card color based on brightness
+  static Color card(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? cardDark
+        : cardLight;
+  }
 
-  static const LinearGradient gradientHot = LinearGradient(
-    colors: [Color(0xFFF97316), Color(0xFFEF4444)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  /// Get background color based on brightness
+  static Color background(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? backgroundDark
+        : backgroundLight;
+  }
 
-  static const LinearGradient gradientSuccess = LinearGradient(
-    colors: [Color(0xFF22C55E), Color(0xFF10B981)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  /// Get border color based on brightness
+  static Color border(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? borderDark
+        : borderLight;
+  }
 
-  static const LinearGradient gradientDanger = LinearGradient(
-    colors: [Color(0xFFF43F5E), Color(0xFFE11D48)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  /// Get text primary color based on brightness
+  static Color textPrimary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? textPrimaryDark
+        : textPrimaryLight;
+  }
 
-  // Card gradients - Deep & Rich
-  static const LinearGradient gradientCard = LinearGradient(
-    colors: [Color(0xFF1E1B4B), Color(0xFF172554)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  /// Get text secondary color based on brightness
+  static Color textSecondary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? textSecondaryDark
+        : textSecondaryLight;
+  }
 
-  static const LinearGradient gradientCardElevated = LinearGradient(
-    colors: [Color(0xFF2D2640), Color(0xFF1E1B4B)],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
-
-  // Border gradient for neon effect
-  static const LinearGradient gradientBorder = LinearGradient(
-    colors: [Color(0xFF9333EA), Color(0xFF06B6D4)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  // Navigation
-  static const Color navBackground = Color(0xE60F0D1A); // 90% opacity
-  static const Color navActive = Color(0xFF9333EA);
-  static const Color navInactive = Color(0xFF71717A);
+  /// Get text muted color based on brightness
+  static Color textMuted(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? textMutedDark
+        : textMutedLight;
+  }
 }

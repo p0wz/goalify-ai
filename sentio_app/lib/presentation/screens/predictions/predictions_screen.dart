@@ -5,7 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../data/services/api_service.dart';
-import '../../widgets/common/premium_card.dart';
+import '../../widgets/common/clean_card.dart';
 
 /// Provider for pending bets
 final pendingBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
@@ -20,7 +20,7 @@ final pendingBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
   }
 });
 
-/// Predictions Screen - Vibrant Design
+/// Predictions Screen - Clean Design
 class PredictionsScreen extends ConsumerWidget {
   const PredictionsScreen({super.key});
 
@@ -30,81 +30,57 @@ class PredictionsScreen extends ConsumerWidget {
     final pendingBetsAsync = ref.watch(pendingBetsProvider);
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.background, Color(0xFF12101F)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: RefreshIndicator(
-            onRefresh: () async => ref.refresh(pendingBetsProvider),
-            color: AppColors.primary,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverAppBar(
-                  floating: true,
-                  backgroundColor: Colors.transparent,
-                  title: Row(
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (bounds) =>
-                            AppColors.gradientPrimary.createShader(bounds),
-                        child: const Icon(
-                          Icons.layers_rounded,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(strings.bets),
-                    ],
-                  ),
-                  actions: [
-                    IconButton(
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.accent.withAlpha(25),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.refresh_rounded,
-                          size: 20,
-                          color: AppColors.accent,
-                        ),
-                      ),
-                      onPressed: () => ref.refresh(pendingBetsProvider),
-                    ),
-                    const SizedBox(width: 8),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async => ref.refresh(pendingBetsProvider),
+          color: AppColors.primary,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                backgroundColor: Colors.transparent,
+                title: Row(
+                  children: [
+                    Icon(Icons.layers_rounded, color: AppColors.primary),
+                    const SizedBox(width: 10),
+                    Text(strings.bets),
                   ],
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    0,
-                    AppSpacing.lg,
-                    120,
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.refresh_rounded,
+                      color: AppColors.textSecondary(context),
+                    ),
+                    onPressed: () => ref.refresh(pendingBetsProvider),
                   ),
-                  sliver: pendingBetsAsync.when(
-                    loading: () => const SliverFillRemaining(
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  120,
+                ),
+                sliver: pendingBetsAsync.when(
+                  loading: () => const SliverFillRemaining(
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
                       ),
                     ),
-                    error: (e, _) => SliverFillRemaining(
-                      child: Center(child: Text('${strings.error}: $e')),
-                    ),
-                    data: (bets) => _buildBetsList(context, strings, bets),
                   ),
+                  error: (e, _) => SliverFillRemaining(
+                    child: Center(child: Text('${strings.error}: $e')),
+                  ),
+                  data: (bets) => _buildBetsList(context, strings, bets),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -140,13 +116,16 @@ class PredictionsScreen extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Yeni tahminler yakında',
-                style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textMuted(context),
+                ),
               ),
             ],
           ),
@@ -167,9 +146,9 @@ class PredictionsScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.sports_soccer_rounded,
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -187,9 +166,8 @@ class PredictionsScreen extends ConsumerWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    gradient: AppColors.gradientPrimary,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [AppShadows.primaryGlow],
                   ),
                   child: Text(
                     '${bets.length}',
@@ -223,8 +201,7 @@ class PredictionsScreen extends ConsumerWidget {
 
     return Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
-          child: PremiumCard(
-            variant: PremiumCardVariant.elevated,
+          child: CleanCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -239,7 +216,7 @@ class PredictionsScreen extends ConsumerWidget {
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: AppColors.accent,
+                              color: AppColors.primary,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -249,7 +226,7 @@ class PredictionsScreen extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.accent,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -261,7 +238,7 @@ class PredictionsScreen extends ConsumerWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          gradient: AppColors.gradientHot,
+                          color: AppColors.warning,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -311,10 +288,10 @@ class PredictionsScreen extends ConsumerWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withAlpha(25),
+                        color: AppColors.primary.withAlpha(20),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: AppColors.primary.withAlpha(51),
+                          color: AppColors.primary.withAlpha(40),
                         ),
                       ),
                       child: const Text(
@@ -346,30 +323,19 @@ class PredictionsScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primary.withAlpha(25),
-                        AppColors.accent.withAlpha(13),
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
+                    color: AppColors.primary.withAlpha(15),
                     borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: AppColors.primary.withAlpha(51)),
+                    border: Border.all(color: AppColors.primary.withAlpha(30)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
-                          ShaderMask(
-                            shaderCallback: (bounds) =>
-                                AppColors.gradientPrimary.createShader(bounds),
-                            child: const Icon(
-                              Icons.track_changes_rounded,
-                              size: 18,
-                              color: Colors.white,
-                            ),
+                          Icon(
+                            Icons.track_changes_rounded,
+                            size: 18,
+                            color: AppColors.primary,
                           ),
                           const SizedBox(width: 10),
                           Text(
@@ -388,7 +354,7 @@ class PredictionsScreen extends ConsumerWidget {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            gradient: AppColors.gradientSuccess,
+                            color: AppColors.success,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
