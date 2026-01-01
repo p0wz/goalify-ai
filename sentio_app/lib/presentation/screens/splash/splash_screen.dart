@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 
-/// Splash Screen
+/// Splash Screen - Clean
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -16,42 +14,60 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () {
       if (mounted) context.go('/');
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 80,
-              height: 80,
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(
-                Icons.sports_soccer_rounded,
-                size: 40,
+                Icons.analytics_rounded,
+                size: 48,
                 color: Colors.white,
               ),
-            ).animate().fadeIn().scale(),
+            ),
             const SizedBox(height: 24),
-            Text(
+            const Text(
               'SENTIO',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 3,
+                letterSpacing: 4,
                 color: AppColors.primary,
               ),
-            ).animate().fadeIn(delay: 200.ms),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Akıllı Tahmin Asistanı',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: 48),
+            const CircularProgressIndicator(
+              color: AppColors.primary,
+              strokeWidth: 2,
+            ),
           ],
         ),
       ),

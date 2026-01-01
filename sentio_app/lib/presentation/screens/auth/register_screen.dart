@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
@@ -7,7 +6,7 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../providers/auth_provider.dart';
 
-/// Register Screen
+/// Register Screen - Clean Design
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -22,7 +21,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  bool _acceptTerms = false;
+  bool _acceptedTerms = false;
 
   @override
   void dispose() {
@@ -34,14 +33,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_acceptTerms) {
+    if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kullanım koşullarını kabul etmelisiniz')),
+        const SnackBar(content: Text('Lütfen kullanım koşullarını kabul edin')),
       );
       return;
     }
 
     setState(() => _isLoading = true);
+
     try {
       await ref
           .read(authProvider.notifier)
@@ -54,7 +54,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.danger,
+          ),
         );
       }
     } finally {
@@ -67,7 +70,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final strings = ref.watch(stringsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.register)),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.go('/login'),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -76,29 +84,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  strings.registerTitle,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 48),
+
+                // Name
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
                     labelText: strings.name,
                     prefixIcon: const Icon(Icons.person_outlined),
                   ),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? strings.nameRequired : null,
-                ).animate().fadeIn(),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return strings.nameRequired;
+                    return null;
+                  },
+                ),
                 const SizedBox(height: AppSpacing.lg),
+
+                // Email
                 TextFormField(
                   controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: strings.email,
                     prefixIcon: const Icon(Icons.email_outlined),
                   ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (v) =>
-                      v == null || v.isEmpty ? strings.emailRequired : null,
-                ).animate().fadeIn(delay: 50.ms),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return strings.emailRequired;
+                    if (!v.contains('@')) return strings.emailInvalid;
+                    return null;
+                  },
+                ),
                 const SizedBox(height: AppSpacing.lg),
+
+                // Password
                 TextFormField(
                   controller: _passwordController,
+                  obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: strings.password,
                     prefixIcon: const Icon(Icons.lock_outlined),
@@ -112,68 +139,71 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
-                  obscureText: _obscurePassword,
                   validator: (v) {
                     if (v == null || v.isEmpty) return strings.passwordRequired;
-                    if (v.length < 6) return strings.passwordLength;
+                    if (v.length < 6) return 'Şifre en az 6 karakter olmalı';
                     return null;
                   },
-                ).animate().fadeIn(delay: 100.ms),
+                ),
                 const SizedBox(height: AppSpacing.lg),
+
+                // Terms
                 Row(
                   children: [
                     Checkbox(
-                      value: _acceptTerms,
+                      value: _acceptedTerms,
                       onChanged: (v) =>
-                          setState(() => _acceptTerms = v ?? false),
+                          setState(() => _acceptedTerms = v ?? false),
                       activeColor: AppColors.primary,
                     ),
                     Expanded(
-                      child: GestureDetector(
-                        onTap: () =>
-                            setState(() => _acceptTerms = !_acceptTerms),
-                        child: RichText(
-                          text: TextSpan(
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                            ),
-                            children: [
-                              const TextSpan(text: 'Kabul ediyorum '),
-                              TextSpan(
-                                text: 'Kullanım Koşulları',
-                                style: TextStyle(color: AppColors.primary),
-                              ),
-                              const TextSpan(text: ' ve '),
-                              TextSpan(
-                                text: 'Gizlilik Politikası',
-                                style: TextStyle(color: AppColors.primary),
-                              ),
-                            ],
+                      child: Text.rich(
+                        TextSpan(
+                          text:
+                              'Kullanım koşullarını ve gizlilik politikasını ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary(context),
                           ),
+                          children: [
+                            TextSpan(
+                              text: 'kabul ediyorum',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
-                ).animate().fadeIn(delay: 150.ms),
+                ),
                 const SizedBox(height: AppSpacing.xxl),
+
+                // Register Button
                 ElevatedButton(
                   onPressed: _isLoading ? null : _register,
                   child: _isLoading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : Text(strings.register),
-                ).animate().fadeIn(delay: 200.ms),
-                const SizedBox(height: AppSpacing.xxl),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // Login Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      strings.alreadyHaveAccount,
-                      style: TextStyle(color: AppColors.textSecondary),
+                      'Zaten hesabın var mı?',
+                      style: TextStyle(color: AppColors.textSecondary(context)),
                     ),
                     TextButton(
                       onPressed: () => context.go('/login'),
