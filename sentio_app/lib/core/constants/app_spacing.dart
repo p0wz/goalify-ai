@@ -21,68 +21,23 @@ class AppRadius {
   static const double full = 9999.0;
 }
 
+/// Minimal shadows - no glows
 class AppShadows {
-  // Subtle card shadow
-  static BoxShadow get cardShadow => BoxShadow(
-    color: Colors.black.withAlpha(13),
-    blurRadius: 20,
-    offset: const Offset(0, 8),
-  );
-
-  // Elevated card shadow
-  static BoxShadow get elevatedShadow => BoxShadow(
+  static BoxShadow get subtle => BoxShadow(
     color: Colors.black.withAlpha(25),
-    blurRadius: 30,
-    offset: const Offset(0, 12),
+    blurRadius: 8,
+    offset: const Offset(0, 2),
   );
 
-  // Primary glow
-  static BoxShadow get primaryGlow => BoxShadow(
-    color: const Color(0xFF8B5CF6).withAlpha(64),
-    blurRadius: 40,
-    spreadRadius: -5,
-  );
-
-  // Strong primary glow
-  static BoxShadow get primaryGlowStrong => BoxShadow(
-    color: const Color(0xFF8B5CF6).withAlpha(102),
-    blurRadius: 50,
-    spreadRadius: 0,
-  );
-
-  // Accent glow
-  static BoxShadow get accentGlow => BoxShadow(
-    color: const Color(0xFFF97316).withAlpha(64),
-    blurRadius: 40,
-    spreadRadius: -5,
-  );
-
-  // Win glow
-  static BoxShadow get winGlow => BoxShadow(
-    color: const Color(0xFF22C55E).withAlpha(77),
-    blurRadius: 30,
+  static BoxShadow get card => BoxShadow(
+    color: Colors.black.withAlpha(38),
+    blurRadius: 16,
     offset: const Offset(0, 4),
   );
 
-  // Lose glow
-  static BoxShadow get loseGlow => BoxShadow(
-    color: const Color(0xFFEF4444).withAlpha(77),
-    blurRadius: 30,
-    offset: const Offset(0, 4),
-  );
-
-  // Neon glow for buttons
-  static BoxShadow get neonGlow => BoxShadow(
-    color: const Color(0xFF8B5CF6).withAlpha(128),
-    blurRadius: 20,
-    spreadRadius: -2,
-  );
-
-  // Inner glow effect
-  static BoxShadow get innerGlow => BoxShadow(
-    color: Colors.white.withAlpha(13),
-    blurRadius: 15,
-    spreadRadius: -5,
-    offset: const Offset(0, -5),
+  static BoxShadow get elevated => BoxShadow(
+    color: Colors.black.withAlpha(51),
+    blurRadius: 24,
+    offset: const Offset(0, 8),
   );
 }

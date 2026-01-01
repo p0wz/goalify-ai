@@ -5,9 +5,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../data/services/api_service.dart';
-import '../../widgets/common/glass_card.dart';
+import '../../widgets/common/app_card.dart';
 
-/// Provider for settled bets with market filter
+/// Providers
 final selectedMarketProvider = StateProvider<String?>((ref) => null);
 
 final settledBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
@@ -31,7 +31,7 @@ final settledBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
   }
 });
 
-/// Statistics Screen - Settled bets with market filter
+/// Statistics Screen
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
 
@@ -43,22 +43,26 @@ class StatsScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
           onRefresh: () async => ref.refresh(settledBetsProvider),
-          color: AppColors.primaryPurple,
+          color: AppColors.primary,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              SliverAppBar(floating: true, title: const Text('İstatistikler')),
+              const SliverAppBar(floating: true, title: Text('İstatistikler')),
               SliverPadding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  100,
+                ),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    // Success Rate Card
-                    _buildSuccessRateCard(context, settledBetsAsync),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildSuccessRate(context, settledBetsAsync),
                     const SizedBox(height: AppSpacing.xxl),
-
-                    // Market Filter
                     _buildMarketFilter(
                       context,
                       ref,
@@ -66,9 +70,7 @@ class StatsScreen extends ConsumerWidget {
                       selectedMarket,
                     ),
                     const SizedBox(height: AppSpacing.lg),
-
-                    // Settled Bets List
-                    _buildSettledBetsList(
+                    _buildBetsList(
                       context,
                       strings,
                       settledBetsAsync,
@@ -84,85 +86,72 @@ class StatsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSuccessRateCard(
+  Widget _buildSuccessRate(
     BuildContext context,
     AsyncValue<List<Map<String, dynamic>>> betsAsync,
   ) {
     return betsAsync.when(
-      loading: () => GlassCard(
-        variant: GlassCardVariant.elevated,
-        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      ),
+      loading: () =>
+          AppCard(child: const Center(child: CircularProgressIndicator())),
       error: (e, _) => const SizedBox.shrink(),
       data: (bets) {
         final total = bets.length;
         final won = bets.where((b) => b['status'] == 'WON').length;
-        final successRate = total > 0 ? (won / total * 100) : 0.0;
+        final rate = total > 0 ? (won / total * 100) : 0.0;
 
-        return GlassCard(
-          variant: GlassCardVariant.elevated,
-          showGlow: true,
-          child: Column(
+        return AppCard(
+          variant: AppCardVariant.elevated,
+          child: Row(
             children: [
-              Row(
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withAlpha(25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.trending_up_rounded,
+                  color: AppColors.success,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Başarı Oranı',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${rate.toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.gradientSuccess,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.trending_up_rounded,
-                      color: Colors.white,
-                      size: 24,
+                  Text(
+                    '$won / $total',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.lg),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Genel Başarı Oranı',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${successRate.toStringAsFixed(1)}%',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.winGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '$won / $total',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Kazanılan / Toplam',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withAlpha(128),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'Kazanılan',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                   ),
                 ],
               ),
@@ -183,90 +172,77 @@ class StatsScreen extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (e, _) => const SizedBox.shrink(),
       data: (bets) {
-        // Extract unique markets
         final markets = bets
             .map((b) => b['market'] as String? ?? '')
             .where((m) => m.isNotEmpty)
             .toSet()
             .toList();
         markets.sort();
-
         if (markets.isEmpty) return const SizedBox.shrink();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Market Filtresi',
-              style: TextStyle(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: AppSpacing.sm),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildFilterChip(
-                    context,
-                    label: 'Tümü',
-                    isSelected: selectedMarket == null,
-                    onTap: () =>
-                        ref.read(selectedMarketProvider.notifier).state = null,
-                  ),
+                  _buildChip(context, 'Tümü', selectedMarket == null, () {
+                    ref.read(selectedMarketProvider.notifier).state = null;
+                  }),
                   const SizedBox(width: 8),
                   ...markets.map(
-                    (market) => Padding(
+                    (m) => Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: _buildFilterChip(
-                        context,
-                        label: market,
-                        isSelected: selectedMarket == market,
-                        onTap: () =>
-                            ref.read(selectedMarketProvider.notifier).state =
-                                market,
-                      ),
+                      child: _buildChip(context, m, selectedMarket == m, () {
+                        ref.read(selectedMarketProvider.notifier).state = m;
+                      }),
                     ),
                   ),
                 ],
               ),
             ),
           ],
-        ).animate().fadeIn(delay: 200.ms);
+        ).animate().fadeIn(delay: 100.ms);
       },
     );
   }
 
-  Widget _buildFilterChip(
-    BuildContext context, {
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildChip(
+    BuildContext context,
+    String label,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          gradient: isSelected ? AppColors.gradientPrimary : null,
-          color: isSelected ? null : AppColors.darkMuted,
+          color: isSelected ? AppColors.primary : AppColors.card,
           borderRadius: BorderRadius.circular(20),
-          border: isSelected ? null : Border.all(color: AppColors.darkBorder),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+          ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            color: isSelected
-                ? Colors.white
-                : Theme.of(context).colorScheme.onSurface.withAlpha(179),
+            color: isSelected ? Colors.white : AppColors.textSecondary,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSettledBetsList(
+  Widget _buildBetsList(
     BuildContext context,
     AppStrings strings,
     AsyncValue<List<Map<String, dynamic>>> betsAsync,
@@ -276,33 +252,26 @@ class StatsScreen extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('${strings.error}: $e')),
       data: (bets) {
-        // Filter by market
-        final filteredBets = selectedMarket == null
+        final filtered = selectedMarket == null
             ? bets
             : bets.where((b) => b['market'] == selectedMarket).toList();
 
-        if (filteredBets.isEmpty) {
-          return GlassCard(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Center(
+        if (filtered.isEmpty) {
+          return AppCard(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
                     Icon(
-                      Icons.bar_chart_rounded,
-                      size: 48,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withAlpha(51),
+                      Icons.bar_chart_outlined,
+                      size: 40,
+                      color: AppColors.textMuted,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
                       strings.noSettledBets,
-                      style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withAlpha(102),
-                      ),
+                      style: TextStyle(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -314,16 +283,20 @@ class StatsScreen extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Sonuçlar (${filteredBets.length})',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Sonuçlar', style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  '${filtered.length}',
+                  style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.md),
-            ...filteredBets.asMap().entries.map((entry) {
-              final index = entry.key;
-              final bet = entry.value;
-              return _buildBetCard(context, bet, index);
-            }),
+            ...filtered.asMap().entries.map(
+              (e) => _buildBetCard(context, e.value, e.key),
+            ),
           ],
         );
       },
@@ -340,134 +313,75 @@ class StatsScreen extends ConsumerWidget {
     final market = bet['market'] ?? '';
     final odds = bet['odds'] ?? '';
     final finalScore = bet['finalScore'] ?? '';
-    final matchTime = bet['matchTime'] ?? '';
-    final league = bet['league'] ?? '';
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: GlassCard(
-        variant: isWin ? GlassCardVariant.success : GlassCardVariant.danger,
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppCard(
+        variant: isWin ? AppCardVariant.success : AppCardVariant.danger,
         padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: isWin
-                        ? AppColors.gradientSuccess
-                        : AppColors.gradientDanger,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isWin ? Icons.check_rounded : Icons.close_rounded,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: (isWin ? AppColors.success : AppColors.danger).withAlpha(
+                  25,
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        match,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (league.isNotEmpty)
-                        Text(
-                          league,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withAlpha(128),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (finalScore.isNotEmpty)
-                      Text(
-                        finalScore,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                          color: isWin ? AppColors.winGreen : AppColors.loseRed,
-                        ),
-                      ),
-                    Text(
-                      isWin ? 'Kazandı' : 'Kaybetti',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: isWin ? AppColors.winGreen : AppColors.loseRed,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isWin ? Icons.check_rounded : Icons.close_rounded,
+                color: isWin ? AppColors.success : AppColors.danger,
+                size: 18,
+              ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            // Info row
-            Row(
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    match,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    market,
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildInfoChip(context, Icons.track_changes_rounded, market),
-                if (odds.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  _buildInfoChip(context, Icons.trending_up_rounded, odds),
-                ],
-                if (matchTime.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  _buildInfoChip(context, Icons.access_time_rounded, matchTime),
-                ],
+                if (finalScore.isNotEmpty)
+                  Text(
+                    finalScore,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: isWin ? AppColors.success : AppColors.danger,
+                    ),
+                  ),
+                if (odds.isNotEmpty)
+                  Text(
+                    odds,
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  ),
               ],
             ),
           ],
         ),
       ),
     ).animate().fadeIn(
-      delay: Duration(milliseconds: index * 50),
-      duration: 300.ms,
-    );
-  }
-
-  Widget _buildInfoChip(BuildContext context, IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withAlpha(128),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 12,
-            color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 11,
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
-            ),
-          ),
-        ],
-      ),
+      delay: Duration(milliseconds: index * 40),
+      duration: 250.ms,
     );
   }
 }

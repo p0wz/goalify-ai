@@ -5,9 +5,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../data/services/api_service.dart';
-import '../../widgets/common/glass_card.dart';
+import '../../widgets/common/app_card.dart';
 
-/// Provider for pending bets only
+/// Provider for pending bets
 final pendingBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
   ref,
 ) async {
@@ -20,7 +20,7 @@ final pendingBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
   }
 });
 
-/// Predictions/Bets Screen - Shows only PENDING bets
+/// Predictions Screen - Pending bets only
 class PredictionsScreen extends ConsumerWidget {
   const PredictionsScreen({super.key});
 
@@ -31,9 +31,10 @@ class PredictionsScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
           onRefresh: () async => ref.refresh(pendingBetsProvider),
-          color: AppColors.primaryPurple,
+          color: AppColors.primary,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -48,7 +49,12 @@ class PredictionsScreen extends ConsumerWidget {
                 ],
               ),
               SliverPadding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  100,
+                ),
                 sliver: pendingBetsAsync.when(
                   loading: () => const SliverFillRemaining(
                     child: Center(child: CircularProgressIndicator()),
@@ -56,73 +62,83 @@ class PredictionsScreen extends ConsumerWidget {
                   error: (e, _) => SliverFillRemaining(
                     child: Center(child: Text('${strings.error}: $e')),
                   ),
-                  data: (bets) {
-                    if (bets.isEmpty) {
-                      return SliverFillRemaining(
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.track_changes_rounded,
-                                size: 64,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withAlpha(51),
-                              ),
-                              const SizedBox(height: AppSpacing.lg),
-                              Text(
-                                strings.noPendingBets,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withAlpha(128),
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                'Yeni tahminler yakında eklenecek',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withAlpha(102),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    return SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        if (index == 0) {
-                          return Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: AppSpacing.lg,
-                            ),
-                            child: Text(
-                              'Günün Tahminleri (${bets.length})',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                              ),
-                            ),
-                          );
-                        }
-                        final bet = bets[index - 1];
-                        return _buildBetCard(context, bet, index - 1);
-                      }, childCount: bets.length + 1),
-                    );
-                  },
+                  data: (bets) => _buildBetsList(context, strings, bets),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBetsList(
+    BuildContext context,
+    AppStrings strings,
+    List<Map<String, dynamic>> bets,
+  ) {
+    if (bets.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.layers_outlined, size: 56, color: AppColors.textMuted),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                strings.noPendingBets,
+                style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Yeni tahminler yakında',
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(
+              top: AppSpacing.lg,
+              bottom: AppSpacing.lg,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Günün Tahminleri',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${bets.length}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return _buildBetCard(context, bets[index - 1], index - 1);
+      }, childCount: bets.length + 1),
     );
   }
 
@@ -139,191 +155,148 @@ class PredictionsScreen extends ConsumerWidget {
     final league = bet['league'] ?? '';
 
     return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.md),
-          child: GlassCard(
-            variant: GlassCardVariant.elevated,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: League + Time
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // League & Time
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (league.isNotEmpty)
-                      Text(
-                        league,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.primaryPurple,
-                        ),
-                      ),
-                    if (matchTime.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.accentOrange.withAlpha(25),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.access_time_rounded,
-                              size: 12,
-                              color: AppColors.accentOrange,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              matchTime,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.accentOrange,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-
-                // Teams
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            homeTeam,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'VS',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            awayTeam,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Prediction & Odds
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.gradientPrimary.scale(0.3),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(
-                      color: AppColors.primaryPurple.withAlpha(51),
+                if (league.isNotEmpty)
+                  Text(
+                    league,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textMuted,
                     ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                if (matchTime.isNotEmpty)
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.track_changes_rounded,
-                            size: 16,
-                            color: AppColors.primaryPurple,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            market,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 14,
+                        color: AppColors.warning,
                       ),
-                      if (odds.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.winGreen.withAlpha(25),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            odds,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: AppColors.winGreen,
-                            ),
-                          ),
+                      const SizedBox(width: 4),
+                      Text(
+                        matchTime,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.warning,
                         ),
+                      ),
                     ],
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+
+            // Teams
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    homeTeam,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardElevated,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'vs',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    awayTeam,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                    textAlign: TextAlign.right,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-          ),
-        )
-        .animate()
-        .fadeIn(
-          delay: Duration(milliseconds: index * 80),
-          duration: 400.ms,
-        )
-        .slideY(begin: 0.05);
-  }
-}
+            const SizedBox(height: AppSpacing.lg),
 
-extension LinearGradientExtension on LinearGradient {
-  LinearGradient scale(double factor) {
-    return LinearGradient(
-      colors: colors
-          .map((c) => c.withAlpha((c.alpha * factor).round()))
-          .toList(),
-      begin: begin,
-      end: end,
+            // Prediction + Odds
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withAlpha(13),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.primary.withAlpha(38)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.track_changes_rounded,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        market,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (odds.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withAlpha(25),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        odds,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(
+      delay: Duration(milliseconds: index * 60),
+      duration: 300.ms,
     );
   }
 }

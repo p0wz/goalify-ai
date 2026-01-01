@@ -1,85 +1,59 @@
 import 'package:flutter/material.dart';
 
-/// SENTIO App Color System
-/// Premium dark theme with vibrant accents
+/// SENTIO App Color System - Clean & Minimal
 class AppColors {
-  // Primary Palette - Richer purples
-  static const Color primaryPurple = Color(0xFF8B5CF6);
-  static const Color primaryPurpleLight = Color(0xFFA78BFA);
-  static const Color primaryPurpleDark = Color(0xFF7C3AED);
-  static const Color accentOrange = Color(0xFFF97316);
-  static const Color accentOrangeLight = Color(0xFFFB923C);
+  // Background
+  static const Color background = Color(0xFF0A0A0F);
+  static const Color backgroundLight = Color(0xFFF8FAFC);
 
-  // Semantic Colors
-  static const Color winGreen = Color(0xFF22C55E);
-  static const Color loseRed = Color(0xFFEF4444);
-  static const Color drawYellow = Color(0xFFF59E0B);
-  static const Color liveRed = Color(0xFFEF4444);
+  // Cards
+  static const Color card = Color(0xFF13131A);
+  static const Color cardElevated = Color(0xFF1A1A24);
+  static const Color cardLight = Color(0xFFFFFFFF);
+  static const Color cardLightElevated = Color(0xFFF8FAFC);
 
-  // Light Theme - Clean & Crisp
-  static const Color lightBackground = Color(0xFFF8FAFC);
-  static const Color lightForeground = Color(0xFF0F172A);
-  static const Color lightCard = Color(0xFFFFFFFF);
-  static const Color lightCardElevated = Color(0xFFFAFAFA);
-  static const Color lightMuted = Color(0xFFF1F5F9);
-  static const Color lightMutedForeground = Color(0xFF64748B);
-  static const Color lightBorder = Color(0xFFE2E8F0);
+  // Borders
+  static const Color border = Color(0xFF252530);
+  static const Color borderLight = Color(0xFFE5E7EB);
 
-  // Dark Theme - Deep & Premium
-  static const Color darkBackground = Color(0xFF0C0A1A); // Deep purple-black
-  static const Color darkForeground = Color(0xFFF8FAFC);
-  static const Color darkCard = Color(0xFF1A1528); // Subtle purple tint
-  static const Color darkCardElevated = Color(0xFF241E35); // Elevated card
-  static const Color darkMuted = Color(0xFF2D2640);
-  static const Color darkMutedForeground = Color(0xFF94A3B8);
-  static const Color darkBorder = Color(0xFF3D3555);
+  // Text
+  static const Color textPrimary = Color(0xFFF9FAFB);
+  static const Color textSecondary = Color(0xFF9CA3AF);
+  static const Color textMuted = Color(0xFF6B7280);
+  static const Color textPrimaryLight = Color(0xFF111827);
+  static const Color textSecondaryLight = Color(0xFF6B7280);
 
-  // Gradients - Vibrant & Dynamic
-  static const LinearGradient gradientPrimary = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF7C3AED), Color(0xFF8B5CF6), Color(0xFFA855F7)],
+  // Primary
+  static const Color primary = Color(0xFF8B5CF6);
+  static const Color primaryHover = Color(0xFF7C3AED);
+  static const Color primaryMuted = Color(0xFF8B5CF6);
+
+  // Semantic
+  static const Color success = Color(0xFF10B981);
+  static const Color successMuted = Color(0xFF065F46);
+  static const Color danger = Color(0xFFEF4444);
+  static const Color dangerMuted = Color(0xFF991B1B);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color warningMuted = Color(0xFF92400E);
+
+  // Navigation
+  static const Color navBackground = Color(0xFF0A0A0F);
+  static const Color navBackgroundTranslucent = Color(
+    0xE60A0A0F,
+  ); // 90% opacity
+  static const Color navActive = Color(0xFF8B5CF6);
+  static const Color navInactive = Color(0xFF6B7280);
+
+  // Gradients (minimal use)
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
   );
 
-  static const LinearGradient gradientAccent = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFFEA580C), Color(0xFFF97316), Color(0xFFFB923C)],
+  static const LinearGradient successGradient = LinearGradient(
+    colors: [Color(0xFF10B981), Color(0xFF059669)],
   );
 
-  static const LinearGradient gradientPremium = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF7C3AED), Color(0xFFC084FC), Color(0xFFF97316)],
-  );
-
-  static const LinearGradient gradientSuccess = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF16A34A), Color(0xFF22C55E), Color(0xFF4ADE80)],
-  );
-
-  static const LinearGradient gradientDanger = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFFDC2626), Color(0xFFEF4444), Color(0xFFF87171)],
-  );
-
-  static const LinearGradient textGradient = LinearGradient(
-    colors: [Color(0xFF8B5CF6), Color(0xFFF97316)],
-  );
-
-  // Dark overlay gradient for cards
-  static const LinearGradient cardOverlay = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0x0AFFFFFF), Color(0x00FFFFFF)],
-  );
-
-  // Neon glow gradient border
-  static const LinearGradient neonBorder = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF8B5CF6), Color(0xFFC084FC), Color(0xFFF97316)],
+  static const LinearGradient dangerGradient = LinearGradient(
+    colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
   );
 }

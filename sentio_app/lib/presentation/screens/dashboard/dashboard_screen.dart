@@ -5,10 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
-import '../../widgets/common/glass_card.dart';
-import '../../widgets/common/gradient_button.dart';
+import '../../widgets/common/app_card.dart';
 
-/// Dashboard / Home Screen - Clean Design
+/// Dashboard - Clean & Minimal
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
@@ -18,23 +17,19 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // App Bar
+            // Header
             SliverAppBar(
               floating: true,
-              title: ShaderMask(
-                shaderCallback: (bounds) =>
-                    AppColors.gradientPrimary.createShader(bounds),
-                child: const Text(
-                  'SENTIO',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                    color: Colors.white,
-                  ),
+              title: Text(
+                'SENTIO',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                  color: AppColors.primary,
                 ),
               ),
               actions: [
@@ -51,19 +46,26 @@ class DashboardScreen extends ConsumerWidget {
 
             // Content
             SliverPadding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                100,
+              ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // Welcome Section
-                  _buildWelcomeSection(context, strings),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Welcome
+                  _buildWelcome(context, strings),
                   const SizedBox(height: AppSpacing.xxxl),
 
                   // Quick Actions
                   _buildQuickActions(context, strings),
                   const SizedBox(height: AppSpacing.xxxl),
 
-                  // Info Cards
-                  _buildInfoSection(context, strings),
+                  // Info Section
+                  _buildInfo(context),
                 ]),
               ),
             ),
@@ -73,28 +75,19 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWelcomeSection(BuildContext context, AppStrings strings) {
+  Widget _buildWelcome(BuildContext context, AppStrings strings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              '${strings.welcome} ',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const Text('👋', style: TextStyle(fontSize: 28)),
-          ],
-        ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.1),
-        const SizedBox(height: 6),
+        Text(
+          '${strings.welcome} 👋',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ).animate().fadeIn(duration: 400.ms),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           strings.todayPredictions,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-          ),
-        ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+          style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+        ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
       ],
     );
   }
@@ -103,181 +96,96 @@ class DashboardScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                gradient: AppColors.gradientPrimary,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Icon(
-                Icons.bolt_rounded,
-                size: 14,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              strings.quickActions,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
+        Text(
+          strings.quickActions,
+          style: Theme.of(context).textTheme.titleMedium,
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
         Row(
           children: [
             Expanded(
-              child: GradientButton(
-                text: strings.bets,
-                icon: Icons.track_changes_rounded,
-                onPressed: () => context.go('/predictions'),
+              child: _buildActionCard(
+                context,
+                icon: Icons.layers_rounded,
+                label: strings.bets,
+                subtitle: 'Günün tahminleri',
+                color: AppColors.primary,
+                onTap: () => context.go('/predictions'),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: GlassCard(
-                variant: GlassCardVariant.elevated,
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: _buildActionCard(
+                context,
+                icon: Icons.bar_chart_rounded,
+                label: 'İstatistik',
+                subtitle: 'Sonuçlar',
+                color: AppColors.success,
                 onTap: () => context.go('/stats'),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.winGreen.withAlpha(25),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.bar_chart_rounded,
-                        size: 24,
-                        color: AppColors.winGreen,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'İstatistikler',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
-        ),
+        ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
         const SizedBox(height: AppSpacing.md),
-        GlassCard(
-          variant: GlassCardVariant.premium,
-          padding: const EdgeInsets.symmetric(
-            vertical: AppSpacing.lg,
-            horizontal: AppSpacing.lg,
-          ),
+        AppCard(
+          variant: AppCardVariant.primary,
           onTap: () => context.push('/premium'),
           child: Row(
             children: [
-              ShaderMask(
-                shaderCallback: (bounds) =>
-                    AppColors.gradientPremium.createShader(bounds),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: const Icon(
                   Icons.workspace_premium_rounded,
-                  size: 32,
-                  color: Colors.white,
+                  color: AppColors.primary,
+                  size: 24,
                 ),
               ),
-              const SizedBox(width: AppSpacing.lg),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       strings.premium,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     Text(
                       'Tüm özelliklere erişin',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withAlpha(153),
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textMuted,
+              ),
             ],
           ),
-        ),
+        ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
       ],
-    ).animate().fadeIn(delay: 300.ms, duration: 400.ms);
+    );
   }
 
-  Widget _buildInfoSection(BuildContext context, AppStrings strings) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.accentOrange.withAlpha(25),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Icon(
-                Icons.info_outline_rounded,
-                size: 14,
-                color: AppColors.accentOrange,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Nasıl Çalışır?',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        _buildInfoCard(
-          context,
-          icon: Icons.track_changes_rounded,
-          title: 'Bahisler',
-          description: 'Günlük tahminlerimizi inceleyin',
-          color: AppColors.primaryPurple,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _buildInfoCard(
-          context,
-          icon: Icons.bar_chart_rounded,
-          title: 'İstatistikler',
-          description: 'Geçmiş sonuçları ve başarı oranını görün',
-          color: AppColors.winGreen,
-        ),
-      ],
-    ).animate().fadeIn(delay: 500.ms, duration: 400.ms);
-  }
-
-  Widget _buildInfoCard(
+  Widget _buildActionCard(
     BuildContext context, {
     required IconData icon,
-    required String title,
-    required String description,
+    required String label,
+    required String subtitle,
     required Color color,
+    required VoidCallback onTap,
   }) {
-    return GlassCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
+    return AppCard(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(10),
@@ -286,6 +194,71 @@ class DashboardScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfo(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Nasıl Çalışır?', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: AppSpacing.md),
+        _buildInfoItem(
+          context,
+          number: '1',
+          title: 'Tahminleri İncele',
+          description: 'Bahisler sekmesinden günlük tahminleri gör',
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        _buildInfoItem(
+          context,
+          number: '2',
+          title: 'Sonuçları Takip Et',
+          description: 'İstatistik sekmesinden geçmiş performansı izle',
+        ),
+      ],
+    ).animate().fadeIn(delay: 400.ms, duration: 400.ms);
+  }
+
+  Widget _buildInfoItem(
+    BuildContext context, {
+    required String number,
+    required String title,
+    required String description,
+  }) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withAlpha(25),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -301,12 +274,7 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 Text(
                   description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withAlpha(153),
-                  ),
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
               ],
             ),

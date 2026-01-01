@@ -1,10 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_strings.dart';
 
-/// Main Navigation Shell - 4 Tab Layout
+/// Main Navigation Shell - Clean 4 Tab Layout with translucent background
 class MainNavigation extends ConsumerWidget {
   final Widget child;
 
@@ -39,55 +40,60 @@ class MainNavigation extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = _getSelectedIndex(context);
     final strings = ref.watch(stringsProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkCard : AppColors.lightCard,
-          border: Border(
-            top: BorderSide(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-              width: 0.5,
+      extendBody: true,
+      bottomNavigationBar: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.navBackgroundTranslucent,
+              border: const Border(
+                top: BorderSide(color: AppColors.border, width: 0.5),
+              ),
             ),
-          ),
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 64,
-            child: Row(
-              children: [
-                _buildNavItem(
-                  context,
-                  icon: Icons.home_rounded,
-                  label: strings.home,
-                  isSelected: selectedIndex == 0,
-                  onTap: () => _onItemTapped(context, 0),
+            child: SafeArea(
+              child: SizedBox(
+                height: 60,
+                child: Row(
+                  children: [
+                    _buildNavItem(
+                      context,
+                      icon: Icons.home_outlined,
+                      activeIcon: Icons.home_rounded,
+                      label: strings.home,
+                      isSelected: selectedIndex == 0,
+                      onTap: () => _onItemTapped(context, 0),
+                    ),
+                    _buildNavItem(
+                      context,
+                      icon: Icons.layers_outlined,
+                      activeIcon: Icons.layers_rounded,
+                      label: strings.bets,
+                      isSelected: selectedIndex == 1,
+                      onTap: () => _onItemTapped(context, 1),
+                    ),
+                    _buildNavItem(
+                      context,
+                      icon: Icons.bar_chart_outlined,
+                      activeIcon: Icons.bar_chart_rounded,
+                      label: 'İstatistik',
+                      isSelected: selectedIndex == 2,
+                      onTap: () => _onItemTapped(context, 2),
+                    ),
+                    _buildNavItem(
+                      context,
+                      icon: Icons.person_outline_rounded,
+                      activeIcon: Icons.person_rounded,
+                      label: strings.profile,
+                      isSelected: selectedIndex == 3,
+                      onTap: () => _onItemTapped(context, 3),
+                    ),
+                  ],
                 ),
-                _buildNavItem(
-                  context,
-                  icon: Icons.track_changes_rounded,
-                  label: strings.bets,
-                  isSelected: selectedIndex == 1,
-                  onTap: () => _onItemTapped(context, 1),
-                  isPrimary: true,
-                ),
-                _buildNavItem(
-                  context,
-                  icon: Icons.bar_chart_rounded,
-                  label: 'İstatistikler',
-                  isSelected: selectedIndex == 2,
-                  onTap: () => _onItemTapped(context, 2),
-                ),
-                _buildNavItem(
-                  context,
-                  icon: Icons.person_rounded,
-                  label: strings.profile,
-                  isSelected: selectedIndex == 3,
-                  onTap: () => _onItemTapped(context, 3),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -98,15 +104,11 @@ class MainNavigation extends ConsumerWidget {
   Widget _buildNavItem(
     BuildContext context, {
     required IconData icon,
+    required IconData activeIcon,
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
-    bool isPrimary = false,
   }) {
-    final color = isSelected
-        ? (isPrimary ? AppColors.primaryPurple : AppColors.primaryPurple)
-        : Theme.of(context).colorScheme.onSurface.withAlpha(102);
-
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -114,27 +116,19 @@ class MainNavigation extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: EdgeInsets.all(isSelected ? 8 : 6),
-              decoration: isSelected
-                  ? BoxDecoration(
-                      color: AppColors.primaryPurple.withAlpha(25),
-                      borderRadius: BorderRadius.circular(12),
-                    )
-                  : null,
-              child: Icon(icon, color: color, size: isSelected ? 24 : 22),
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? AppColors.navActive : AppColors.navInactive,
+              size: 24,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: color,
+                color: isSelected ? AppColors.navActive : AppColors.navInactive,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
