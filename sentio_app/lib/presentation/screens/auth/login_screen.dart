@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/common/gradient_button.dart';
-import '../../widgets/common/glass_card.dart';
+import '../../widgets/common/app_card.dart';
 
-/// Login Screen with Riverpod integration
+/// Login Screen
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,6 +20,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -29,109 +30,88 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      final success = await ref
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await ref
           .read(authProvider.notifier)
           .login(_emailController.text.trim(), _passwordController.text);
-
-      if (success && mounted) {
-        context.go('/');
-      } else if (mounted) {
-        // Show error snackbar
-        final error = ref.read(authProvider).error;
-        if (error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error), backgroundColor: AppColors.loseRed),
-          );
-        }
+      if (mounted) context.go('/');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'), backgroundColor: AppColors.danger),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
+    final strings = ref.watch(stringsProvider);
 
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 48),
-
+              const SizedBox(height: AppSpacing.xxxl),
               // Logo
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: AppColors.gradientPrimary,
-                  shape: BoxShape.circle,
-                  boxShadow: [AppShadows.primaryGlow],
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.sports_soccer_rounded,
+                    size: 40,
+                    color: Colors.white,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.emoji_events_rounded,
-                  size: 40,
-                  color: Colors.white,
+              ).animate().fadeIn().scale(),
+              const SizedBox(height: AppSpacing.xl),
+              Center(
+                child: Text(
+                  'SENTIO',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    color: AppColors.primary,
+                  ),
                 ),
-              ).animate().fadeIn(duration: 400.ms).scale(delay: 100.ms),
+              ).animate().fadeIn(delay: 100.ms),
+              const SizedBox(height: AppSpacing.xxxl),
 
-              const SizedBox(height: 24),
-
-              // App Name
-              Text(
-                'SENTIO',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
-                ),
-              ).animate().fadeIn(delay: 200.ms),
-
-              const SizedBox(height: 8),
-
-              Text(
-                'AI Destekli Futbol Tahmin Platformu',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-                ),
-              ).animate().fadeIn(delay: 300.ms),
-
-              const SizedBox(height: 48),
-
-              // Login Form
+              // Form
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Email Field
                     TextFormField(
                       controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'E-posta',
-                        prefixIcon: Icon(Icons.email_outlined),
+                      decoration: InputDecoration(
+                        labelText: strings.email,
+                        prefixIcon: const Icon(Icons.email_outlined),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'E-posta giriniz';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Geçerli bir e-posta giriniz';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.1),
-
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) =>
+                          v == null || v.isEmpty ? strings.emailRequired : null,
+                    ),
                     const SizedBox(height: AppSpacing.lg),
-
-                    // Password Field
                     TextFormField(
                       controller: _passwordController,
-                      obscureText: _obscurePassword,
                       decoration: InputDecoration(
-                        labelText: 'Şifre',
+                        labelText: strings.password,
                         prefixIcon: const Icon(Icons.lock_outlined),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -139,119 +119,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined,
                           ),
-                          onPressed: () {
-                            setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            );
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Şifre giriniz';
-                        }
-                        if (value.length < 6) {
-                          return 'Şifre en az 6 karakter olmalıdır';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.1),
-
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Forgot Password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {},
-                        child: const Text('Şifremi Unuttum'),
-                      ),
-                    ).animate().fadeIn(delay: 600.ms),
-
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Login Button
-                    GradientButton(
-                      text: 'Giriş Yap',
-                      onPressed: _handleLogin,
-                      isLoading: authState.isLoading,
-                    ).animate().fadeIn(delay: 700.ms),
-
-                    const SizedBox(height: AppSpacing.xxl),
-
-                    // Divider
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Divider(color: Theme.of(context).dividerColor),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
                           ),
-                          child: Text(
-                            'veya',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withAlpha(128),
+                        ),
+                      ),
+                      obscureText: _obscurePassword,
+                      validator: (v) => v == null || v.isEmpty
+                          ? strings.passwordRequired
+                          : null,
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
                                 ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(color: Theme.of(context).dividerColor),
-                        ),
-                      ],
-                    ).animate().fadeIn(delay: 800.ms),
-
-                    const SizedBox(height: AppSpacing.xxl),
-
-                    // Social Login
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildSocialButton(
-                          Icons.g_mobiledata_rounded,
-                          'Google',
-                        ),
-                        const SizedBox(width: AppSpacing.lg),
-                        _buildSocialButton(Icons.apple_rounded, 'Apple'),
-                      ],
-                    ).animate().fadeIn(delay: 900.ms),
-
-                    const SizedBox(height: AppSpacing.xxxl),
-
-                    // Register Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Hesabın yok mu? ',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        TextButton(
-                          onPressed: () => context.go('/register'),
-                          child: const Text('Kayıt Ol'),
-                        ),
-                      ],
-                    ).animate().fadeIn(delay: 1000.ms),
+                              )
+                            : Text(strings.login),
+                      ),
+                    ),
                   ],
                 ),
+              ).animate().fadeIn(delay: 200.ms),
+
+              const SizedBox(height: AppSpacing.xxl),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    strings.noAccount,
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go('/register'),
+                    child: Text(strings.register),
+                  ),
+                ],
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton(IconData icon, String label) {
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      onTap: () {},
-      child: Row(
-        children: [Icon(icon, size: 24), const SizedBox(width: 8), Text(label)],
       ),
     );
   }

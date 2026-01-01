@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/common/gradient_button.dart';
 
-/// Register Screen with Riverpod integration
+/// Register Screen
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -20,9 +20,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
   bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
 
   @override
@@ -30,256 +29,160 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _handleRegister() async {
-    if (_formKey.currentState!.validate() && _acceptTerms) {
-      final success = await ref
+  Future<void> _register() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (!_acceptTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kullanım koşullarını kabul etmelisiniz')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await ref
           .read(authProvider.notifier)
           .register(
             _nameController.text.trim(),
             _emailController.text.trim(),
             _passwordController.text,
           );
-
-      if (success && mounted) {
-        context.go('/');
-      } else if (mounted) {
-        // Show error snackbar
-        final error = ref.read(authProvider).error;
-        if (error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error), backgroundColor: AppColors.loseRed),
-          );
-        }
+      if (mounted) context.go('/');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'), backgroundColor: AppColors.danger),
+        );
       }
-    } else if (!_acceptTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen kullanım şartlarını kabul edin')),
-      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
+    final strings = ref.watch(stringsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/login'),
-        ),
-      ),
+      appBar: AppBar(title: Text(strings.register)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.xxl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                'Hesap Oluştur',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ).animate().fadeIn(duration: 400.ms),
-
-              const SizedBox(height: 8),
-
-              Text(
-                'AI destekli tahminlere hemen başla',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-                ),
-              ).animate().fadeIn(delay: 100.ms),
-
-              const SizedBox(height: 32),
-
-              // Register Form
-              Form(
-                key: _formKey,
-                child: Column(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: strings.name,
+                    prefixIcon: const Icon(Icons.person_outlined),
+                  ),
+                  validator: (v) =>
+                      v == null || v.isEmpty ? strings.nameRequired : null,
+                ).animate().fadeIn(),
+                const SizedBox(height: AppSpacing.lg),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: strings.email,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? strings.emailRequired : null,
+                ).animate().fadeIn(delay: 50.ms),
+                const SizedBox(height: AppSpacing.lg),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: strings.password,
+                    prefixIcon: const Icon(Icons.lock_outlined),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                  ),
+                  obscureText: _obscurePassword,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return strings.passwordRequired;
+                    if (v.length < 6) return strings.passwordLength;
+                    return null;
+                  },
+                ).animate().fadeIn(delay: 100.ms),
+                const SizedBox(height: AppSpacing.lg),
+                Row(
                   children: [
-                    // Name Field
-                    TextFormField(
-                      controller: _nameController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Ad Soyad',
-                        prefixIcon: Icon(Icons.person_outlined),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Ad soyad giriniz';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 200.ms).slideX(begin: -0.1),
-
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Email Field
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'E-posta',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'E-posta giriniz';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Geçerli bir e-posta giriniz';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 300.ms).slideX(begin: -0.1),
-
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Password Field
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Şifre',
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            );
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Şifre giriniz';
-                        }
-                        if (value.length < 6) {
-                          return 'Şifre en az 6 karakter olmalıdır';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.1),
-
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Confirm Password Field
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      decoration: InputDecoration(
-                        labelText: 'Şifre Tekrar',
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(
-                              () => _obscureConfirmPassword =
-                                  !_obscureConfirmPassword,
-                            );
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Şifre tekrar giriniz';
-                        }
-                        if (value != _passwordController.text) {
-                          return 'Şifreler eşleşmiyor';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.1),
-
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Terms Checkbox
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _acceptTerms,
-                          onChanged: (value) {
-                            setState(() => _acceptTerms = value ?? false);
-                          },
-                          activeColor: AppColors.primaryPurple,
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _acceptTerms = !_acceptTerms),
-                            child: RichText(
-                              text: TextSpan(
-                                style: Theme.of(context).textTheme.bodySmall,
-                                children: [
-                                  const TextSpan(
-                                    text: 'Okudum ve kabul ediyorum: ',
-                                  ),
-                                  TextSpan(
-                                    text: 'Kullanım Şartları',
-                                    style: TextStyle(
-                                      color: AppColors.primaryPurple,
-                                    ),
-                                  ),
-                                  const TextSpan(text: ' ve '),
-                                  TextSpan(
-                                    text: 'Gizlilik Politikası',
-                                    style: TextStyle(
-                                      color: AppColors.primaryPurple,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                    Checkbox(
+                      value: _acceptTerms,
+                      onChanged: (v) =>
+                          setState(() => _acceptTerms = v ?? false),
+                      activeColor: AppColors.primary,
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () =>
+                            setState(() => _acceptTerms = !_acceptTerms),
+                        child: RichText(
+                          text: TextSpan(
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
                             ),
+                            children: [
+                              const TextSpan(text: 'Kabul ediyorum '),
+                              TextSpan(
+                                text: 'Kullanım Koşulları',
+                                style: TextStyle(color: AppColors.primary),
+                              ),
+                              const TextSpan(text: ' ve '),
+                              TextSpan(
+                                text: 'Gizlilik Politikası',
+                                style: TextStyle(color: AppColors.primary),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ).animate().fadeIn(delay: 600.ms),
-
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Register Button
-                    GradientButton(
-                      text: 'Kayıt Ol',
-                      onPressed: _handleRegister,
-                      isLoading: authState.isLoading,
-                    ).animate().fadeIn(delay: 700.ms),
-
-                    const SizedBox(height: AppSpacing.xxl),
-
-                    // Login Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Zaten hesabın var mı? ',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        TextButton(
-                          onPressed: () => context.go('/login'),
-                          child: const Text('Giriş Yap'),
-                        ),
-                      ],
-                    ).animate().fadeIn(delay: 800.ms),
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 150.ms),
+                const SizedBox(height: AppSpacing.xxl),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _register,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(strings.register),
+                ).animate().fadeIn(delay: 200.ms),
+                const SizedBox(height: AppSpacing.xxl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      strings.alreadyHaveAccount,
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/login'),
+                      child: Text(strings.login),
+                    ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
