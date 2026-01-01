@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
-import '../../widgets/common/glass_card.dart';
+import '../../widgets/common/app_card.dart';
 
 /// Notifications Screen
-/// Shows notification history and settings
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -14,13 +13,12 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  // Mock notifications
   final List<NotificationItem> _notifications = [
     NotificationItem(
       id: '1',
       type: NotificationType.prediction,
       title: 'Tahmin Kazandı! 🎉',
-      message: 'Galatasaray - Fenerbahçe maçındaki tahmininiz doğru çıktı.',
+      message: 'Galatasaray - Fenerbahçe tahmini doğru çıktı.',
       time: DateTime.now().subtract(const Duration(minutes: 15)),
       isRead: false,
     ),
@@ -36,8 +34,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       id: '3',
       type: NotificationType.system,
       title: 'Yeni Özellik!',
-      message:
-          'Artık ligleri takip edebilir ve özel tahminlere ulaşabilirsiniz.',
+      message: 'Artık ligleri takip edebilirsiniz.',
       time: DateTime.now().subtract(const Duration(hours: 5)),
       isRead: true,
     ),
@@ -45,16 +42,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       id: '4',
       type: NotificationType.prediction,
       title: 'Tahmin Kaybetti',
-      message: 'Man City - Liverpool maçındaki tahmininiz tutmadı.',
+      message: 'Man City - Liverpool tahmini tutmadı.',
       time: DateTime.now().subtract(const Duration(days: 1)),
-      isRead: true,
-    ),
-    NotificationItem(
-      id: '5',
-      type: NotificationType.premium,
-      title: 'Premium Fırsatı!',
-      message: 'Yıllık abonelikte %50 indirim fırsatını kaçırmayın.',
-      time: DateTime.now().subtract(const Duration(days: 2)),
       isRead: true,
     ),
   ];
@@ -70,14 +59,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (unreadCount > 0)
             TextButton(
               onPressed: _markAllAsRead,
-              child: const Text('Tümünü Okundu İşaretle'),
+              child: const Text('Tümünü Oku'),
             ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              // Navigate to notification settings
-            },
-          ),
         ],
       ),
       body: _notifications.isEmpty
@@ -85,10 +68,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           : ListView.builder(
               padding: const EdgeInsets.all(AppSpacing.lg),
               itemCount: _notifications.length,
-              itemBuilder: (context, index) {
-                final notification = _notifications[index];
-                return _buildNotificationCard(context, notification, index);
-              },
+              itemBuilder: (context, index) =>
+                  _buildCard(context, _notifications[index], index),
             ),
     );
   }
@@ -100,23 +81,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         children: [
           Icon(
             Icons.notifications_off_outlined,
-            size: 64,
-            color: Theme.of(context).colorScheme.onSurface.withAlpha(77),
+            size: 56,
+            color: AppColors.textMuted,
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
             'Bildirim yok',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Yeni bildirimler burada görünecek',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(102),
+              color: AppColors.textSecondary,
             ),
           ),
         ],
@@ -124,143 +98,111 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildNotificationCard(
-    BuildContext context,
-    NotificationItem notification,
-    int index,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+  Widget _buildCard(BuildContext context, NotificationItem n, int index) {
     return Dismissible(
-      key: Key(notification.id),
+      key: Key(n.id),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: AppSpacing.xl),
         decoration: BoxDecoration(
-          color: AppColors.loseRed.withAlpha(51),
+          color: AppColors.danger.withAlpha(25),
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         child: const Icon(
           Icons.delete_outline_rounded,
-          color: AppColors.loseRed,
+          color: AppColors.danger,
         ),
       ),
-      onDismissed: (direction) {
-        setState(() {
-          _notifications.removeAt(index);
-        });
+      onDismissed: (_) {
+        setState(() => _notifications.removeAt(index));
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Bildirim silindi')));
       },
-      child:
-          Container(
-            margin: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: GlassCard(
-              variant: notification.isRead
-                  ? GlassCardVariant.defaultVariant
-                  : GlassCardVariant.premium,
-              onTap: () {
-                setState(() {
-                  notification.isRead = true;
-                });
-                // Handle notification tap
-              },
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Icon
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: notification.color.withAlpha(25),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Icon(
-                      notification.icon,
-                      color: notification.color,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-
-                  // Content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+        child: AppCard(
+          variant: n.isRead ? AppCardVariant.normal : AppCardVariant.primary,
+          onTap: () => setState(() => n.isRead = true),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: n.color.withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(n.icon, color: n.color, size: 20),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                notification.title,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: notification.isRead
-                                      ? FontWeight.w500
-                                      : FontWeight.w600,
-                                ),
-                              ),
+                        Expanded(
+                          child: Text(
+                            n.title,
+                            style: TextStyle(
+                              fontWeight: n.isRead
+                                  ? FontWeight.w500
+                                  : FontWeight.w600,
+                              fontSize: 14,
                             ),
-                            if (!notification.isRead)
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primaryPurple,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          notification.message,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark
-                                ? AppColors.darkMutedForeground
-                                : AppColors.lightMutedForeground,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          notification.timeAgo,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark
-                                ? AppColors.darkMutedForeground
-                                : AppColors.lightMutedForeground,
+                        if (!n.isRead)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      n.message,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      n.timeAgo,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ).animate().fadeIn(
-            delay: Duration(milliseconds: index * 50),
-            duration: 300.ms,
+            ],
           ),
+        ),
+      ).animate().fadeIn(delay: Duration(milliseconds: index * 50)),
     );
   }
 
   void _markAllAsRead() {
     setState(() {
-      for (var notification in _notifications) {
-        notification.isRead = true;
+      for (var n in _notifications) {
+        n.isRead = true;
       }
     });
   }
 }
 
-/// Notification Type
 enum NotificationType { prediction, live, system, premium }
 
-/// Notification Item Model
 class NotificationItem {
   final String id;
   final NotificationType type;
@@ -294,30 +236,21 @@ class NotificationItem {
   Color get color {
     switch (type) {
       case NotificationType.prediction:
-        return AppColors.winGreen;
+        return AppColors.success;
       case NotificationType.live:
-        return AppColors.liveRed;
+        return AppColors.danger;
       case NotificationType.system:
-        return AppColors.primaryPurple;
+        return AppColors.primary;
       case NotificationType.premium:
-        return AppColors.accentOrange;
+        return AppColors.warning;
     }
   }
 
   String get timeAgo {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-
-    if (diff.inMinutes < 1) {
-      return 'Şimdi';
-    } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} dakika önce';
-    } else if (diff.inHours < 24) {
-      return '${diff.inHours} saat önce';
-    } else if (diff.inDays < 7) {
-      return '${diff.inDays} gün önce';
-    } else {
-      return '${(diff.inDays / 7).floor()} hafta önce';
-    }
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return 'Şimdi';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} dk önce';
+    if (diff.inHours < 24) return '${diff.inHours} saat önce';
+    return '${diff.inDays} gün önce';
   }
 }
