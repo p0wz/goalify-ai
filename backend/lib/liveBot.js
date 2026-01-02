@@ -186,16 +186,8 @@ async function scanLiveMatches() {
 
         console.log(`[LiveBot] Total live matches: ${allMatches.length}`);
 
-        // Filter candidates
+        // Filter candidates (NO league filter - scan all leagues)
         const candidates = allMatches.filter(m => {
-            const leagueName = m.league_name || '';
-            const fullLeague = `${m.country_name}: ${leagueName}`;
-
-            const isAllowed = ALLOWED_LEAGUES.some(l =>
-                fullLeague.toUpperCase().includes(l.toUpperCase())
-            );
-            if (!isAllowed) return false;
-
             const elapsed = parseElapsedTime(m.stage);
             const homeScore = m.home_team?.score || 0;
             const awayScore = m.away_team?.score || 0;
@@ -221,30 +213,37 @@ async function scanLiveMatches() {
             const elapsed = parseElapsedTime(match.stage);
             const matchId = match.match_id;
             const score = `${match.home_team?.score || 0}-${match.away_team?.score || 0}`;
+            const league = `${match.country_name}: ${match.league_name}`;
 
-            console.log(`[LiveBot] Analyzing: ${match.home_team?.name} vs ${match.away_team?.name} (${score}, ${elapsed}')`);
+            console.log(`[LiveBot] ────────────────────────────────────`);
+            console.log(`[LiveBot] 📊 ${match.home_team?.name} vs ${match.away_team?.name}`);
+            console.log(`[LiveBot]    League: ${league}`);
+            console.log(`[LiveBot]    Score: ${score} | Time: ${elapsed}'`);
 
             // Fetch stats
             const statsData = await flashscore.fetchMatchStats(matchId);
             if (!statsData) {
-                console.log(`[LiveBot] No stats for ${matchId}`);
+                console.log(`[LiveBot]    ❌ No stats available`);
                 continue;
             }
 
             const stats = parseMatchStats(statsData);
+            console.log(`[LiveBot]    Stats: Shots ${stats.shots.home}-${stats.shots.away} | SoT ${stats.shotsOnTarget.home}-${stats.shotsOnTarget.away} | Corners ${stats.corners.home}-${stats.corners.away}`);
+            console.log(`[LiveBot]    xG: ${stats.xG.home.toFixed(2)}-${stats.xG.away.toFixed(2)} | Poss: ${stats.possession.home}%-${stats.possession.away}%`);
 
             // Red card filter
             if (stats.redCards.home > 0 || stats.redCards.away > 0) {
-                console.log(`[LiveBot] Red card detected - skipping`);
+                console.log(`[LiveBot]    ❌ Red card detected (${stats.redCards.home}-${stats.redCards.away})`);
                 continue;
             }
 
             // Base activity check
             const baseCheck = momentum.checkBaseActivity(elapsed, stats);
             if (!baseCheck.isAlive) {
-                console.log(`[LiveBot] Dead match: ${baseCheck.reason}`);
+                console.log(`[LiveBot]    ❌ Dead match: ${baseCheck.reason}`);
                 continue;
             }
+            console.log(`[LiveBot]    ✓ Base activity OK`);
 
             // Record stats for momentum tracking
             momentum.recordMatchStats(matchId, stats, score);
@@ -252,47 +251,50 @@ async function scanLiveMatches() {
             // Detect momentum
             const momentumResult = momentum.detectMomentum(matchId, stats, score);
             if (!momentumResult.detected) {
-                console.log(`[LiveBot] No momentum trigger`);
+                console.log(`[LiveBot]    ❌ No momentum trigger`);
                 continue;
             }
-
-            console.log(`[LiveBot] Momentum: ${momentumResult.reason}`);
+            console.log(`[LiveBot]    🔥 MOMENTUM: ${momentumResult.reason}`);
 
             // Run strategy analysis
             let candidate = strategies.analyzeFirstHalf(match, elapsed, stats, momentumResult);
+            const strategyType = candidate ? 'FIRST_HALF' : 'LATE_GAME';
             if (!candidate) {
                 candidate = strategies.analyzeLateGame(match, elapsed, stats, momentumResult);
             }
 
             if (!candidate) {
-                console.log(`[LiveBot] No strategy match`);
+                console.log(`[LiveBot]    ❌ No strategy match (time/score criteria)`);
                 continue;
             }
+            console.log(`[LiveBot]    ✓ Strategy: ${candidate.strategy} (${candidate.confidencePercent}% base)`);
 
             // Check signal limit
             if (!checkSignalLimit(matchId, candidate.strategyCode)) {
-                console.log(`[LiveBot] Signal limit reached for ${candidate.strategyCode}`);
+                console.log(`[LiveBot]    ❌ Signal limit reached for ${candidate.strategyCode}`);
                 continue;
             }
 
             // H2H analysis (only for momentum matches)
-            console.log(`[LiveBot] Running H2H analysis...`);
+            console.log(`[LiveBot]    📈 Running H2H analysis...`);
             const h2hResult = await h2h.analyzeH2H(matchId, candidate.home, candidate.away, score, elapsed);
 
             if (!h2hResult.valid) {
-                console.log(`[LiveBot] H2H failed: ${h2hResult.reason}`);
+                console.log(`[LiveBot]    ❌ H2H failed: ${h2hResult.reason}`);
                 continue;
             }
+            console.log(`[LiveBot]    ✓ H2H passed: +${h2hResult.confidenceBonus || 0}% bonus`);
 
             // Apply H2H confidence bonus
+            const beforeBonus = candidate.confidencePercent;
             if (h2hResult.confidenceBonus) {
                 candidate.confidencePercent += h2hResult.confidenceBonus;
                 candidate.confidencePercent = Math.min(95, Math.max(30, candidate.confidencePercent));
             }
+            console.log(`[LiveBot]    Confidence: ${beforeBonus}% → ${candidate.confidencePercent}%`);
 
             // ============ SCORE SAFETY CHECK ============
-            // Re-fetch match to verify score hasn't changed during analysis
-            console.log(`[LiveBot] Score safety check...`);
+            console.log(`[LiveBot]    🔒 Score safety check...`);
             const freshLiveData = await flashscore.fetchLiveMatches();
             const freshTournaments = Array.isArray(freshLiveData) ? freshLiveData : [];
             let freshMatch = null;
@@ -305,13 +307,15 @@ async function scanLiveMatches() {
             if (freshMatch) {
                 const freshScore = `${freshMatch.home_team?.score || 0}-${freshMatch.away_team?.score || 0}`;
                 if (freshScore !== score) {
-                    console.log(`[LiveBot] ⚠️ Score changed during analysis: ${score} → ${freshScore} - SKIPPING`);
+                    console.log(`[LiveBot]    ⚠️ Score changed: ${score} → ${freshScore} - SKIPPING`);
                     continue;
                 }
+                console.log(`[LiveBot]    ✓ Score unchanged: ${freshScore}`);
             }
             // ============ END SCORE SAFETY CHECK ============
 
-            console.log(`[LiveBot] ✓ SIGNAL: ${candidate.strategy} (${candidate.confidencePercent}%)`);
+            console.log(`[LiveBot]    🎯 SIGNAL GENERATED: ${candidate.strategy} (${candidate.confidencePercent}%)`);
+            console.log(`[LiveBot] ────────────────────────────────────`);
 
             // Save to database
             await database.addLiveSignal(candidate);
@@ -326,7 +330,8 @@ async function scanLiveMatches() {
         }
 
         lastScanTime = new Date().toISOString();
-        console.log(`[LiveBot] Scan complete: ${signals.length} signals`);
+        console.log(`[LiveBot] ════════════════════════════════════════`);
+        console.log(`[LiveBot] Scan complete: ${signals.length} signals generated`);
         console.log('[LiveBot] ════════════════════════════════════════');
 
     } catch (error) {
