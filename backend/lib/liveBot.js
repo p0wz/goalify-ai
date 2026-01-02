@@ -290,6 +290,27 @@ async function scanLiveMatches() {
                 candidate.confidencePercent = Math.min(95, Math.max(30, candidate.confidencePercent));
             }
 
+            // ============ SCORE SAFETY CHECK ============
+            // Re-fetch match to verify score hasn't changed during analysis
+            console.log(`[LiveBot] Score safety check...`);
+            const freshLiveData = await flashscore.fetchLiveMatches();
+            const freshTournaments = Array.isArray(freshLiveData) ? freshLiveData : [];
+            let freshMatch = null;
+
+            for (const t of freshTournaments) {
+                freshMatch = (t.matches || []).find(m => m.match_id === matchId);
+                if (freshMatch) break;
+            }
+
+            if (freshMatch) {
+                const freshScore = `${freshMatch.home_team?.score || 0}-${freshMatch.away_team?.score || 0}`;
+                if (freshScore !== score) {
+                    console.log(`[LiveBot] ⚠️ Score changed during analysis: ${score} → ${freshScore} - SKIPPING`);
+                    continue;
+                }
+            }
+            // ============ END SCORE SAFETY CHECK ============
+
             console.log(`[LiveBot] ✓ SIGNAL: ${candidate.strategy} (${candidate.confidencePercent}%)`);
 
             // Save to database
