@@ -5,10 +5,20 @@
 
 const axios = require('axios');
 
+// Main API config (for daily analysis)
 const FLASHSCORE_API = {
     baseURL: 'https://flashscore4.p.rapidapi.com',
     headers: {
         'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || '',
+        'X-RapidAPI-Host': 'flashscore4.p.rapidapi.com'
+    }
+};
+
+// Live Bot API config (separate key for live scanning)
+const FLASHSCORE_API_LIVE = {
+    baseURL: 'https://flashscore4.p.rapidapi.com',
+    headers: {
+        'X-RapidAPI-Key': process.env.RAPIDAPI_KEY_LIVE || process.env.RAPIDAPI_KEY || '',
         'X-RapidAPI-Host': 'flashscore4.p.rapidapi.com'
     }
 };
@@ -294,14 +304,14 @@ function normalizeText(text) {
 }
 
 /**
- * Fetch live matches (for live bot)
+ * Fetch live matches (for live bot) - Uses LIVE key
  */
 async function fetchLiveMatches() {
     try {
         await sleep(400);
         const response = await fetchWithRetry(
-            `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/live/1`,
-            { headers: FLASHSCORE_API.headers, timeout: 15000 }
+            `${FLASHSCORE_API_LIVE.baseURL}/api/flashscore/v1/match/live/1`,
+            { headers: FLASHSCORE_API_LIVE.headers, timeout: 15000 }
         );
         return response.data || [];
     } catch (error) {
@@ -311,14 +321,14 @@ async function fetchLiveMatches() {
 }
 
 /**
- * Fetch match statistics (for live bot)
+ * Fetch match statistics (for live bot) - Uses LIVE key
  */
 async function fetchMatchStats(matchId) {
     try {
         await sleep(400);
         const response = await fetchWithRetry(
-            `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/stats/${matchId}`,
-            { headers: FLASHSCORE_API.headers, timeout: 15000 }
+            `${FLASHSCORE_API_LIVE.baseURL}/api/flashscore/v1/match/stats/${matchId}`,
+            { headers: FLASHSCORE_API_LIVE.headers, timeout: 15000 }
         );
         return response.data || null;
     } catch (error) {

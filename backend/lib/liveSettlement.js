@@ -22,9 +22,11 @@ function isReadyForSettlement(signal) {
 /**
  * Settle a single live signal
  * WON if score changed from entry, LOST if same
+ * FIRST_HALF: Check only HT score
+ * LATE_GAME: Check FT score
  */
 async function settleLiveSignal(signal) {
-    console.log(`[LiveSettlement] Processing signal ${signal.id} (Match: ${signal.matchId})`);
+    console.log(`[LiveSettlement] Processing signal ${signal.id} (Match: ${signal.matchId}, Strategy: ${signal.strategyCode})`);
 
     try {
         // Fetch current match details
@@ -35,10 +37,24 @@ async function settleLiveSignal(signal) {
             return { success: false, error: 'Could not fetch match details' };
         }
 
-        // Parse final score
-        const homeGoals = parseInt(details.home_team?.score) || 0;
-        const awayGoals = parseInt(details.away_team?.score) || 0;
-        const finalScore = `${homeGoals}-${awayGoals}`;
+        let finalScore;
+        let checkScore;
+
+        // For FIRST_HALF strategy, check only HT score
+        if (signal.strategyCode === 'FIRST_HALF') {
+            const htHome = parseInt(details.home_team?.score_1st_half) || 0;
+            const htAway = parseInt(details.away_team?.score_1st_half) || 0;
+            finalScore = `${htHome}-${htAway}`;
+            checkScore = 'HT';
+            console.log(`[LiveSettlement] FIRST_HALF - Using HT score: ${finalScore}`);
+        } else {
+            // For LATE_GAME, use full-time score
+            const ftHome = parseInt(details.home_team?.score) || 0;
+            const ftAway = parseInt(details.away_team?.score) || 0;
+            finalScore = `${ftHome}-${ftAway}`;
+            checkScore = 'FT';
+            console.log(`[LiveSettlement] LATE_GAME - Using FT score: ${finalScore}`);
+        }
 
         // Compare with entry score
         const entryScore = signal.entryScore || '0-0';
@@ -46,7 +62,7 @@ async function settleLiveSignal(signal) {
 
         const status = scoreChanged ? 'WON' : 'LOST';
 
-        console.log(`[LiveSettlement] Entry: ${entryScore} → Final: ${finalScore} = ${status}`);
+        console.log(`[LiveSettlement] Entry: ${entryScore} → ${checkScore}: ${finalScore} = ${status}`);
 
         return {
             success: true,
