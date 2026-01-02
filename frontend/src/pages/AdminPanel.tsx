@@ -771,7 +771,30 @@ const AdminPanel = () => {
                                         <SelectItem value="Home Wins Either Half">Ev Sahibi İki Yarıdan Birini Kazanır</SelectItem>
                                         <SelectItem value="Match Winner Home">Maç Sonucu 1</SelectItem>
                                         <SelectItem value="Over 2.5 Goals">2.5 Üst</SelectItem>
-                                        {/* Add other markets as they appear dynamically if needed, or static list */}
+                                        <SelectItem value="Over 1.5 Goals">1.5 Üst</SelectItem>
+                                        <SelectItem value="Under 2.5 Goals">2.5 Alt</SelectItem>
+                                        <SelectItem value="Under 3.5 Goals">3.5 Alt</SelectItem>
+                                        <SelectItem value="BTTS">KG Var</SelectItem>
+                                        {/* Combination Markets */}
+                                        <SelectItem value="2X + Over 1.5">2X + 1.5 Üst</SelectItem>
+                                        <SelectItem value="2X + Over 2.5">2X + 2.5 Üst</SelectItem>
+                                        <SelectItem value="2X + Under 3.5">2X + 3.5 Alt</SelectItem>
+                                        <SelectItem value="2X + Under 4.5">2X + 4.5 Alt</SelectItem>
+                                        <SelectItem value="2X + Under 5.5">2X + 5.5 Alt</SelectItem>
+                                        <SelectItem value="1X + Over 2.5">1X + 2.5 Üst</SelectItem>
+                                        <SelectItem value="1X + Under 3.5">1X + 3.5 Alt</SelectItem>
+                                        <SelectItem value="1X + Under 4.5">1X + 4.5 Alt</SelectItem>
+                                        <SelectItem value="1X + Under 5.5">1X + 5.5 Alt</SelectItem>
+                                        <SelectItem value="2 + Over 1.5">MS2 + 1.5 Üst</SelectItem>
+                                        <SelectItem value="2 + Over 2.5">MS2 + 2.5 Üst</SelectItem>
+                                        <SelectItem value="2 + Under 3.5">MS2 + 3.5 Alt</SelectItem>
+                                        <SelectItem value="2 + Under 4.5">MS2 + 4.5 Alt</SelectItem>
+                                        <SelectItem value="2 + Under 5.5">MS2 + 5.5 Alt</SelectItem>
+                                        <SelectItem value="1 + Over 1.5">MS1 + 1.5 Üst</SelectItem>
+                                        <SelectItem value="1 + Over 2.5">MS1 + 2.5 Üst</SelectItem>
+                                        <SelectItem value="1 + Under 3.5">MS1 + 3.5 Alt</SelectItem>
+                                        <SelectItem value="1 + Under 4.5">MS1 + 4.5 Alt</SelectItem>
+                                        <SelectItem value="1 + Under 5.5">MS1 + 5.5 Alt</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -1098,7 +1121,30 @@ const AdminPanel = () => {
                                                         <SelectItem value="Home Wins Either Half">Ev İki Yarıdan Birini Kazanır</SelectItem>
                                                         <SelectItem value="Match Winner Home">Maç Sonucu 1</SelectItem>
                                                         <SelectItem value="Over 2.5 Goals">2.5 Üst</SelectItem>
+                                                        <SelectItem value="Over 1.5 Goals">1.5 Üst</SelectItem>
+                                                        <SelectItem value="Under 2.5 Goals">2.5 Alt</SelectItem>
+                                                        <SelectItem value="Under 3.5 Goals">3.5 Alt</SelectItem>
                                                         <SelectItem value="Both Teams To Score">KG Var</SelectItem>
+                                                        {/* Combination Markets */}
+                                                        <SelectItem value="2X + Over 1.5">2X + 1.5 Üst</SelectItem>
+                                                        <SelectItem value="2X + Over 2.5">2X + 2.5 Üst</SelectItem>
+                                                        <SelectItem value="2X + Under 3.5">2X + 3.5 Alt</SelectItem>
+                                                        <SelectItem value="2X + Under 4.5">2X + 4.5 Alt</SelectItem>
+                                                        <SelectItem value="2X + Under 5.5">2X + 5.5 Alt</SelectItem>
+                                                        <SelectItem value="1X + Over 2.5">1X + 2.5 Üst</SelectItem>
+                                                        <SelectItem value="1X + Under 3.5">1X + 3.5 Alt</SelectItem>
+                                                        <SelectItem value="1X + Under 4.5">1X + 4.5 Alt</SelectItem>
+                                                        <SelectItem value="1X + Under 5.5">1X + 5.5 Alt</SelectItem>
+                                                        <SelectItem value="2 + Over 1.5">MS2 + 1.5 Üst</SelectItem>
+                                                        <SelectItem value="2 + Over 2.5">MS2 + 2.5 Üst</SelectItem>
+                                                        <SelectItem value="2 + Under 3.5">MS2 + 3.5 Alt</SelectItem>
+                                                        <SelectItem value="2 + Under 4.5">MS2 + 4.5 Alt</SelectItem>
+                                                        <SelectItem value="2 + Under 5.5">MS2 + 5.5 Alt</SelectItem>
+                                                        <SelectItem value="1 + Over 1.5">MS1 + 1.5 Üst</SelectItem>
+                                                        <SelectItem value="1 + Over 2.5">MS1 + 2.5 Üst</SelectItem>
+                                                        <SelectItem value="1 + Under 3.5">MS1 + 3.5 Alt</SelectItem>
+                                                        <SelectItem value="1 + Under 4.5">MS1 + 4.5 Alt</SelectItem>
+                                                        <SelectItem value="1 + Under 5.5">MS1 + 5.5 Alt</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>

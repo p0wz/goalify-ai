@@ -98,6 +98,52 @@ function evaluatePrediction(market, homeGoals, awayGoals, htHome = null, htAway 
         }
     }
 
+    // ============ COMBINATION MARKETS ============
+
+    // 2X + OVER/UNDER (Away or Draw + Goals)
+    if (marketLower.includes('2x')) {
+        const doubleChanceX2 = awayGoals >= homeGoals; // Draw or Away Win
+        if (marketLower.includes('over 1.5')) return result(doubleChanceX2 && totalGoals >= 2);
+        if (marketLower.includes('over 2.5')) return result(doubleChanceX2 && totalGoals >= 3);
+        if (marketLower.includes('under 3.5')) return result(doubleChanceX2 && totalGoals <= 3);
+        if (marketLower.includes('under 4.5')) return result(doubleChanceX2 && totalGoals <= 4);
+        if (marketLower.includes('under 5.5')) return result(doubleChanceX2 && totalGoals <= 5);
+        // Plain 2X without goals
+        return result(doubleChanceX2);
+    }
+
+    // 1X + OVER/UNDER (Home or Draw + Goals)
+    if (marketLower.includes('1x')) {
+        const doubleChance1X = homeGoals >= awayGoals; // Draw or Home Win
+        if (marketLower.includes('over 1.5')) return result(doubleChance1X && totalGoals >= 2);
+        if (marketLower.includes('over 2.5')) return result(doubleChance1X && totalGoals >= 3);
+        if (marketLower.includes('under 3.5')) return result(doubleChance1X && totalGoals <= 3);
+        if (marketLower.includes('under 4.5')) return result(doubleChance1X && totalGoals <= 4);
+        if (marketLower.includes('under 5.5')) return result(doubleChance1X && totalGoals <= 5);
+        // Plain 1X without goals
+        return result(doubleChance1X);
+    }
+
+    // 2 + OVER/UNDER (Away Win + Goals)
+    if (marketLower.match(/^2\s*\+/) || marketLower.match(/\s2\s*\+/)) {
+        const awayWin = awayGoals > homeGoals;
+        if (marketLower.includes('over 1.5')) return result(awayWin && totalGoals >= 2);
+        if (marketLower.includes('over 2.5')) return result(awayWin && totalGoals >= 3);
+        if (marketLower.includes('under 3.5')) return result(awayWin && totalGoals <= 3);
+        if (marketLower.includes('under 4.5')) return result(awayWin && totalGoals <= 4);
+        if (marketLower.includes('under 5.5')) return result(awayWin && totalGoals <= 5);
+    }
+
+    // 1 + OVER/UNDER (Home Win + Goals)
+    if (marketLower.match(/^1\s*\+/) || marketLower.match(/\s1\s*\+/)) {
+        const homeWin = homeGoals > awayGoals;
+        if (marketLower.includes('over 1.5')) return result(homeWin && totalGoals >= 2);
+        if (marketLower.includes('over 2.5')) return result(homeWin && totalGoals >= 3);
+        if (marketLower.includes('under 3.5')) return result(homeWin && totalGoals <= 3);
+        if (marketLower.includes('under 4.5')) return result(homeWin && totalGoals <= 4);
+        if (marketLower.includes('under 5.5')) return result(homeWin && totalGoals <= 5);
+    }
+
     // Ev Herhangi Yarı
     if (marketLower.includes('ev herhangi') || marketLower.includes('home wins either half')) {
         if (htHome !== null && htAway !== null) {
