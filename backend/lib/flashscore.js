@@ -293,6 +293,47 @@ function normalizeText(text) {
         .replace(/[^a-z0-9\s]/g, '');
 }
 
+/**
+ * Fetch live matches (for live bot)
+ */
+async function fetchLiveMatches() {
+    try {
+        await sleep(400);
+        const response = await fetchWithRetry(
+            `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/live/1`,
+            { headers: FLASHSCORE_API.headers, timeout: 15000 }
+        );
+        return response.data || [];
+    } catch (error) {
+        console.error('[Flashscore] fetchLiveMatches error:', error.message);
+        return [];
+    }
+}
+
+/**
+ * Fetch match statistics (for live bot)
+ */
+async function fetchMatchStats(matchId) {
+    try {
+        await sleep(400);
+        const response = await fetchWithRetry(
+            `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/stats/${matchId}`,
+            { headers: FLASHSCORE_API.headers, timeout: 15000 }
+        );
+        return response.data || null;
+    } catch (error) {
+        console.error('[Flashscore] fetchMatchStats error:', error.message);
+        return null;
+    }
+}
+
+/**
+ * Fetch match H2H (alias for live bot compatibility)
+ */
+async function fetchMatchH2H(matchId) {
+    return fetchH2H(matchId);
+}
+
 module.exports = {
     fetchDayMatches,
     fetchH2H,
@@ -300,5 +341,9 @@ module.exports = {
     fetchMatchOdds,
     parseMatchResult,
     formatOddsForPrompt,
-    normalizeText
+    normalizeText,
+    // Live bot functions
+    fetchLiveMatches,
+    fetchMatchStats,
+    fetchMatchH2H
 };

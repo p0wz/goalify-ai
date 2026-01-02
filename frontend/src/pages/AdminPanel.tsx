@@ -36,7 +36,9 @@ import {
     User,
     Shield,
     List,
-    Smartphone
+    Smartphone,
+    Radio,
+    History
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
@@ -180,6 +182,12 @@ const AdminPanel = () => {
     const [mobileBets, setMobileBets] = useState<MobileBet[]>([]);
     const [mobileBetsLoading, setMobileBetsLoading] = useState(false);
 
+    // Live Bot State
+    const [liveSignals, setLiveSignals] = useState<any[]>([]);
+    const [liveHistory, setLiveHistory] = useState<any[]>([]);
+    const [liveStatus, setLiveStatus] = useState<any>({});
+    const [liveLoading, setLiveLoading] = useState(false);
+
 
     // Load data on mount
     useEffect(() => {
@@ -188,6 +196,8 @@ const AdminPanel = () => {
         loadTraining();
         loadUsers();
         loadMobileBets();
+        loadLiveSignals();
+        loadLiveHistory();
     }, []);
 
     // ============ ANALYSIS FUNCTIONS ============
@@ -520,6 +530,58 @@ const AdminPanel = () => {
         }
     };
 
+    // ============ LIVE BOT FUNCTIONS ============
+
+    const loadLiveSignals = async () => {
+        try {
+            setLiveLoading(true);
+            const res = await fetch(`${API_BASE}/live/signals`, { headers: getAuthHeaders() as any });
+            if (res.ok) {
+                const data = await safeJson(res);
+                setLiveSignals(data.signals || []);
+                setLiveStatus(data.status || {});
+            }
+        } catch (err: any) {
+            console.error('Live signals error:', err.message);
+        } finally {
+            setLiveLoading(false);
+        }
+    };
+
+    const loadLiveHistory = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/live/history`, { headers: getAuthHeaders() as any });
+            if (res.ok) {
+                const data = await safeJson(res);
+                setLiveHistory(data.signals || []);
+            }
+        } catch (err: any) {
+            console.error('Live history error:', err.message);
+        }
+    };
+
+    const runManualScan = async () => {
+        try {
+            setLiveLoading(true);
+            toast.info('Manuel tarama başlatıldı...');
+            const res = await fetch(`${API_BASE}/live/scan`, {
+                method: 'POST',
+                headers: getAuthHeaders() as any
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                toast.success(`Tarama tamamlandı: ${data.signals?.length || 0} sinyal`);
+                loadLiveSignals();
+                loadLiveHistory();
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setLiveLoading(false);
+        }
+    };
+
     // ============ HELPERS ============
 
     const filteredResults = marketFilter === 'all' ? results : results.filter(r => r.marketKey === marketFilter);
@@ -590,7 +652,7 @@ const AdminPanel = () => {
                 {/* Tabs */}
                 {/* Tabs */}
                 <Tabs defaultValue="analysis" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-8">
                         <TabsTrigger value="analysis" className="relative flex items-center gap-2">
                             <Zap className="h-4 w-4" />
                             Analiz
@@ -601,20 +663,25 @@ const AdminPanel = () => {
                         <TabsTrigger value="matches" className="flex items-center gap-2">
                             <List className="h-4 w-4" />
                             Tüm Maçlar
-                            {allMatches.length > 0 && (
-                                <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1">{allMatches.length}</Badge>
-                            )}
                         </TabsTrigger>
                         <TabsTrigger value="bets" className="flex items-center gap-2">
                             <BarChart3 className="h-4 w-4" />
                             Bahisler
                         </TabsTrigger>
+                        <TabsTrigger value="livebot" className="flex items-center gap-2">
+                            <Radio className="h-4 w-4" />
+                            Canlı Bot
+                            {liveSignals.length > 0 && (
+                                <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1">{liveSignals.length}</Badge>
+                            )}
+                        </TabsTrigger>
+                        <TabsTrigger value="livehistory" className="flex items-center gap-2">
+                            <History className="h-4 w-4" />
+                            Bot Geçmişi
+                        </TabsTrigger>
                         <TabsTrigger value="mobile" className="flex items-center gap-2">
                             <Smartphone className="h-4 w-4" />
                             Mobil
-                            {mobileBets.length > 0 && (
-                                <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1">{mobileBets.length}</Badge>
-                            )}
                         </TabsTrigger>
                         <TabsTrigger value="training" className="flex items-center gap-2">
                             <Brain className="h-4 w-4" />
@@ -1221,6 +1288,125 @@ const AdminPanel = () => {
                                     ))}
                                 </TableBody>
                             </Table>
+                        </Card>
+                    </TabsContent>
+
+                    {/* ============ LIVE BOT TAB ============ */}
+                    <TabsContent value="livebot" className="space-y-4">
+                        <div className="flex flex-wrap gap-3 items-center">
+                            <Button onClick={runManualScan} disabled={liveLoading} className="gradient-primary text-white">
+                                {liveLoading ? (
+                                    <><Activity className="mr-2 h-4 w-4 animate-spin" />Taranıyor...</>
+                                ) : (
+                                    <><Play className="mr-2 h-4 w-4" />Manuel Tarama</>
+                                )}
+                            </Button>
+                            <Button variant="outline" onClick={() => { loadLiveSignals(); loadLiveHistory(); }}>
+                                <RefreshCw className="mr-2 h-4 w-4" />Yenile
+                            </Button>
+                            <div className="flex items-center gap-2 ml-auto">
+                                <Badge className={liveStatus.isRunning ? 'bg-win' : 'bg-lose'}>
+                                    {liveStatus.isRunning ? '🟢 Aktif' : '🔴 Durdu'}
+                                </Badge>
+                                {liveStatus.lastScanTime && (
+                                    <span className="text-sm text-muted-foreground">
+                                        Son: {new Date(liveStatus.lastScanTime).toLocaleTimeString('tr-TR')}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {liveSignals.length === 0 ? (
+                            <Card className="glass-card">
+                                <CardContent className="p-8 text-center">
+                                    <Radio className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                    <p className="text-muted-foreground">Aktif sinyal yok</p>
+                                    <p className="text-sm text-muted-foreground mt-2">Bot her 3 dakikada bir canlı maçları tarar</p>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="space-y-4">
+                                {liveSignals.map((signal) => (
+                                    <Card key={signal.id} className="glass-card card-hover">
+                                        <CardHeader>
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <CardTitle className="text-lg">{signal.home} vs {signal.away}</CardTitle>
+                                                    <CardDescription>{signal.league}</CardDescription>
+                                                </div>
+                                                <Badge className="gradient-accent text-white">{signal.strategy}</Badge>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="grid grid-cols-4 gap-3">
+                                                <div className="bg-secondary/50 rounded-lg p-3 text-center">
+                                                    <div className="text-lg font-bold">{signal.entryScore}</div>
+                                                    <div className="text-xs text-muted-foreground">Skor</div>
+                                                </div>
+                                                <div className="bg-secondary/50 rounded-lg p-3 text-center">
+                                                    <div className="text-lg font-bold text-primary">{signal.confidence}%</div>
+                                                    <div className="text-xs text-muted-foreground">Güven</div>
+                                                </div>
+                                                <div className="bg-secondary/50 rounded-lg p-3 text-center">
+                                                    <div className="text-lg font-bold">{signal.stats?.shots || '-'}</div>
+                                                    <div className="text-xs text-muted-foreground">Shots</div>
+                                                </div>
+                                                <div className="bg-secondary/50 rounded-lg p-3 text-center">
+                                                    <div className="text-lg font-bold">{signal.stats?.corners || '-'}</div>
+                                                    <div className="text-xs text-muted-foreground">Corners</div>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-muted-foreground mt-3">{signal.reason}</p>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    {/* ============ LIVE HISTORY TAB ============ */}
+                    <TabsContent value="livehistory" className="space-y-4">
+                        <Card className="glass-card">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <History className="h-5 w-5" />
+                                    Canlı Bot Geçmişi
+                                </CardTitle>
+                                <CardDescription>Otomatik settlement: 1 saat sonra skor değiştiyse WON</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Maç</TableHead>
+                                            <TableHead>Strateji</TableHead>
+                                            <TableHead>Giriş Skoru</TableHead>
+                                            <TableHead>Final Skor</TableHead>
+                                            <TableHead>Güven</TableHead>
+                                            <TableHead>Sonuç</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {liveHistory.map((signal) => (
+                                            <TableRow key={signal.id}>
+                                                <TableCell>
+                                                    <div>
+                                                        <div className="font-medium">{signal.home} vs {signal.away}</div>
+                                                        <div className="text-xs text-muted-foreground">{signal.league}</div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">{signal.strategyCode}</Badge>
+                                                </TableCell>
+                                                <TableCell>{signal.entryScore}</TableCell>
+                                                <TableCell>{signal.finalScore || '-'}</TableCell>
+                                                <TableCell>{signal.confidence}%</TableCell>
+                                                <TableCell>{getStatusBadge(signal.status)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
                         </Card>
                     </TabsContent>
                 </Tabs>

@@ -14,6 +14,8 @@ const database = require('./lib/database');
 const redis = require('./lib/redis');
 const auth = require('./lib/auth');
 const cron = require('node-cron');
+const liveBot = require('./lib/liveBot');
+const liveSettlement = require('./lib/liveSettlement');
 const ALLOWED_LEAGUES = require('./data/leagues');
 
 // ============ SETTLEMENT JOB ============
@@ -741,10 +743,71 @@ async function start() {
         }
     });
 
+    // ============ LIVE BOT ROUTES ============
+
+    // Get live signals
+    app.get('/api/live/signals', auth.authenticateToken, async (req, res) => {
+        try {
+            const signals = await database.getLiveSignals('PENDING');
+            res.json({ success: true, signals, status: liveBot.getStatus() });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // Get live history
+    app.get('/api/live/history', auth.authenticateToken, async (req, res) => {
+        try {
+            const all = await database.getLiveSignals();
+            const stats = await database.getLiveSignalStats();
+            res.json({ success: true, signals: all, stats });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // Get bot status
+    app.get('/api/live/status', auth.authenticateToken, async (req, res) => {
+        res.json({ success: true, ...liveBot.getStatus() });
+    });
+
+    // Manual scan (Admin only)
+    app.post('/api/live/scan', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+        try {
+            const signals = await liveBot.scanLiveMatches();
+            res.json({ success: true, signals });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // Start bot (Admin only)
+    app.post('/api/live/start', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+        const result = liveBot.startBot();
+        res.json(result);
+    });
+
+    // Stop bot (Admin only)
+    app.post('/api/live/stop', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+        const result = liveBot.stopBot();
+        res.json(result);
+    });
+
+    // Schedule live settlement (every 10 minutes)
+    cron.schedule('*/10 * * * *', async () => {
+        console.log('[Cron] Running live settlement check...');
+        await liveSettlement.runLiveSettlement();
+    });
+
+    // Auto-start live bot
+    console.log('[LiveBot] Auto-starting...');
+    liveBot.startBot();
+
     app.listen(PORT, () => {
         console.log('='.repeat(50));
         console.log(`[STARTUP] Server running on port ${PORT} ✓`);
         console.log(`[STARTUP] Health check: http://localhost:${PORT}/api/health`);
+        console.log(`[STARTUP] Live Bot: Auto-started ✓`);
         console.log('='.repeat(50));
     });
 }

@@ -92,6 +92,26 @@ async function initDatabase() {
         )
     `);
 
+    // Create live_signals table
+    await client.execute(`
+        CREATE TABLE IF NOT EXISTS live_signals (
+            id TEXT PRIMARY KEY,
+            match_id TEXT,
+            home_team TEXT,
+            away_team TEXT,
+            league TEXT,
+            strategy TEXT,
+            strategy_code TEXT,
+            entry_score TEXT,
+            entry_time INTEGER,
+            confidence INTEGER,
+            reason TEXT,
+            status TEXT DEFAULT 'PENDING',
+            final_score TEXT,
+            settled_at INTEGER
+        )
+    `);
+
     console.log('[Database] Initialized');
 }
 
@@ -403,6 +423,99 @@ async function deleteMobileBet(id) {
     return { success: true };
 }
 
+// ============ LIVE SIGNALS ============
+
+async function addLiveSignal(signal) {
+    const client = getClient();
+    const id = signal.id || uuidv4();
+
+    await client.execute({
+        sql: `INSERT INTO live_signals(id, match_id, home_team, away_team, league, strategy, strategy_code, entry_score, entry_time, confidence, reason, status)
+              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')`,
+        args: [
+            id,
+            signal.matchId,
+            signal.home,
+            signal.away,
+            signal.league,
+            signal.strategy,
+            signal.strategyCode,
+            signal.score,
+            Date.now(),
+            signal.confidencePercent,
+            signal.reason
+        ]
+    });
+
+    return { success: true, id };
+}
+
+function mapLiveSignalFromDB(row) {
+    return {
+        id: row.id,
+        matchId: row.match_id,
+        home: row.home_team,
+        away: row.away_team,
+        league: row.league,
+        strategy: row.strategy,
+        strategyCode: row.strategy_code,
+        entryScore: row.entry_score,
+        entryTime: row.entry_time,
+        confidence: row.confidence,
+        reason: row.reason,
+        status: row.status,
+        finalScore: row.final_score,
+        settledAt: row.settled_at
+    };
+}
+
+async function getLiveSignals(status = null) {
+    const client = getClient();
+    let result;
+    if (status) {
+        result = await client.execute({
+            sql: 'SELECT * FROM live_signals WHERE status = ? ORDER BY entry_time DESC',
+            args: [status]
+        });
+    } else {
+        result = await client.execute('SELECT * FROM live_signals ORDER BY entry_time DESC');
+    }
+    return result.rows.map(mapLiveSignalFromDB);
+}
+
+async function updateLiveSignal(id, updates) {
+    const client = getClient();
+
+    const fields = [];
+    const args = [];
+
+    if (updates.status) { fields.push('status = ?'); args.push(updates.status); }
+    if (updates.finalScore) { fields.push('final_score = ?'); args.push(updates.finalScore); }
+    if (updates.settledAt) { fields.push('settled_at = ?'); args.push(updates.settledAt); }
+
+    args.push(id);
+
+    await client.execute({
+        sql: `UPDATE live_signals SET ${fields.join(', ')} WHERE id = ?`,
+        args
+    });
+
+    return { success: true };
+}
+
+async function getLiveSignalStats() {
+    const client = getClient();
+    const result = await client.execute(`
+        SELECT 
+            strategy_code,
+            status,
+            COUNT(*) as count
+        FROM live_signals
+        GROUP BY strategy_code, status
+    `);
+    return result.rows;
+}
+
 module.exports = {
     initDatabase,
     // Approved Bets
@@ -428,5 +541,10 @@ module.exports = {
     getAllMobileBets,
     getMobileBetsByStatus,
     updateMobileBetStatus,
-    deleteMobileBet
+    deleteMobileBet,
+    // Live Signals
+    addLiveSignal,
+    getLiveSignals,
+    updateLiveSignal,
+    getLiveSignalStats
 };
