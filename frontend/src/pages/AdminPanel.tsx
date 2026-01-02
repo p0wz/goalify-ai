@@ -582,6 +582,50 @@ const AdminPanel = () => {
         }
     };
 
+    const startLiveBot = async () => {
+        try {
+            setLiveLoading(true);
+            const res = await fetch(`${API_BASE}/live/start`, {
+                method: 'POST',
+                headers: getAuthHeaders() as any
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                toast.success('Canlı bot başlatıldı!');
+                loadLiveSignals();
+            } else {
+                toast.error(data.message || 'Başlatılamadı');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setLiveLoading(false);
+        }
+    };
+
+    const stopLiveBot = async () => {
+        try {
+            setLiveLoading(true);
+            const res = await fetch(`${API_BASE}/live/stop`, {
+                method: 'POST',
+                headers: getAuthHeaders() as any
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                toast.success('Canlı bot durduruldu');
+                loadLiveSignals();
+            } else {
+                toast.error(data.message || 'Durdurulamadı');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setLiveLoading(false);
+        }
+    };
+
     // ============ HELPERS ============
 
     const filteredResults = marketFilter === 'all' ? results : results.filter(r => r.marketKey === marketFilter);
@@ -1294,12 +1338,27 @@ const AdminPanel = () => {
                     {/* ============ LIVE BOT TAB ============ */}
                     <TabsContent value="livebot" className="space-y-4">
                         <div className="flex flex-wrap gap-3 items-center">
-                            <Button onClick={runManualScan} disabled={liveLoading} className="gradient-primary text-white">
-                                {liveLoading ? (
-                                    <><Activity className="mr-2 h-4 w-4 animate-spin" />Taranıyor...</>
-                                ) : (
-                                    <><Play className="mr-2 h-4 w-4" />Manuel Tarama</>
-                                )}
+                            {/* Start/Stop Toggle Button */}
+                            {liveStatus.isRunning ? (
+                                <Button onClick={stopLiveBot} disabled={liveLoading} variant="destructive">
+                                    {liveLoading ? (
+                                        <><Activity className="mr-2 h-4 w-4 animate-spin" />İşleniyor...</>
+                                    ) : (
+                                        <><XCircle className="mr-2 h-4 w-4" />Botu Durdur</>
+                                    )}
+                                </Button>
+                            ) : (
+                                <Button onClick={startLiveBot} disabled={liveLoading} className="gradient-success text-white">
+                                    {liveLoading ? (
+                                        <><Activity className="mr-2 h-4 w-4 animate-spin" />İşleniyor...</>
+                                    ) : (
+                                        <><Play className="mr-2 h-4 w-4" />Botu Başlat</>
+                                    )}
+                                </Button>
+                            )}
+
+                            <Button onClick={runManualScan} disabled={liveLoading || !liveStatus.isRunning} variant="outline">
+                                <Play className="mr-2 h-4 w-4" />Manuel Tarama
                             </Button>
                             <Button variant="outline" onClick={() => { loadLiveSignals(); loadLiveHistory(); }}>
                                 <RefreshCw className="mr-2 h-4 w-4" />Yenile

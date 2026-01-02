@@ -799,15 +799,14 @@ async function start() {
         await liveSettlement.runLiveSettlement();
     });
 
-    // Auto-start live bot
-    console.log('[LiveBot] Auto-starting...');
-    liveBot.startBot();
+    // NOTE: Live bot does NOT auto-start. Use Admin Panel to start/stop manually.
+    console.log('[LiveBot] Ready (manual start required)');
 
     app.listen(PORT, () => {
         console.log('='.repeat(50));
         console.log(`[STARTUP] Server running on port ${PORT} ✓`);
         console.log(`[STARTUP] Health check: http://localhost:${PORT}/api/health`);
-        console.log(`[STARTUP] Live Bot: Auto-started ✓`);
+        console.log(`[STARTUP] Live Bot: Waiting for manual start`);
         console.log('='.repeat(50));
     });
 }
