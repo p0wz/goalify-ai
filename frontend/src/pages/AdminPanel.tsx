@@ -582,17 +582,18 @@ const AdminPanel = () => {
         }
     };
 
-    const startLiveBot = async () => {
+    const startLiveBot = async (filterEnabled: boolean = true) => {
         try {
             setLiveLoading(true);
             const res = await fetch(`${API_BASE}/live/start`, {
                 method: 'POST',
-                headers: getAuthHeaders() as any
+                headers: getAuthHeaders() as any,
+                body: JSON.stringify({ filterEnabled })
             });
             handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) {
-                toast.success('Canlı bot başlatıldı!');
+                toast.success(data.message || 'Canlı bot başlatıldı!');
                 loadLiveSignals();
             } else {
                 toast.error(data.message || 'Başlatılamadı');
@@ -1338,7 +1339,7 @@ const AdminPanel = () => {
                     {/* ============ LIVE BOT TAB ============ */}
                     <TabsContent value="livebot" className="space-y-4">
                         <div className="flex flex-wrap gap-3 items-center">
-                            {/* Start/Stop Toggle Button */}
+                            {/* Start/Stop Buttons */}
                             {liveStatus.isRunning ? (
                                 <Button onClick={stopLiveBot} disabled={liveLoading} variant="destructive">
                                     {liveLoading ? (
@@ -1348,13 +1349,22 @@ const AdminPanel = () => {
                                     )}
                                 </Button>
                             ) : (
-                                <Button onClick={startLiveBot} disabled={liveLoading} className="gradient-success text-white">
-                                    {liveLoading ? (
-                                        <><Activity className="mr-2 h-4 w-4 animate-spin" />İşleniyor...</>
-                                    ) : (
-                                        <><Play className="mr-2 h-4 w-4" />Botu Başlat</>
-                                    )}
-                                </Button>
+                                <>
+                                    <Button onClick={() => startLiveBot(true)} disabled={liveLoading} className="gradient-success text-white">
+                                        {liveLoading ? (
+                                            <><Activity className="mr-2 h-4 w-4 animate-spin" />İşleniyor...</>
+                                        ) : (
+                                            <><Play className="mr-2 h-4 w-4" />Filtreli Başlat</>
+                                        )}
+                                    </Button>
+                                    <Button onClick={() => startLiveBot(false)} disabled={liveLoading} variant="outline">
+                                        {liveLoading ? (
+                                            <><Activity className="mr-2 h-4 w-4 animate-spin" />İşleniyor...</>
+                                        ) : (
+                                            <><Play className="mr-2 h-4 w-4" />Tüm Ligler</>
+                                        )}
+                                    </Button>
+                                </>
                             )}
 
                             <Button onClick={runManualScan} disabled={liveLoading || !liveStatus.isRunning} variant="outline">
@@ -1365,7 +1375,9 @@ const AdminPanel = () => {
                             </Button>
                             <div className="flex items-center gap-2 ml-auto">
                                 <Badge className={liveStatus.isRunning ? 'bg-win' : 'bg-lose'}>
-                                    {liveStatus.isRunning ? '🟢 Aktif' : '🔴 Durdu'}
+                                    {liveStatus.isRunning
+                                        ? `🟢 Aktif ${liveStatus.useLeagueFilter ? '(Filtreli)' : '(Tüm Ligler)'}`
+                                        : '🔴 Durdu'}
                                 </Badge>
                                 {liveStatus.lastScanTime && (
                                     <span className="text-sm text-muted-foreground">

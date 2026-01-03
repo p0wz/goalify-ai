@@ -781,9 +781,10 @@ async function start() {
         }
     });
 
-    // Start bot (Admin only)
+    // Start bot (Admin only) - accepts { filterEnabled: true/false }
     app.post('/api/live/start', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
-        const result = liveBot.startBot();
+        const filterEnabled = req.body.filterEnabled !== false; // Default to true
+        const result = liveBot.startBot(filterEnabled);
         res.json(result);
     });
 

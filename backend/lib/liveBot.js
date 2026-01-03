@@ -12,6 +12,7 @@ const settlement = require('./liveSettlement');
 
 // Bot state
 let isRunning = false;
+let useLeagueFilter = true; // NEW: League filter toggle
 let scanInterval = null;
 let lastScanTime = null;
 let dailySignalCounts = {};
@@ -185,9 +186,20 @@ async function scanLiveMatches() {
         }
 
         console.log(`[LiveBot] Total live matches: ${allMatches.length}`);
+        console.log(`[LiveBot] League Filter: ${useLeagueFilter ? 'ON' : 'OFF'}`);
 
-        // Filter candidates (NO league filter - scan all leagues)
+        // Filter candidates
         const candidates = allMatches.filter(m => {
+            // League filter (if enabled)
+            if (useLeagueFilter) {
+                const leagueName = m.league_name || '';
+                const fullLeague = `${m.country_name}: ${leagueName}`;
+                const isAllowed = ALLOWED_LEAGUES.some(l =>
+                    fullLeague.toUpperCase().includes(l.toUpperCase())
+                );
+                if (!isAllowed) return false;
+            }
+
             const elapsed = parseElapsedTime(m.stage);
             const homeScore = m.home_team?.score || 0;
             const awayScore = m.away_team?.score || 0;
@@ -343,15 +355,17 @@ async function scanLiveMatches() {
 
 /**
  * Start the live bot
+ * @param {boolean} filterEnabled - Whether to enable league filter (default: true)
  */
-function startBot() {
+function startBot(filterEnabled = true) {
     if (isRunning) {
         console.log('[LiveBot] Already running');
         return { success: false, message: 'Already running' };
     }
 
     isRunning = true;
-    console.log('[LiveBot] Starting...');
+    useLeagueFilter = filterEnabled;
+    console.log(`[LiveBot] Starting... (League Filter: ${useLeagueFilter ? 'ON' : 'OFF'})`);
 
     // Initial scan
     scanLiveMatches();
@@ -362,7 +376,11 @@ function startBot() {
     // Schedule settlement check (every 10 minutes)
     setInterval(settlement.runLiveSettlement, 10 * 60 * 1000);
 
-    return { success: true, message: 'Bot started' };
+    return {
+        success: true,
+        message: `Bot started (Filter: ${useLeagueFilter ? 'ON' : 'OFF'})`,
+        filterEnabled: useLeagueFilter
+    };
 }
 
 /**
@@ -390,6 +408,7 @@ function stopBot() {
 function getStatus() {
     return {
         isRunning,
+        useLeagueFilter,
         lastScanTime,
         signalCounts: dailySignalCounts,
         signalDate: dailySignalDate
