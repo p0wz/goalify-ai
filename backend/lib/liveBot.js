@@ -9,6 +9,7 @@ const momentum = require('./liveMomentum');
 const h2h = require('./liveH2H');
 const strategies = require('./liveStrategies');
 const settlement = require('./liveSettlement');
+const telegram = require('./telegram');
 const ALLOWED_LEAGUES = require('../data/leagues'); // Use same leagues as daily analysis
 
 // Bot state
@@ -315,6 +316,9 @@ async function scanLiveMatches() {
 
             // Save to database
             await database.addLiveSignal(candidate);
+
+            // Send to Telegram
+            await telegram.sendLiveSignal(candidate);
 
             // Record for limit tracking
             recordSignalSent(matchId, candidate.strategyCode);
