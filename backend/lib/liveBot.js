@@ -9,10 +9,11 @@ const momentum = require('./liveMomentum');
 const h2h = require('./liveH2H');
 const strategies = require('./liveStrategies');
 const settlement = require('./liveSettlement');
+const ALLOWED_LEAGUES = require('../data/leagues'); // Use same leagues as daily analysis
 
 // Bot state
 let isRunning = false;
-let useLeagueFilter = true; // NEW: League filter toggle
+let useLeagueFilter = true; // League filter toggle
 let scanInterval = null;
 let lastScanTime = null;
 let dailySignalCounts = {};
@@ -23,23 +24,6 @@ const SIGNAL_LIMITS = {
     FIRST_HALF: 1,
     LATE_GAME: 2
 };
-
-// Allowed leagues for live bot
-const ALLOWED_LEAGUES = [
-    'ENGLAND: Premier League', 'ENGLAND: Championship', 'ENGLAND: League One',
-    'SPAIN: La Liga', 'SPAIN: La Liga 2',
-    'GERMANY: Bundesliga', 'GERMANY: 2. Bundesliga',
-    'ITALY: Serie A', 'ITALY: Serie B',
-    'FRANCE: Ligue 1', 'FRANCE: Ligue 2',
-    'PORTUGAL: Primeira Liga',
-    'NETHERLANDS: Eredivisie',
-    'TURKEY: Super Lig', 'TURKEY: 1. Lig',
-    'BELGIUM: Pro League',
-    'SCOTLAND: Premiership',
-    'BRAZIL: Serie A', 'BRAZIL: Serie B',
-    'ARGENTINA: Liga Profesional',
-    'UEFA: Champions League', 'UEFA: Europa League', 'UEFA: Conference League'
-];
 
 /**
  * Check daily signal limit for match/strategy
