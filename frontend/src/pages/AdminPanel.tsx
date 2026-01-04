@@ -188,6 +188,10 @@ const AdminPanel = () => {
     const [liveStatus, setLiveStatus] = useState<any>({});
     const [liveLoading, setLiveLoading] = useState(false);
 
+    // Dead Match Bot State
+    const [deadStatus, setDeadStatus] = useState<any>({});
+    const [deadLoading, setDeadLoading] = useState(false);
+
 
     // Load data on mount
     useEffect(() => {
@@ -198,6 +202,7 @@ const AdminPanel = () => {
         loadMobileBets();
         loadLiveSignals();
         loadLiveHistory();
+        loadDeadStatus();
     }, []);
 
     // ============ ANALYSIS FUNCTIONS ============
@@ -624,6 +629,69 @@ const AdminPanel = () => {
             toast.error(err.message);
         } finally {
             setLiveLoading(false);
+        }
+    };
+
+    // ============ DEAD MATCH BOT FUNCTIONS ============
+
+    const loadDeadStatus = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/dead/status`, {
+                headers: getAuthHeaders() as any
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                setDeadStatus(data);
+            }
+        } catch (err) {
+            console.error('Dead status error:', err);
+        }
+    };
+
+    const startDeadBot = async (filterEnabled: boolean = true) => {
+        try {
+            setDeadLoading(true);
+            const res = await fetch(`${API_BASE}/dead/start`, {
+                method: 'POST',
+                headers: getAuthHeaders() as any,
+                body: JSON.stringify({ filterEnabled })
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                toast.success(data.message || 'Dead Bot başlatıldı!');
+                loadDeadStatus();
+                loadLiveSignals(); // Dead signals go to same list
+            } else {
+                toast.error(data.message || 'Başlatılamadı');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setDeadLoading(false);
+        }
+    };
+
+    const stopDeadBot = async () => {
+        try {
+            setDeadLoading(true);
+            const res = await fetch(`${API_BASE}/dead/stop`, {
+                method: 'POST',
+                headers: getAuthHeaders() as any
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                toast.success('Dead Bot durduruldu');
+                loadDeadStatus();
+            } else {
+                toast.error(data.message || 'Durdurulamadı');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setDeadLoading(false);
         }
     };
 
@@ -1370,14 +1438,14 @@ const AdminPanel = () => {
                             <Button onClick={runManualScan} disabled={liveLoading || !liveStatus.isRunning} variant="outline">
                                 <Play className="mr-2 h-4 w-4" />Manuel Tarama
                             </Button>
-                            <Button variant="outline" onClick={() => { loadLiveSignals(); loadLiveHistory(); }}>
+                            <Button variant="outline" onClick={() => { loadLiveSignals(); loadLiveHistory(); loadDeadStatus(); }}>
                                 <RefreshCw className="mr-2 h-4 w-4" />Yenile
                             </Button>
                             <div className="flex items-center gap-2 ml-auto">
                                 <Badge className={liveStatus.isRunning ? 'bg-win' : 'bg-lose'}>
                                     {liveStatus.isRunning
-                                        ? `🟢 Aktif ${liveStatus.useLeagueFilter ? '(Filtreli)' : '(Tüm Ligler)'}`
-                                        : '🔴 Durdu'}
+                                        ? `⚽ Momentum ${liveStatus.useLeagueFilter ? '(Filtreli)' : '(Tüm)'}`
+                                        : '⚽ Durdu'}
                                 </Badge>
                                 {liveStatus.lastScanTime && (
                                     <span className="text-sm text-muted-foreground">
@@ -1385,6 +1453,42 @@ const AdminPanel = () => {
                                     </span>
                                 )}
                             </div>
+                        </div>
+
+                        {/* Dead Match Bot Controls */}
+                        <div className="flex flex-wrap gap-3 items-center p-3 bg-secondary/30 rounded-lg">
+                            <span className="font-medium">📉 Dead Match Bot:</span>
+                            {deadStatus.isRunning ? (
+                                <Button onClick={stopDeadBot} disabled={deadLoading} variant="destructive" size="sm">
+                                    {deadLoading ? (
+                                        <><Activity className="mr-2 h-4 w-4 animate-spin" />İşleniyor...</>
+                                    ) : (
+                                        <><XCircle className="mr-2 h-4 w-4" />Durdur</>
+                                    )}
+                                </Button>
+                            ) : (
+                                <>
+                                    <Button onClick={() => startDeadBot(true)} disabled={deadLoading} className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
+                                        {deadLoading ? (
+                                            <><Activity className="mr-2 h-4 w-4 animate-spin" />...</>
+                                        ) : (
+                                            <><Play className="mr-2 h-4 w-4" />Filtreli</>
+                                        )}
+                                    </Button>
+                                    <Button onClick={() => startDeadBot(false)} disabled={deadLoading} variant="outline" size="sm">
+                                        {deadLoading ? (
+                                            <><Activity className="mr-2 h-4 w-4 animate-spin" />...</>
+                                        ) : (
+                                            <><Play className="mr-2 h-4 w-4" />Tüm Ligler</>
+                                        )}
+                                    </Button>
+                                </>
+                            )}
+                            <Badge className={deadStatus.isRunning ? 'bg-blue-600' : 'bg-gray-500'}>
+                                {deadStatus.isRunning
+                                    ? `💤 Aktif ${deadStatus.useLeagueFilter ? '(Filtreli)' : '(Tüm)'}`
+                                    : '💤 Durdu'}
+                            </Badge>
                         </div>
 
                         {liveSignals.length === 0 ? (

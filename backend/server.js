@@ -15,6 +15,7 @@ const redis = require('./lib/redis');
 const auth = require('./lib/auth');
 const cron = require('node-cron');
 const liveBot = require('./lib/liveBot');
+const liveDeadBot = require('./lib/liveDeadBot');
 const liveSettlement = require('./lib/liveSettlement');
 const ALLOWED_LEAGUES = require('./data/leagues');
 
@@ -794,14 +795,46 @@ async function start() {
         res.json(result);
     });
 
+    // ============ DEAD MATCH BOT ROUTES ============
+
+    // Dead Bot Status
+    app.get('/api/dead/status', auth.authenticateToken, async (req, res) => {
+        const status = liveDeadBot.getStatus();
+        res.json({ success: true, ...status });
+    });
+
+    // Start Dead Bot (Admin only)
+    app.post('/api/dead/start', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+        const filterEnabled = req.body.filterEnabled !== false;
+        const result = liveDeadBot.startBot(filterEnabled);
+        res.json(result);
+    });
+
+    // Stop Dead Bot (Admin only)
+    app.post('/api/dead/stop', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+        const result = liveDeadBot.stopBot();
+        res.json(result);
+    });
+
+    // Manual Dead Match Scan (Admin only)
+    app.post('/api/dead/scan', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+        try {
+            const signals = await liveDeadBot.scanDeadMatches();
+            res.json({ success: true, signals });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
     // Schedule live settlement (every 10 minutes)
     cron.schedule('*/10 * * * *', async () => {
         console.log('[Cron] Running live settlement check...');
         await liveSettlement.runLiveSettlement();
     });
 
-    // NOTE: Live bot does NOT auto-start. Use Admin Panel to start/stop manually.
+    // NOTE: Both bots do NOT auto-start. Use Admin Panel to start/stop manually.
     console.log('[LiveBot] Ready (manual start required)');
+    console.log('[DeadBot] Ready (manual start required)');
 
     app.listen(PORT, () => {
         console.log('='.repeat(50));

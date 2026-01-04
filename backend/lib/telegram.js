@@ -43,9 +43,23 @@ async function sendMessage(text, parseMode = 'HTML') {
 }
 
 /**
- * Format and send live bot signal
+ * Format and send live bot signal (momentum or dead match)
  */
 async function sendLiveSignal(signal) {
+    // Determine signal type
+    const isDeadMatch = signal.isDeadMatch === true;
+
+    if (isDeadMatch) {
+        return await sendDeadMatchSignal(signal);
+    } else {
+        return await sendMomentumSignal(signal);
+    }
+}
+
+/**
+ * Format momentum signal (Over/Goal)
+ */
+async function sendMomentumSignal(signal) {
     const strategyEmoji = signal.strategyCode === 'FIRST_HALF' ? '⚽' : '🎯';
     const confidenceBar = getConfidenceBar(signal.confidencePercent);
 
@@ -74,6 +88,42 @@ ${signal.reason}
 ⚠️ <i>Bu sinyal yatırım tavsiyesi değildir.</i>
 ━━━━━━━━━━━━━━━
 🤖 <b>GoalSniper Live Bot</b>
+`.trim();
+
+    return await sendMessage(message);
+}
+
+/**
+ * Format dead match signal (Under/No Goal)
+ */
+async function sendDeadMatchSignal(signal) {
+    const confidenceBar = getConfidenceBar(signal.confidencePercent);
+
+    const message = `
+📉 <b>ÖLÜ MAÇ SİNYALİ</b> 📉
+
+🏟 <b>${signal.home}</b> vs <b>${signal.away}</b>
+📍 ${signal.league}
+
+🎯 <b>Market:</b> ${signal.strategy}
+⏱ <b>Dakika:</b> ${signal.entryMinute}'
+📈 <b>Skor:</b> ${signal.entryScore}
+
+💤 <b>Güven:</b> ${signal.confidencePercent}%
+${confidenceBar}
+
+📝 <b>Sebep:</b>
+${signal.reason}
+
+📊 <b>Maç Durumu:</b>
+• Şut: ${signal.stats?.shots || '-'}
+• İsabetli: ${signal.stats?.sot || '-'}
+• Korner: ${signal.stats?.corners || '-'}
+• xG: ${signal.stats?.xG || '-'}
+
+⚠️ <i>Bu sinyal yatırım tavsiyesi değildir.</i>
+━━━━━━━━━━━━━━━
+💤 <b>GoalSniper Dead Match Bot</b>
 `.trim();
 
     return await sendMessage(message);
