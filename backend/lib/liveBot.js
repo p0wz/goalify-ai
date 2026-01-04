@@ -348,8 +348,7 @@ function startBot(filterEnabled = true) {
     // Schedule periodic scans
     scanInterval = setInterval(scanLiveMatches, SCAN_INTERVAL_MS);
 
-    // Schedule settlement check (every 10 minutes)
-    setInterval(settlement.runLiveSettlement, 10 * 60 * 1000);
+    // Note: Settlement is handled by cron job in server.js
 
     return {
         success: true,
