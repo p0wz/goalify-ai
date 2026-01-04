@@ -164,12 +164,11 @@ function calculatePotential(formData, score, elapsed) {
     const homeConceded = isFirstHalf ? homeStats.htConcededAvg : homeStats.ftConcededAvg;
     const awayConceded = isFirstHalf ? awayStats.htConcededAvg : awayStats.ftConcededAvg;
 
-    // ADJUSTED EXPECTED GOALS:
-    // Home expected = (Home attack + Away conceded) / 2
-    // Away expected = (Away attack + Home conceded) / 2
-    // This considers both team's ability and opponent's defensive weakness
-    const homeExpected = (homeAttack + awayConceded) / 2;
-    const awayExpected = (awayAttack + homeConceded) / 2;
+    // WEIGHTED EXPECTED GOALS:
+    // Attack is 70% of the calculation, opponent's defensive weakness is 30%
+    // This keeps attack power dominant while considering defense
+    const homeExpected = (homeAttack * 0.7) + (awayConceded * 0.3);
+    const awayExpected = (awayAttack * 0.7) + (homeConceded * 0.3);
 
     // Remaining potential per team
     const homeRemaining = homeExpected - homeGoals;
