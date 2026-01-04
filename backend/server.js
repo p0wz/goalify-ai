@@ -746,12 +746,35 @@ async function start() {
 
     // ============ LIVE BOT ROUTES ============
 
-    // Get live signals
+    // Get live signals (admin - authenticated)
     app.get('/api/live/signals', auth.authenticateToken, async (req, res) => {
         try {
             const signals = await database.getLiveSignals('PENDING');
             res.json({ success: true, signals, status: liveBot.getStatus() });
         } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // Mobile live signals (public - no auth required)
+    app.get('/api/mobile/live-signals', async (req, res) => {
+        try {
+            // Get all signals from today
+            const allSignals = await database.getLiveSignals();
+
+            // Filter to today's signals only
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayTimestamp = today.getTime();
+
+            const todaySignals = allSignals.filter(s => {
+                const signalTime = s.entryTime || 0;
+                return signalTime >= todayTimestamp;
+            });
+
+            res.json({ success: true, signals: todaySignals });
+        } catch (error) {
+            console.error('[Mobile] Live signals error:', error.message);
             res.status(500).json({ success: false, error: error.message });
         }
     });

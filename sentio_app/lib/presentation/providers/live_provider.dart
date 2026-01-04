@@ -104,7 +104,7 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final response = await _dio.get('/live/signals');
+      final response = await _dio.get('/mobile/live-signals');
 
       if (response.data != null && response.data['success'] == true) {
         final List<dynamic> data = response.data['signals'] ?? [];
