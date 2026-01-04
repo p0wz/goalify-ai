@@ -46,9 +46,14 @@ class LiveSignal {
       status: json['status'] ?? 'PENDING',
       finalScore: json['final_score'] ?? json['finalScore'],
       reason: json['reason'] ?? '',
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
-          : DateTime.now(),
+      createdAt: json['entryTime'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              int.parse(json['entryTime'].toString()),
+            )
+          : (json['created_at'] != null
+                ? DateTime.tryParse(json['created_at'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
     );
   }
 
