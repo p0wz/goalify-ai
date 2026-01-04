@@ -857,7 +857,8 @@ async function start() {
     // ============ ADMIN USER MANAGEMENT ============
 
     // Get all users (admin only)
-    app.get('/api/admin/users', auth.requireAuth('admin'), async (req, res) => {
+    // Get all users (admin only)
+    app.get('/api/admin/users', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
         try {
             const users = await database.getAllUsers();
             res.json({ success: true, users });
@@ -868,7 +869,7 @@ async function start() {
     });
 
     // Toggle user premium status (admin only)
-    app.post('/api/admin/users/:id/premium', auth.requireAuth('admin'), async (req, res) => {
+    app.post('/api/admin/users/:id/premium', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
         try {
             const { id } = req.params;
             const { isPremium } = req.body;
