@@ -110,6 +110,8 @@ interface UserData {
     email: string;
     role: string;
     plan: string;
+    isPremium: boolean;
+    is_premium?: number;
     created_at: string;
 }
 
@@ -445,7 +447,7 @@ const AdminPanel = () => {
     const loadUsers = async () => {
         setUsersLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/users`, { headers: getAuthHeaders() as any });
+            const res = await fetch(`${API_BASE}/admin/users`, { headers: getAuthHeaders() as any });
             handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) setUsers(data.users || []);
@@ -470,6 +472,26 @@ const AdminPanel = () => {
                 loadUsers();
             } else {
                 toast.error(data.error);
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
+
+    const togglePremium = async (userId: string, currentPremium: boolean) => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/users/${userId}/premium`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ isPremium: !currentPremium })
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                toast.success(currentPremium ? 'PRO deaktif edildi' : 'PRO aktif edildi');
+                loadUsers();
+            } else {
+                toast.error(data.error || 'Hata oluştu');
             }
         } catch (err: any) {
             toast.error(err.message);
@@ -1581,6 +1603,78 @@ const AdminPanel = () => {
                                         ))}
                                     </TableBody>
                                 </Table>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* ============ USERS TAB ============ */}
+                    <TabsContent value="users" className="space-y-4">
+                        <Card className="glass-card">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <User className="h-5 w-5" />
+                                    Kullanıcı Yönetimi
+                                </CardTitle>
+                                <CardDescription>Kullanıcıları görüntüle ve PRO durumunu değiştir</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex justify-end mb-4">
+                                    <Button onClick={loadUsers} disabled={usersLoading} variant="outline">
+                                        <RefreshCw className={`mr-2 h-4 w-4 ${usersLoading ? 'animate-spin' : ''}`} />
+                                        Yenile
+                                    </Button>
+                                </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Rol</TableHead>
+                                            <TableHead>Plan</TableHead>
+                                            <TableHead>PRO Durum</TableHead>
+                                            <TableHead>Kayıt Tarihi</TableHead>
+                                            <TableHead>İşlem</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {users.map((user) => (
+                                            <TableRow key={user.id}>
+                                                <TableCell className="font-medium">{user.email}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                                        {user.role === 'admin' ? <Shield className="mr-1 h-3 w-3" /> : null}
+                                                        {user.role}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>{user.plan}</TableCell>
+                                                <TableCell>
+                                                    {user.isPremium || user.is_premium === 1 ? (
+                                                        <Badge className="bg-primary text-white">
+                                                            <Zap className="mr-1 h-3 w-3" />
+                                                            PRO
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline">FREE</Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted-foreground">
+                                                    {user.created_at ? new Date(user.created_at).toLocaleDateString('tr-TR') : '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button
+                                                        size="sm"
+                                                        variant={user.isPremium || user.is_premium === 1 ? "destructive" : "default"}
+                                                        onClick={() => togglePremium(user.id, user.isPremium || user.is_premium === 1)}
+                                                    >
+                                                        {user.isPremium || user.is_premium === 1 ? 'PRO Kaldır' : 'PRO Yap'}
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                {users.length === 0 && !usersLoading && (
+                                    <p className="text-center text-muted-foreground py-8">Henüz kullanıcı yok</p>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>
