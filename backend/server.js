@@ -854,10 +854,45 @@ async function start() {
 
             // Mobile endpoint logic...
 
+            // Group by match and strategy, keeping only the earliest signal for each type
+            // Limit: Max 1 FIRST_HALF, Max 1 LATE_GAME per match
+            const signalMap = new Map(); // key: matchId_strategyCode
+
+            for (const signal of todaySignals) {
+                // Normalize strategy code (just in case)
+                let code = signal.strategyCode;
+                if (!code) {
+                    if (signal.strategy.includes('First Half') || signal.strategy.includes('İY')) code = 'FIRST_HALF';
+                    else code = 'LATE_GAME';
+                }
+
+                const key = `${signal.matchId}_${code}`;
+
+                if (!signalMap.has(key)) {
+                    signalMap.set(key, signal);
+                } else {
+                    // Keep the earlier one (smaller timestamps usually better for entry)
+                    const existing = signalMap.get(key);
+                    const existingTime = existing.entryTime || 0;
+                    const newTime = signal.entryTime || 0;
+
+                    if (newTime < existingTime) {
+                        signalMap.set(key, signal);
+                    }
+                }
+            }
+
+            // Convert back to array
+            const filteredSignals = Array.from(signalMap.values());
+
+            // Verify we don't have > 2 signals per match (implicit by strategyCode grouping)
+            // But just to be sure we can do a final pass check if needed, but above covers it 
+            // since we map by (matchId + CODE) and there are only certain codes.
+
             // Get stats
             const stats = await database.getMobileStats();
 
-            res.json({ success: true, signals: todaySignals, stats });
+            res.json({ success: true, signals: filteredSignals, stats });
         } catch (error) {
             console.error('[Mobile] Live signals error:', error.message);
             res.status(500).json({ success: false, error: error.message });
