@@ -837,10 +837,15 @@ async function start() {
             // Get all signals from today
             const allSignals = await database.getLiveSignals();
 
-            // Filter to today's signals only
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayTimestamp = today.getTime();
+            // Filter to today's signals only (TRT Timezone Awareness)
+            const TRT_OFFSET = 3 * 60 * 60 * 1000;
+            const now = new Date();
+            const nowTRT = new Date(now.getTime() + TRT_OFFSET);
+            const startOfDayTRT = new Date(nowTRT);
+            startOfDayTRT.setUTCHours(0, 0, 0, 0); // Set to 00:00 of the TRT day
+            // We need the timestamp in UTC that corresponds to 00:00 TRT
+            // 00:00 TRT is (00:00 - 3h) UTC = 21:00 Prev Day UTC
+            const todayTimestamp = startOfDayTRT.getTime() - TRT_OFFSET;
 
             const todaySignals = allSignals.filter(s => {
                 const signalTime = s.entryTime || 0;

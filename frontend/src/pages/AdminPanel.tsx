@@ -207,6 +207,15 @@ const AdminPanel = () => {
         loadDeadStatus();
     }, []);
 
+    // Poll live data every 60s
+    useEffect(() => {
+        const interval = setInterval(() => {
+            loadLiveSignals();
+            loadLiveHistory();
+        }, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
     // ============ ANALYSIS FUNCTIONS ============
 
     const getAuthHeaders = () => {
@@ -1565,11 +1574,19 @@ const AdminPanel = () => {
                     <TabsContent value="livehistory" className="space-y-4">
                         <Card className="glass-card">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <History className="h-5 w-5" />
-                                    Canlı Bot Geçmişi
-                                </CardTitle>
-                                <CardDescription>Otomatik settlement: 1 saat sonra skor değiştiyse WON</CardDescription>
+                                <div className="flex justify-between items-center">
+                                    <div className="space-y-1">
+                                        <CardTitle className="flex items-center gap-2">
+                                            <History className="h-5 w-5" />
+                                            Canlı Bot Geçmişi
+                                        </CardTitle>
+                                        <CardDescription>Otomatik settlement: 1 saat sonra skor değiştiyse WON</CardDescription>
+                                    </div>
+                                    <Button variant="outline" size="sm" onClick={loadLiveHistory}>
+                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                        Yenile
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <Table>
