@@ -1,16 +1,14 @@
 /**
  * Live Match Bot - Main Module
- * Scans live matches every 3 minutes for momentum-based signals
+ * Form-based signal generation (replaces momentum detection)
+ * Scans every 5 minutes, uses team potential analysis
  */
 
 const flashscore = require('./flashscore');
 const database = require('./database');
-const momentum = require('./liveMomentum');
-const h2h = require('./liveH2H');
-const strategies = require('./liveStrategies');
-const settlement = require('./liveSettlement');
+const formAnalysis = require('./liveFormAnalysis');
 const telegram = require('./telegram');
-const ALLOWED_LEAGUES = require('../data/leagues'); // Use same leagues as daily analysis
+const ALLOWED_LEAGUES = require('../data/leagues');
 
 // Bot state
 let isRunning = false;
@@ -20,7 +18,7 @@ let lastScanTime = null;
 let dailySignalCounts = {};
 let dailySignalDate = null;
 
-const SCAN_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
+const SCAN_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const SIGNAL_LIMITS = {
     FIRST_HALF: 1,
     LATE_GAME: 2
@@ -202,93 +200,60 @@ async function scanLiveMatches() {
 
         console.log(`[LiveBot] Candidates: ${candidates.length}`);
 
-        // Clean old momentum history
-        momentum.cleanOldHistory();
+        // Clear old form cache periodically
+        formAnalysis.clearCache();
 
-        // Analyze each candidate
+        // Analyze each candidate with form-based approach
         for (const match of candidates) {
             const elapsed = parseElapsedTime(match.stage);
             const matchId = match.match_id;
+            const homeTeam = match.home_team?.name;
+            const awayTeam = match.away_team?.name;
             const score = `${match.home_team?.score || 0}-${match.away_team?.score || 0}`;
             const league = `${match.country_name}: ${match.league_name}`;
 
             console.log(`[LiveBot] ────────────────────────────────────`);
-            console.log(`[LiveBot] 📊 ${match.home_team?.name} vs ${match.away_team?.name}`);
+            console.log(`[LiveBot] 📊 ${homeTeam} vs ${awayTeam}`);
             console.log(`[LiveBot]    League: ${league}`);
             console.log(`[LiveBot]    Score: ${score} | Time: ${elapsed}'`);
 
-            // Fetch stats
-            const statsData = await flashscore.fetchMatchStats(matchId);
-            if (!statsData) {
-                console.log(`[LiveBot]    ❌ No stats available`);
+            // ============ FORM ANALYSIS (replaces momentum) ============
+            console.log(`[LiveBot]    📈 Running form analysis...`);
+            const formResult = await formAnalysis.analyzeForm(matchId, homeTeam, awayTeam, score, elapsed);
+
+            if (!formResult.valid) {
+                console.log(`[LiveBot]    ❌ Form analysis failed: ${formResult.reason}`);
                 continue;
             }
 
-            const stats = parseMatchStats(statsData);
-            console.log(`[LiveBot]    Stats: Shots ${stats.shots.home}-${stats.shots.away} | SoT ${stats.shotsOnTarget.home}-${stats.shotsOnTarget.away} | Corners ${stats.corners.home}-${stats.corners.away}`);
-            console.log(`[LiveBot]    xG: ${stats.xG.home.toFixed(2)}-${stats.xG.away.toFixed(2)} | Poss: ${stats.possession.home}%-${stats.possession.away}%`);
+            console.log(`[LiveBot]    Ev Kalan: ${formResult.homeRemaining} | Dep Kalan: ${formResult.awayRemaining}`);
+            console.log(`[LiveBot]    Toplam Potansiyel: ${formResult.totalRemaining} (adj: ${formResult.adjustedRemaining})`);
+            console.log(`[LiveBot]    ${formResult.reason}`);
 
-            // Red card filter
-            if (stats.redCards.home > 0 || stats.redCards.away > 0) {
-                console.log(`[LiveBot]    ❌ Red card detected (${stats.redCards.home}-${stats.redCards.away})`);
+            // Check if any markets available
+            if (!formResult.markets || formResult.markets.length === 0) {
+                console.log(`[LiveBot]    ❌ No suitable markets found`);
                 continue;
             }
 
-            // Base activity check
-            const baseCheck = momentum.checkBaseActivity(elapsed, stats);
-            if (!baseCheck.isAlive) {
-                console.log(`[LiveBot]    ❌ Dead match: ${baseCheck.reason}`);
+            // Get best market
+            const bestMarket = formResult.markets[0];
+            console.log(`[LiveBot]    ✓ Best Market: ${bestMarket.name} (${bestMarket.confidence}%)`);
+
+            // Minimum confidence check
+            if (bestMarket.confidence < 60) {
+                console.log(`[LiveBot]    ❌ Confidence too low (${bestMarket.confidence}% < 60%)`);
                 continue;
             }
-            console.log(`[LiveBot]    ✓ Base activity OK`);
 
-            // Record stats for momentum tracking
-            momentum.recordMatchStats(matchId, stats, score);
-
-            // Detect momentum
-            const momentumResult = momentum.detectMomentum(matchId, stats, score);
-            if (!momentumResult.detected) {
-                console.log(`[LiveBot]    ❌ No momentum trigger`);
-                continue;
-            }
-            console.log(`[LiveBot]    🔥 MOMENTUM: ${momentumResult.reason}`);
-
-            // Run strategy analysis
-            let candidate = strategies.analyzeFirstHalf(match, elapsed, stats, momentumResult);
-            const strategyType = candidate ? 'FIRST_HALF' : 'LATE_GAME';
-            if (!candidate) {
-                candidate = strategies.analyzeLateGame(match, elapsed, stats, momentumResult);
-            }
-
-            if (!candidate) {
-                console.log(`[LiveBot]    ❌ No strategy match (time/score criteria)`);
-                continue;
-            }
-            console.log(`[LiveBot]    ✓ Strategy: ${candidate.strategy} (${candidate.confidencePercent}% base)`);
+            // Determine strategy code based on timing
+            const strategyCode = elapsed <= 45 ? 'FIRST_HALF' : 'LATE_GAME';
 
             // Check signal limit
-            if (!checkSignalLimit(matchId, candidate.strategyCode)) {
-                console.log(`[LiveBot]    ❌ Signal limit reached for ${candidate.strategyCode}`);
+            if (!checkSignalLimit(matchId, strategyCode)) {
+                console.log(`[LiveBot]    ❌ Signal limit reached for ${strategyCode}`);
                 continue;
             }
-
-            // H2H analysis (only for momentum matches)
-            console.log(`[LiveBot]    📈 Running H2H analysis...`);
-            const h2hResult = await h2h.analyzeH2H(matchId, candidate.home, candidate.away, score, elapsed);
-
-            if (!h2hResult.valid) {
-                console.log(`[LiveBot]    ❌ H2H failed: ${h2hResult.reason}`);
-                continue;
-            }
-            console.log(`[LiveBot]    ✓ H2H passed: +${h2hResult.confidenceBonus || 0}% bonus`);
-
-            // Apply H2H confidence bonus
-            const beforeBonus = candidate.confidencePercent;
-            if (h2hResult.confidenceBonus) {
-                candidate.confidencePercent += h2hResult.confidenceBonus;
-                candidate.confidencePercent = Math.min(95, Math.max(30, candidate.confidencePercent));
-            }
-            console.log(`[LiveBot]    Confidence: ${beforeBonus}% → ${candidate.confidencePercent}%`);
 
             // ============ SCORE SAFETY CHECK ============
             console.log(`[LiveBot]    🔒 Score safety check...`);
@@ -310,6 +275,28 @@ async function scanLiveMatches() {
                 console.log(`[LiveBot]    ✓ Score unchanged: ${freshScore}`);
             }
             // ============ END SCORE SAFETY CHECK ============
+
+            // Build signal object
+            const candidate = {
+                matchId,
+                home: homeTeam,
+                away: awayTeam,
+                league,
+                strategy: bestMarket.name,
+                strategyCode,
+                market: bestMarket.name,
+                entryScore: score,
+                entryMinute: elapsed,
+                confidencePercent: bestMarket.confidence,
+                reason: formResult.reason,
+                stats: {
+                    homeRemaining: formResult.homeRemaining,
+                    awayRemaining: formResult.awayRemaining,
+                    homeExpected: formResult.homeExpected?.toFixed(2),
+                    awayExpected: formResult.awayExpected?.toFixed(2)
+                },
+                isFormBased: true
+            };
 
             console.log(`[LiveBot]    🎯 SIGNAL GENERATED: ${candidate.strategy} (${candidate.confidencePercent}%)`);
             console.log(`[LiveBot] ────────────────────────────────────`);

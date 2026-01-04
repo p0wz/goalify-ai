@@ -48,12 +48,51 @@ async function sendMessage(text, parseMode = 'HTML') {
 async function sendLiveSignal(signal) {
     // Determine signal type
     const isDeadMatch = signal.isDeadMatch === true;
+    const isFormBased = signal.isFormBased === true;
 
     if (isDeadMatch) {
         return await sendDeadMatchSignal(signal);
+    } else if (isFormBased) {
+        return await sendFormBasedSignal(signal);
     } else {
         return await sendMomentumSignal(signal);
     }
+}
+
+/**
+ * Format form-based signal (potential analysis)
+ */
+async function sendFormBasedSignal(signal) {
+    const strategyEmoji = signal.strategyCode === 'FIRST_HALF' ? '⚽' : '🎯';
+    const confidenceBar = getConfidenceBar(signal.confidencePercent);
+
+    const message = `
+${strategyEmoji} <b>FORM SİNYALİ</b> ${strategyEmoji}
+
+🏟 <b>${signal.home}</b> vs <b>${signal.away}</b>
+📍 ${signal.league}
+
+📊 <b>Market:</b> ${signal.strategy}
+⏱ <b>Dakika:</b> ${signal.entryMinute}'
+📈 <b>Skor:</b> ${signal.entryScore}
+
+🎯 <b>Güven:</b> ${signal.confidencePercent}%
+${confidenceBar}
+
+📊 <b>Potansiyel Analizi:</b>
+• Ev Kalan: ${signal.stats?.homeRemaining || '-'}
+• Dep Kalan: ${signal.stats?.awayRemaining || '-'}
+• Ev Ort: ${signal.stats?.homeExpected || '-'}
+• Dep Ort: ${signal.stats?.awayExpected || '-'}
+
+📝 <b>Sebep:</b> ${signal.reason}
+
+⚠️ <i>Bu sinyal yatırım tavsiyesi değildir.</i>
+━━━━━━━━━━━━━━━
+📊 <b>GoalSniper Form Bot</b>
+`.trim();
+
+    return await sendMessage(message);
 }
 
 /**
