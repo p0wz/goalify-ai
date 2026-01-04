@@ -440,10 +440,10 @@ async function addLiveSignal(signal) {
             signal.league,
             signal.strategy,
             signal.strategyCode,
-            signal.score,
+            signal.entryScore || signal.score,
             Date.now(),
             signal.confidencePercent,
-            signal.reason
+            signal.reason || ''
         ]
     });
 
