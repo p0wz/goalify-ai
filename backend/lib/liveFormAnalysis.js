@@ -149,6 +149,7 @@ function calculateTeamStats(details, teamName) {
 
 /**
  * Calculate remaining potential based on form and current score
+ * Now considers both attack strength AND opponent's defensive weakness
  */
 function calculatePotential(formData, score, elapsed) {
     const [homeGoals, awayGoals] = score.split('-').map(s => parseInt(s) || 0);
@@ -157,9 +158,18 @@ function calculatePotential(formData, score, elapsed) {
 
     const { homeStats, awayStats } = formData;
 
-    // Use HT averages for first half, FT for second half
-    const homeExpected = isFirstHalf ? homeStats.htAvg : homeStats.ftAvg;
-    const awayExpected = isFirstHalf ? awayStats.htAvg : awayStats.ftAvg;
+    // Get attack and defense stats based on half
+    const homeAttack = isFirstHalf ? homeStats.htAvg : homeStats.ftAvg;
+    const awayAttack = isFirstHalf ? awayStats.htAvg : awayStats.ftAvg;
+    const homeConceded = isFirstHalf ? homeStats.htConcededAvg : homeStats.ftConcededAvg;
+    const awayConceded = isFirstHalf ? awayStats.htConcededAvg : awayStats.ftConcededAvg;
+
+    // ADJUSTED EXPECTED GOALS:
+    // Home expected = (Home attack + Away conceded) / 2
+    // Away expected = (Away attack + Home conceded) / 2
+    // This considers both team's ability and opponent's defensive weakness
+    const homeExpected = (homeAttack + awayConceded) / 2;
+    const awayExpected = (awayAttack + homeConceded) / 2;
 
     // Remaining potential per team
     const homeRemaining = homeExpected - homeGoals;
@@ -181,13 +191,18 @@ function calculatePotential(formData, score, elapsed) {
         awayRemaining: Math.round(awayRemaining * 100) / 100,
         totalRemaining: Math.round(totalRemaining * 100) / 100,
         adjustedRemaining: Math.round(adjustedRemaining * 100) / 100,
-        homeExpected,
-        awayExpected,
+        homeExpected: Math.round(homeExpected * 100) / 100,
+        awayExpected: Math.round(awayExpected * 100) / 100,
+        // Extra debug info
+        homeAttack: Math.round(homeAttack * 100) / 100,
+        awayAttack: Math.round(awayAttack * 100) / 100,
+        awayConceded: Math.round(awayConceded * 100) / 100,
+        homeConceded: Math.round(homeConceded * 100) / 100,
         isFirstHalf,
         elapsed,
         score,
         markets,
-        reason: generateReason(homeRemaining, awayRemaining, isFirstHalf)
+        reason: generateReason(homeRemaining, awayRemaining, isFirstHalf, homeExpected, awayExpected)
     };
 }
 
@@ -282,7 +297,7 @@ function calculateMarketConfidence(potentialValue, marketType, elapsed) {
 /**
  * Generate human-readable reason
  */
-function generateReason(homeRem, awayRem, isFirstHalf) {
+function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp) {
     const parts = [];
 
     if (homeRem >= 1.0) parts.push(`Ev +${homeRem.toFixed(1)} potansiyel`);
@@ -292,6 +307,11 @@ function generateReason(homeRem, awayRem, isFirstHalf) {
     if (awayRem >= 1.0) parts.push(`Dep +${awayRem.toFixed(1)} potansiyel`);
     else if (awayRem < 0) parts.push(`Dep aştı (${awayRem.toFixed(1)})`);
     else parts.push(`Dep ${awayRem.toFixed(1)} kalan`);
+
+    // Add expected goals info
+    if (homeExp && awayExp) {
+        parts.push(`Beklenen: ${homeExp.toFixed(1)}-${awayExp.toFixed(1)}`);
+    }
 
     if (isFirstHalf) parts.push('(HT bazlı)');
 
