@@ -145,6 +145,151 @@ async function analyzeH2H(matchId, homeTeam, awayTeam, currentScore = '0-0', ela
     };
 }
 
+/**
+ * Analyze H2H for Dead Match Bot (reverse logic - looking for LOW scoring patterns)
+ * @param {string} matchId - Current match ID
+ * @param {string} homeTeam - Home team name
+ * @param {string} awayTeam - Away team name
+ * @returns {object} Dead match H2H analysis result
+ */
+async function analyzeDeadH2H(matchId, homeTeam, awayTeam) {
+    let homeTeamAvgGoals = 0;
+    let awayTeamAvgGoals = 0;
+    let h2hGoals = null;
+    let matchesChecked = 0;
+    let confidenceBonus = 0;
+    const reasons = [];
+
+    try {
+        const h2hData = await flashscore.fetchMatchH2H(matchId);
+
+        if (!h2hData) {
+            return { valid: true, reason: 'No H2H data', confidenceBonus: 0 };
+        }
+
+        const matches = Array.isArray(h2hData) ? h2hData : (h2hData.DATA || []);
+
+        // Home team last 2 matches
+        const homeMatches = matches.filter(m =>
+            m.home_team?.name === homeTeam || m.away_team?.name === homeTeam
+        ).slice(0, 2);
+
+        // Away team last 2 matches
+        const awayMatches = matches.filter(m =>
+            m.home_team?.name === awayTeam || m.away_team?.name === awayTeam
+        ).slice(0, 2);
+
+        // Last H2H match
+        const h2hMatch = matches.find(m =>
+            (m.home_team?.name === homeTeam && m.away_team?.name === awayTeam) ||
+            (m.home_team?.name === awayTeam && m.away_team?.name === homeTeam)
+        );
+
+        // Analyze home team last 2 matches
+        let homeGoals = 0;
+        for (const match of homeMatches) {
+            if (match.match_id) {
+                const details = await flashscore.fetchMatchDetails(match.match_id);
+                if (details) {
+                    matchesChecked++;
+                    const total = (parseInt(details.home_team?.score) || 0) + (parseInt(details.away_team?.score) || 0);
+                    homeGoals += total;
+                }
+            }
+        }
+        homeTeamAvgGoals = homeMatches.length > 0 ? homeGoals / homeMatches.length : 2.5;
+
+        // Analyze away team last 2 matches
+        let awayGoals = 0;
+        for (const match of awayMatches) {
+            if (match.match_id) {
+                const details = await flashscore.fetchMatchDetails(match.match_id);
+                if (details) {
+                    matchesChecked++;
+                    const total = (parseInt(details.home_team?.score) || 0) + (parseInt(details.away_team?.score) || 0);
+                    awayGoals += total;
+                }
+            }
+        }
+        awayTeamAvgGoals = awayMatches.length > 0 ? awayGoals / awayMatches.length : 2.5;
+
+        // Analyze H2H match
+        if (h2hMatch && h2hMatch.match_id) {
+            const h2hDetails = await flashscore.fetchMatchDetails(h2hMatch.match_id);
+            if (h2hDetails) {
+                h2hGoals = (parseInt(h2hDetails.home_team?.score) || 0) + (parseInt(h2hDetails.away_team?.score) || 0);
+            }
+        }
+
+        // Calculate confidence bonuses for DEAD MATCH (reverse logic)
+
+        // Home team plays low-scoring matches
+        if (homeTeamAvgGoals <= 1.5) {
+            confidenceBonus += 10;
+            reasons.push(`Ev ${homeTeamAvgGoals.toFixed(1)} ort`);
+        } else if (homeTeamAvgGoals <= 2.0) {
+            confidenceBonus += 5;
+            reasons.push(`Ev ${homeTeamAvgGoals.toFixed(1)} ort`);
+        } else if (homeTeamAvgGoals >= 3.0) {
+            confidenceBonus -= 10;
+            reasons.push(`Ev yüksek gol ${homeTeamAvgGoals.toFixed(1)}`);
+        }
+
+        // Away team plays low-scoring matches
+        if (awayTeamAvgGoals <= 1.5) {
+            confidenceBonus += 10;
+            reasons.push(`Dep ${awayTeamAvgGoals.toFixed(1)} ort`);
+        } else if (awayTeamAvgGoals <= 2.0) {
+            confidenceBonus += 5;
+            reasons.push(`Dep ${awayTeamAvgGoals.toFixed(1)} ort`);
+        } else if (awayTeamAvgGoals >= 3.0) {
+            confidenceBonus -= 10;
+            reasons.push(`Dep yüksek gol ${awayTeamAvgGoals.toFixed(1)}`);
+        }
+
+        // H2H history
+        if (h2hGoals !== null) {
+            if (h2hGoals <= 1) {
+                confidenceBonus += 12;
+                reasons.push(`H2H ${h2hGoals} gol ✓`);
+            } else if (h2hGoals <= 2) {
+                confidenceBonus += 6;
+                reasons.push(`H2H ${h2hGoals} gol`);
+            } else if (h2hGoals >= 4) {
+                confidenceBonus -= 12;
+                reasons.push(`H2H ${h2hGoals} gol ⚠️`);
+            }
+        }
+
+        // Check if signal should be blocked (both teams high-scoring)
+        if (homeTeamAvgGoals >= 3.0 && awayTeamAvgGoals >= 3.0) {
+            return {
+                valid: false,
+                reason: 'Her iki takım da golcü - dead match sinyali riskli',
+                confidenceBonus: -20,
+                homeTeamAvgGoals,
+                awayTeamAvgGoals,
+                h2hGoals
+            };
+        }
+
+    } catch (error) {
+        console.error('[LiveH2H] Dead H2H error:', error.message);
+        return { valid: true, reason: 'H2H fetch error', confidenceBonus: 0 };
+    }
+
+    return {
+        valid: true,
+        reason: reasons.join(' | ') || 'H2H OK',
+        confidenceBonus,
+        homeTeamAvgGoals,
+        awayTeamAvgGoals,
+        h2hGoals,
+        matchesChecked
+    };
+}
+
 module.exports = {
-    analyzeH2H
+    analyzeH2H,
+    analyzeDeadH2H
 };

@@ -9,6 +9,7 @@ const database = require('./database');
 const antiMomentum = require('./liveAntiMomentum');
 const deadStrategies = require('./liveDeadStrategies');
 const telegram = require('./telegram');
+const h2h = require('./liveH2H');
 const ALLOWED_LEAGUES = require('../data/leagues');
 
 // Bot state (separate from momentum bot)
@@ -220,6 +221,34 @@ async function scanDeadMatches() {
             }
 
             console.log(`[DeadBot]    ✓ Strategy: ${candidate.strategy} (${candidate.confidencePercent}%)`);
+
+            // ============ H2H ANALYSIS ============
+            console.log(`[DeadBot]    🔍 H2H analizi yapılıyor...`);
+            const h2hResult = await h2h.analyzeDeadH2H(
+                matchId,
+                match.home_team?.name,
+                match.away_team?.name
+            );
+
+            if (!h2hResult.valid) {
+                console.log(`[DeadBot]    ❌ H2H Red Flag: ${h2hResult.reason}`);
+                continue;
+            }
+
+            // Apply H2H confidence bonus
+            const beforeH2H = candidate.confidencePercent;
+            candidate.confidencePercent = Math.min(95, Math.max(45,
+                candidate.confidencePercent + (h2hResult.confidenceBonus || 0)
+            ));
+
+            console.log(`[DeadBot]    H2H: ${h2hResult.reason}`);
+            console.log(`[DeadBot]    Confidence: ${beforeH2H}% → ${candidate.confidencePercent}%`);
+
+            // Add H2H info to reason
+            if (h2hResult.h2hGoals !== null) {
+                candidate.reason += ` | H2H: ${h2hResult.h2hGoals} gol`;
+            }
+            // ============ END H2H ANALYSIS ============
 
             // Check signal limit
             if (!checkSignalLimit(matchId, candidate.strategyCode)) {
