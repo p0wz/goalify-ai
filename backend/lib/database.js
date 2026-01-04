@@ -69,6 +69,8 @@ async function initDatabase() {
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE,
         password_hash TEXT,
+        firebase_uid TEXT,
+        name TEXT,
         role TEXT DEFAULT 'user',
         plan TEXT DEFAULT 'free',
         is_premium INTEGER DEFAULT 0,
@@ -80,6 +82,22 @@ async function initDatabase() {
     try {
         await client.execute(`ALTER TABLE users ADD COLUMN is_premium INTEGER DEFAULT 0`);
         console.log('[Database] Added is_premium column');
+    } catch (e) {
+        // Column already exists, ignore
+    }
+
+    // Migration: Add firebase_uid column if not exists
+    try {
+        await client.execute(`ALTER TABLE users ADD COLUMN firebase_uid TEXT`);
+        console.log('[Database] Added firebase_uid column');
+    } catch (e) {
+        // Column already exists, ignore
+    }
+
+    // Migration: Add name column if not exists
+    try {
+        await client.execute(`ALTER TABLE users ADD COLUMN name TEXT`);
+        console.log('[Database] Added name column');
     } catch (e) {
         // Column already exists, ignore
     }
@@ -332,10 +350,33 @@ async function getUserByEmail(email) {
     return result.rows[0] || null;
 }
 
+async function getUserByFirebaseUid(firebaseUid) {
+    const client = getClient();
+    const result = await client.execute({
+        sql: 'SELECT id, email, role, plan, is_premium, firebase_uid, name, created_at FROM users WHERE firebase_uid = ?',
+        args: [firebaseUid]
+    });
+    return result.rows[0] || null;
+}
+
+async function createFirebaseUser({ firebaseUid, email, name, role = 'user', plan = 'free' }) {
+    const client = getClient();
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    await client.execute({
+        sql: `INSERT INTO users(id, firebase_uid, email, name, role, plan, is_premium, created_at)
+              VALUES(?, ?, ?, ?, ?, ?, 0, ?)`,
+        args: [id, firebaseUid, email, name, role, plan, now]
+    });
+
+    return { id, firebaseUid, email, name, role, plan, isPremium: false };
+}
+
 async function getUserById(id) {
     const client = getClient();
     const result = await client.execute({
-        sql: 'SELECT id, email, role, plan, is_premium, created_at FROM users WHERE id = ?',
+        sql: 'SELECT id, email, role, plan, is_premium, firebase_uid, name, created_at FROM users WHERE id = ?',
         args: [id]
     });
     return result.rows[0] || null;
@@ -554,6 +595,8 @@ module.exports = {
     // Users
     createUser,
     getUserByEmail,
+    getUserByFirebaseUid,
+    createFirebaseUser,
     getUserById,
     getAllUsers,
     updateUserPlan,

@@ -154,6 +154,63 @@ app.get('/api/auth/me', auth.authenticateToken, (req, res) => {
     res.json({ success: true, user: { id: req.user.id, email: req.user.email, role: req.user.role, plan: req.user.plan } });
 });
 
+// Firebase Auth Sync - Create/Get user from Firebase UID
+app.post('/api/auth/firebase-sync', async (req, res) => {
+    try {
+        const { firebaseUid, email, name, idToken } = req.body;
+
+        if (!firebaseUid || !email) {
+            return res.status(400).json({ success: false, error: 'Firebase UID and email required' });
+        }
+
+        console.log(`[Auth] Firebase sync: ${email} (${firebaseUid})`);
+
+        // Check if user exists by Firebase UID
+        let user = await database.getUserByFirebaseUid(firebaseUid);
+
+        if (!user) {
+            // Check if user exists by email (migration case)
+            const existingUser = await database.getUserByEmail(email);
+            if (existingUser) {
+                // TODO: Link Firebase UID to existing user
+                user = existingUser;
+            } else {
+                // Create new user
+                user = await database.createFirebaseUser({
+                    firebaseUid,
+                    email,
+                    name: name || email.split('@')[0]
+                });
+                console.log(`[Auth] Created new Firebase user: ${user.id}`);
+            }
+        }
+
+        // Generate JWT token
+        const token = auth.generateToken({
+            id: user.id,
+            email: user.email,
+            role: user.role || 'user',
+            plan: user.plan || 'free'
+        });
+
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role || 'user',
+                plan: user.plan || 'free',
+                isPremium: user.is_premium === 1
+            }
+        });
+    } catch (error) {
+        console.error('[Auth] Firebase sync error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ USER MANAGEMENT ROUTES (Admin Only) ============
 
 app.get('/api/users', auth.authenticateToken, auth.requireAdmin, async (req, res) => {

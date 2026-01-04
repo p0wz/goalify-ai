@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "28815185744",
+    "project_id": "comsentiosentioapp",
+    "storage_bucket": "comsentiosentioapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:28815185744:android:d82e8457bb14821d5b3e55",
+        "android_client_info": {
+          "package_name": "com.sentio.sentio_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2ZyiCHVMJWsktZ7kAYDD3jyyyAtZc13Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -91,6 +91,34 @@ class ApiService {
     }
   }
 
+  /// Sync Firebase user with backend
+  Future<Map<String, dynamic>> firebaseSync({
+    required String firebaseUid,
+    required String email,
+    required String name,
+    required String idToken,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/auth/firebase-sync',
+        data: {
+          'firebaseUid': firebaseUid,
+          'email': email,
+          'name': name,
+          'idToken': idToken,
+        },
+      );
+
+      if (response.data['success'] == true) {
+        _authToken = response.data['token'];
+      }
+
+      return response.data;
+    } on DioException catch (e) {
+      return _handleError(e);
+    }
+  }
+
   // ============ ANALYSIS ============
 
   Future<Map<String, dynamic>> getAnalysisResults() async {
