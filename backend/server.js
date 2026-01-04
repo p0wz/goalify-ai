@@ -245,7 +245,7 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
 
             // Store Basic Match Data (Marketless)
             if (analysis && analysis.stats) {
-                const detailedStats = analyzer.generateDetailedStats(match, analysis.stats, h2hData.mutual);
+                const detailedStats = analyzer.generateDetailedStats(match, analysis.stats, h2hData);
                 allMatches.push({
                     matchId: match.matchId,
                     homeTeam: match.homeTeam,
