@@ -222,24 +222,19 @@ function selectMarkets(homeRem, awayRem, homeGoals, awayGoals, elapsed) {
         if (total === 0 && !isFirstHalf && elapsed <= 70) {
             markets.push({ name: 'Over 1.5', type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed) });
         }
+        // Removed BTTS - replaced with next goal market
         if (total >= 1 && elapsed <= 75) {
-            markets.push({ name: 'BTTS Yes', type: 'BTTS', confidence: calculateMarketConfidence(Math.min(homeRem, awayRem), 'BTTS', elapsed) });
+            markets.push({ name: `Over ${total + 0.5}`, type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed) });
         }
     }
 
     // Home has potential, away exhausted
     if (homeRem >= 0.8 && awayRem < 0.3) {
-        if (awayGoals >= 1) {
-            markets.push({ name: 'BTTS Yes', type: 'BTTS', confidence: calculateMarketConfidence(homeRem, 'BTTS', elapsed) });
-        }
         markets.push({ name: 'Home Goal', type: 'HOME_GOAL', confidence: calculateMarketConfidence(homeRem, 'OVER', elapsed) });
     }
 
     // Away has potential, home exhausted
     if (awayRem >= 0.8 && homeRem < 0.3) {
-        if (homeGoals >= 1) {
-            markets.push({ name: 'BTTS Yes', type: 'BTTS', confidence: calculateMarketConfidence(awayRem, 'BTTS', elapsed) });
-        }
         markets.push({ name: 'Away Goal', type: 'AWAY_GOAL', confidence: calculateMarketConfidence(awayRem, 'OVER', elapsed) });
     }
 
