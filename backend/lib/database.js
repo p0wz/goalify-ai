@@ -578,6 +578,68 @@ async function getLiveSignalStats() {
     return result.rows;
 }
 
+async function getMobileStats() {
+    const client = getClient();
+
+    // Get all settled signals
+    const result = await client.execute(`
+        SELECT status, entry_time 
+        FROM live_signals 
+        WHERE status IN ('WON', 'LOST')
+    `);
+
+    const signals = result.rows;
+
+    // TRT Timezone Offset (UTC+3)
+    const TRT_OFFSET = 3 * 60 * 60 * 1000;
+
+    const now = new Date();
+    const nowTRT = new Date(now.getTime() + TRT_OFFSET);
+
+    // Start of Day TRT
+    const startOfDayTRT = new Date(nowTRT);
+    startOfDayTRT.setUTCHours(0, 0, 0, 0);
+    const startOfDayTimestamp = startOfDayTRT.getTime() - TRT_OFFSET; // Convert back to UTC timestamp for comparison
+
+    // Start of Month TRT
+    const startOfMonthTRT = new Date(nowTRT);
+    startOfMonthTRT.setUTCDate(1);
+    startOfMonthTRT.setUTCHours(0, 0, 0, 0);
+    const startOfMonthTimestamp = startOfMonthTRT.getTime() - TRT_OFFSET;
+
+    // Calculate Stats
+    let dailyWon = 0;
+    let dailyTotal = 0;
+    let monthlyWon = 0;
+    let monthlyTotal = 0;
+
+    for (const s of signals) {
+        if (!s.entry_time) continue;
+
+        // entry_time is likely in seconds or milliseconds. 
+        // Based on previous code `Date.now()`, it's milliseconds.
+        // Let's assume it matches the system timestamp format.
+        const time = s.entry_time;
+
+        if (time >= startOfDayTimestamp) {
+            dailyTotal++;
+            if (s.status === 'WON') dailyWon++;
+        }
+
+        if (time >= startOfMonthTimestamp) {
+            monthlyTotal++;
+            if (s.status === 'WON') monthlyWon++;
+        }
+    }
+
+    return {
+        dailyWinRate: dailyTotal > 0 ? Math.round((dailyWon / dailyTotal) * 100) : 0,
+        monthlyWinRate: monthlyTotal > 0 ? Math.round((monthlyWon / monthlyTotal) * 100) : 0,
+        dailyTotal,
+        monthlyTotal
+    };
+}
+
 module.exports = {
     initDatabase,
     // Approved Bets
@@ -611,5 +673,6 @@ module.exports = {
     addLiveSignal,
     getLiveSignals,
     updateLiveSignal,
-    getLiveSignalStats
+    getLiveSignalStats,
+    getMobileStats
 };

@@ -62,22 +62,30 @@ class LiveSignalsState {
   final List<LiveSignal> signals;
   final bool isLoading;
   final String? error;
+  final int dailyWinRate;
+  final int monthlyWinRate;
 
   LiveSignalsState({
     this.signals = const [],
     this.isLoading = false,
     this.error,
+    this.dailyWinRate = 0,
+    this.monthlyWinRate = 0,
   });
 
   LiveSignalsState copyWith({
     List<LiveSignal>? signals,
     bool? isLoading,
     String? error,
+    int? dailyWinRate,
+    int? monthlyWinRate,
   }) {
     return LiveSignalsState(
       signals: signals ?? this.signals,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      dailyWinRate: dailyWinRate ?? this.dailyWinRate,
+      monthlyWinRate: monthlyWinRate ?? this.monthlyWinRate,
     );
   }
 
@@ -127,6 +135,11 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
         final List<dynamic> data = response.data['signals'] ?? [];
         final signals = data.map((json) => LiveSignal.fromJson(json)).toList();
 
+        // Parse stats
+        final stats = response.data['stats'] ?? {};
+        final dailyWR = stats['dailyWinRate'] ?? 0;
+        final monthlyWR = stats['monthlyWinRate'] ?? 0;
+
         // Sort: pending first, then by date desc
         signals.sort((a, b) {
           if (a.isPending && !b.isPending) return -1;
@@ -134,7 +147,12 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
           return b.createdAt.compareTo(a.createdAt);
         });
 
-        state = state.copyWith(signals: signals, isLoading: false);
+        state = state.copyWith(
+          signals: signals,
+          isLoading: false,
+          dailyWinRate: dailyWR,
+          monthlyWinRate: monthlyWR,
+        );
       } else {
         state = state.copyWith(
           isLoading: false,

@@ -847,7 +847,12 @@ async function start() {
                 return signalTime >= todayTimestamp;
             });
 
-            res.json({ success: true, signals: todaySignals });
+            // Mobile endpoint logic...
+
+            // Get stats
+            const stats = await database.getMobileStats();
+
+            res.json({ success: true, signals: todaySignals, stats });
         } catch (error) {
             console.error('[Mobile] Live signals error:', error.message);
             res.status(500).json({ success: false, error: error.message });
