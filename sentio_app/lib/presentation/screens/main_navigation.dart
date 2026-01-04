@@ -14,8 +14,9 @@ class MainNavigation extends ConsumerWidget {
   int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/predictions')) return 1;
-    if (location.startsWith('/stats')) return 2;
-    if (location.startsWith('/profile')) return 3;
+    if (location.startsWith('/live')) return 2;
+    if (location.startsWith('/stats')) return 3;
+    if (location.startsWith('/profile')) return 4;
     return 0;
   }
 
@@ -28,9 +29,12 @@ class MainNavigation extends ConsumerWidget {
         context.go('/predictions');
         break;
       case 2:
-        context.go('/stats');
+        context.go('/live');
         break;
       case 3:
+        context.go('/stats');
+        break;
+      case 4:
         context.go('/profile');
         break;
     }
@@ -85,19 +89,27 @@ class MainNavigation extends ConsumerWidget {
                     ),
                     _buildNavItem(
                       context,
+                      Icons.sensors_outlined,
+                      Icons.sensors_rounded,
+                      'Canlı',
+                      selectedIndex == 2,
+                      () => _onItemTapped(context, 2),
+                    ),
+                    _buildNavItem(
+                      context,
                       Icons.bar_chart_outlined,
                       Icons.bar_chart_rounded,
                       'İstatistik',
-                      selectedIndex == 2,
-                      () => _onItemTapped(context, 2),
+                      selectedIndex == 3,
+                      () => _onItemTapped(context, 3),
                     ),
                     _buildNavItem(
                       context,
                       Icons.person_outline_rounded,
                       Icons.person_rounded,
                       strings.profile,
-                      selectedIndex == 3,
-                      () => _onItemTapped(context, 3),
+                      selectedIndex == 4,
+                      () => _onItemTapped(context, 4),
                     ),
                   ],
                 ),

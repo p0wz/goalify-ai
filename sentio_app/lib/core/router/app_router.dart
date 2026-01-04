@@ -5,6 +5,7 @@ import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/register_screen.dart';
 import '../../presentation/screens/dashboard/dashboard_screen.dart';
 import '../../presentation/screens/predictions/predictions_screen.dart';
+import '../../presentation/screens/live/live_screen.dart';
 import '../../presentation/screens/stats/stats_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
@@ -71,6 +72,11 @@ class AppRouter {
             path: '/predictions',
             name: 'predictions',
             builder: (context, state) => const PredictionsScreen(),
+          ),
+          GoRoute(
+            path: '/live',
+            name: 'live',
+            builder: (context, state) => const LiveScreen(),
           ),
           GoRoute(
             path: '/stats',
