@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'auth_provider.dart';
 
 /// Live Signal Model
 class LiveSignal {
@@ -35,8 +36,8 @@ class LiveSignal {
   factory LiveSignal.fromJson(Map<String, dynamic> json) {
     return LiveSignal(
       id: json['id'] ?? '',
-      homeTeam: json['home_team'] ?? json['homeTeam'] ?? '',
-      awayTeam: json['away_team'] ?? json['awayTeam'] ?? '',
+      homeTeam: json['home_team'] ?? json['homeTeam'] ?? json['home'] ?? '',
+      awayTeam: json['away_team'] ?? json['awayTeam'] ?? json['away'] ?? '',
       league: json['league'] ?? '',
       market: json['strategy'] ?? json['market'] ?? '',
       entryScore: json['entry_score'] ?? json['entryScore'] ?? '0-0',
@@ -85,12 +86,13 @@ class LiveSignalsState {
   int get lostCount => signals.where((s) => s.isLost).length;
 }
 
-/// Live Signals Notifier
+/// Live Signals Notifier - requires auth token
 class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
   static const String baseUrl = 'https://goalify-ai.onrender.com/api';
   final Dio _dio;
+  final Ref _ref;
 
-  LiveSignalsNotifier()
+  LiveSignalsNotifier(this._ref)
     : _dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
@@ -103,8 +105,23 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
   Future<void> fetchSignals() async {
     state = state.copyWith(isLoading: true, error: null);
 
+    // Get auth token from auth provider
+    final authState = _ref.read(authProvider);
+    final token = authState.token;
+
+    if (token == null) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Giriş yapmanız gerekiyor',
+      );
+      return;
+    }
+
     try {
-      final response = await _dio.get('/mobile/live-signals');
+      final response = await _dio.get(
+        '/mobile/live-signals',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
 
       if (response.data != null && response.data['success'] == true) {
         final List<dynamic> data = response.data['signals'] ?? [];
@@ -128,7 +145,15 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
       if (kDebugMode) {
         print('Live signals fetch error: ${e.message}');
       }
-      state = state.copyWith(isLoading: false, error: 'Bağlantı hatası');
+
+      if (e.response?.statusCode == 401) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Oturum süresi doldu, tekrar giriş yapın',
+        );
+      } else {
+        state = state.copyWith(isLoading: false, error: 'Bağlantı hatası');
+      }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Beklenmeyen hata');
     }
@@ -137,8 +162,8 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
   void refresh() => fetchSignals();
 }
 
-/// Provider
+/// Provider - uses ref to access auth token
 final liveSignalsProvider =
     StateNotifierProvider<LiveSignalsNotifier, LiveSignalsState>((ref) {
-      return LiveSignalsNotifier();
+      return LiveSignalsNotifier(ref);
     });

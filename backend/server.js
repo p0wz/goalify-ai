@@ -756,8 +756,8 @@ async function start() {
         }
     });
 
-    // Mobile live signals (public - no auth required)
-    app.get('/api/mobile/live-signals', async (req, res) => {
+    // Mobile live signals (requires auth - premium feature)
+    app.get('/api/mobile/live-signals', auth.authenticateToken, async (req, res) => {
         try {
             // Get all signals from today
             const allSignals = await database.getLiveSignals();
