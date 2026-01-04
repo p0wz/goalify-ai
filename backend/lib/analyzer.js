@@ -676,10 +676,10 @@ B. AWAY PERFORMANCE (Last 8 Away):
      - Conceded in last ${awayAwayStats.concedingSequence || 0} away matches
 
 ─────────── HEAD TO HEAD (H2H) ───────────
-Last ${mutual.length} Meetings:
+Last ${Math.min(mutual.length, 3)} Meetings:
 `;
 
-    mutual.forEach(g => {
+    mutual.slice(0, 3).forEach(g => {
         const date = new Date(g.timestamp * 1000).toLocaleDateString('tr-TR');
         const ht = (g.home_team && g.away_team && g.home_team.score_1st_half != null)
             ? `(HT: ${g.home_team.score_1st_half}-${g.away_team.score_1st_half})`
