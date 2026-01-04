@@ -1,6 +1,7 @@
 /**
  * Live Bot - Auto Settlement Module
- * Settles live signals after 1 hour based on score change
+ * Settles live signals based on market type and final score
+ * Updated for form-based markets (Over/Under/BTTS/Goals)
  */
 
 const database = require('./database');
@@ -20,13 +21,97 @@ function isReadyForSettlement(signal) {
 }
 
 /**
+ * Parse score string to [home, away] numbers
+ */
+function parseScore(scoreStr) {
+    if (!scoreStr) return [0, 0];
+    const parts = scoreStr.split('-').map(s => parseInt(s) || 0);
+    return [parts[0] || 0, parts[1] || 0];
+}
+
+/**
+ * Evaluate if market won based on final score
+ */
+function evaluateMarket(market, entryScore, finalScore, strategyCode) {
+    const [entryHome, entryAway] = parseScore(entryScore);
+    const [finalHome, finalAway] = parseScore(finalScore);
+
+    const entryTotal = entryHome + entryAway;
+    const finalTotal = finalHome + finalAway;
+
+    // Goals scored after entry
+    const goalsAfterEntry = finalTotal - entryTotal;
+    const homeGoalsAfter = finalHome - entryHome;
+    const awayGoalsAfter = finalAway - entryAway;
+
+    const marketLower = (market || '').toLowerCase();
+
+    // ============ OVER/UNDER MARKETS ============
+
+    // İY Over 0.5
+    if (marketLower.includes('iy over 0.5') || marketLower.includes('ht over 0.5')) {
+        // For first half, check HT score
+        return finalTotal >= 1;
+    }
+
+    // Over X.5 markets
+    if (marketLower.includes('over')) {
+        const match = marketLower.match(/over\s*(\d+\.5)/);
+        if (match) {
+            const line = parseFloat(match[1]);
+            return finalTotal > line;
+        }
+        // Generic "over" - at least 1 goal after entry
+        return goalsAfterEntry >= 1;
+    }
+
+    // Under X.5 markets
+    if (marketLower.includes('under')) {
+        const match = marketLower.match(/under\s*(\d+\.5)/);
+        if (match) {
+            const line = parseFloat(match[1]);
+            return finalTotal < line;
+        }
+        // Generic "under" - no more goals after entry
+        return goalsAfterEntry === 0;
+    }
+
+    // ============ BTTS MARKETS ============
+    if (marketLower.includes('btts') || marketLower.includes('both teams')) {
+        if (marketLower.includes('no')) {
+            return finalHome === 0 || finalAway === 0;
+        }
+        // BTTS Yes
+        return finalHome >= 1 && finalAway >= 1;
+    }
+
+    // ============ GOAL MARKETS ============
+    if (marketLower.includes('home goal') || marketLower.includes('ev gol')) {
+        return homeGoalsAfter >= 1;
+    }
+
+    if (marketLower.includes('away goal') || marketLower.includes('dep gol')) {
+        return awayGoalsAfter >= 1;
+    }
+
+    // ============ DRAW MARKET ============
+    if (marketLower.includes('draw') || marketLower.includes('beraberlik')) {
+        return finalHome === finalAway;
+    }
+
+    // ============ FALLBACK: Score changed (legacy) ============
+    // For any unrecognized market, use old logic
+    console.log(`[LiveSettlement] Unknown market "${market}" - using score-changed fallback`);
+    return finalScore !== entryScore;
+}
+
+/**
  * Settle a single live signal
- * WON if score changed from entry, LOST if same
- * FIRST_HALF: Check only HT score
- * LATE_GAME: Check FT score
  */
 async function settleLiveSignal(signal) {
-    console.log(`[LiveSettlement] Processing signal ${signal.id} (Match: ${signal.matchId}, Strategy: ${signal.strategyCode})`);
+    console.log(`[LiveSettlement] Processing signal ${signal.id}`);
+    console.log(`[LiveSettlement]    Match: ${signal.home} vs ${signal.away}`);
+    console.log(`[LiveSettlement]    Market: ${signal.strategy}, Entry: ${signal.entryScore}`);
 
     try {
         // Fetch current match details
@@ -40,29 +125,33 @@ async function settleLiveSignal(signal) {
         let finalScore;
         let checkScore;
 
-        // For FIRST_HALF strategy, check only HT score
-        if (signal.strategyCode === 'FIRST_HALF') {
+        // For FIRST_HALF strategy, check HT score for İY markets
+        const isFirstHalf = signal.strategyCode === 'FIRST_HALF';
+        const marketLower = (signal.strategy || '').toLowerCase();
+        const isHTMarket = marketLower.includes('iy') || marketLower.includes('ht') || marketLower.includes('İy');
+
+        if (isFirstHalf && isHTMarket) {
             const htHome = parseInt(details.home_team?.score_1st_half) || 0;
             const htAway = parseInt(details.away_team?.score_1st_half) || 0;
             finalScore = `${htHome}-${htAway}`;
             checkScore = 'HT';
-            console.log(`[LiveSettlement] FIRST_HALF - Using HT score: ${finalScore}`);
         } else {
-            // For LATE_GAME, use full-time score
+            // Use full-time score for most markets
             const ftHome = parseInt(details.home_team?.score) || 0;
             const ftAway = parseInt(details.away_team?.score) || 0;
             finalScore = `${ftHome}-${ftAway}`;
             checkScore = 'FT';
-            console.log(`[LiveSettlement] LATE_GAME - Using FT score: ${finalScore}`);
         }
 
-        // Compare with entry score
+        console.log(`[LiveSettlement]    Using ${checkScore} score: ${finalScore}`);
+
+        // Evaluate market outcome
         const entryScore = signal.entryScore || '0-0';
-        const scoreChanged = finalScore !== entryScore;
+        const won = evaluateMarket(signal.strategy, entryScore, finalScore, signal.strategyCode);
+        const status = won ? 'WON' : 'LOST';
 
-        const status = scoreChanged ? 'WON' : 'LOST';
-
-        console.log(`[LiveSettlement] Entry: ${entryScore} → ${checkScore}: ${finalScore} = ${status}`);
+        console.log(`[LiveSettlement]    Entry: ${entryScore} → ${checkScore}: ${finalScore}`);
+        console.log(`[LiveSettlement]    Market "${signal.strategy}" = ${status}`);
 
         return {
             success: true,
@@ -131,5 +220,6 @@ module.exports = {
     isReadyForSettlement,
     settleLiveSignal,
     runLiveSettlement,
+    evaluateMarket,
     SETTLEMENT_DELAY_MS
 };
