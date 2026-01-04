@@ -71,9 +71,18 @@ async function initDatabase() {
         password_hash TEXT,
         role TEXT DEFAULT 'user',
         plan TEXT DEFAULT 'free',
+        is_premium INTEGER DEFAULT 0,
         created_at TEXT
     )
         `);
+
+    // Migration: Add is_premium column if not exists
+    try {
+        await client.execute(`ALTER TABLE users ADD COLUMN is_premium INTEGER DEFAULT 0`);
+        console.log('[Database] Added is_premium column');
+    } catch (e) {
+        // Column already exists, ignore
+    }
 
     // Create mobile_bets table
     await client.execute(`
@@ -326,7 +335,7 @@ async function getUserByEmail(email) {
 async function getUserById(id) {
     const client = getClient();
     const result = await client.execute({
-        sql: 'SELECT id, email, role, plan, created_at FROM users WHERE id = ?',
+        sql: 'SELECT id, email, role, plan, is_premium, created_at FROM users WHERE id = ?',
         args: [id]
     });
     return result.rows[0] || null;
@@ -334,8 +343,11 @@ async function getUserById(id) {
 
 async function getAllUsers() {
     const client = getClient();
-    const result = await client.execute('SELECT id, email, role, plan, created_at FROM users ORDER BY created_at DESC');
-    return result.rows;
+    const result = await client.execute('SELECT id, email, role, plan, is_premium, created_at FROM users ORDER BY created_at DESC');
+    return result.rows.map(row => ({
+        ...row,
+        isPremium: row.is_premium === 1
+    }));
 }
 
 async function updateUserPlan(id, plan) {
@@ -343,6 +355,15 @@ async function updateUserPlan(id, plan) {
     await client.execute({
         sql: 'UPDATE users SET plan = ? WHERE id = ?',
         args: [plan, id]
+    });
+    return { success: true };
+}
+
+async function updateUserPremium(id, isPremium) {
+    const client = getClient();
+    await client.execute({
+        sql: 'UPDATE users SET is_premium = ? WHERE id = ?',
+        args: [isPremium ? 1 : 0, id]
     });
     return { success: true };
 }
@@ -536,6 +557,7 @@ module.exports = {
     getUserById,
     getAllUsers,
     updateUserPlan,
+    updateUserPremium,
     // Mobile Bets
     addToMobileBets,
     getAllMobileBets,

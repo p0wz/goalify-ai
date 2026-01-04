@@ -756,9 +756,27 @@ async function start() {
         }
     });
 
-    // Mobile live signals (requires auth - premium feature)
+    // Mobile live signals (requires auth + premium or admin)
     app.get('/api/mobile/live-signals', auth.authenticateToken, async (req, res) => {
         try {
+            // Check if user is premium or admin
+            const user = await database.getUserById(req.user.id);
+
+            if (!user) {
+                return res.status(404).json({ success: false, error: 'Kullanıcı bulunamadı' });
+            }
+
+            const isPremium = user.is_premium === 1;
+            const isAdmin = user.role === 'admin';
+
+            if (!isPremium && !isAdmin) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Bu özellik için PRO üyelik gerekiyor',
+                    requiresPremium: true
+                });
+            }
+
             // Get all signals from today
             const allSignals = await database.getLiveSignals();
 
@@ -775,6 +793,35 @@ async function start() {
             res.json({ success: true, signals: todaySignals });
         } catch (error) {
             console.error('[Mobile] Live signals error:', error.message);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // ============ ADMIN USER MANAGEMENT ============
+
+    // Get all users (admin only)
+    app.get('/api/admin/users', auth.requireAuth('admin'), async (req, res) => {
+        try {
+            const users = await database.getAllUsers();
+            res.json({ success: true, users });
+        } catch (error) {
+            console.error('[Admin] Get users error:', error.message);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // Toggle user premium status (admin only)
+    app.post('/api/admin/users/:id/premium', auth.requireAuth('admin'), async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { isPremium } = req.body;
+
+            await database.updateUserPremium(id, isPremium);
+
+            console.log(`[Admin] User ${id} premium status: ${isPremium}`);
+            res.json({ success: true, message: isPremium ? 'PRO aktif edildi' : 'PRO deaktif edildi' });
+        } catch (error) {
+            console.error('[Admin] Toggle premium error:', error.message);
             res.status(500).json({ success: false, error: error.message });
         }
     });
