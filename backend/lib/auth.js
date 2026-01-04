@@ -56,6 +56,23 @@ async function authenticateToken(req, res, next) {
 }
 
 /**
+ * Require Role Middleware Factory
+ */
+function requireAuth(role) {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ success: false, error: 'Access denied: Not authenticated' });
+        }
+
+        if (role && req.user.role !== role) {
+            return res.status(403).json({ success: false, error: `Access denied: ${role} role required` });
+        }
+
+        next();
+    };
+}
+
+/**
  * Require Admin Role Middleware
  */
 function requireAdmin(req, res, next) {
@@ -93,6 +110,7 @@ async function comparePassword(plain, hashed) {
 
 module.exports = {
     authenticateToken,
+    requireAuth,
     requireAdmin,
     generateToken,
     hashPassword,
