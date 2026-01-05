@@ -170,9 +170,13 @@ function calculateTeamStatsWeighted(recentDetails, oldDetails, teamName) {
     // Calculate recent stats (last 3)
     const recentStats = calculateTeamStats(recentDetails, teamName);
 
-    // If no old matches, just return recent
+    // Calculate volatility from all available matches
+    const allDetails = [...recentDetails, ...(oldDetails || [])];
+    const volatility = calculateVolatility(allDetails, teamName);
+
+    // If no old matches, just return recent with volatility
     if (!oldDetails || oldDetails.length === 0) {
-        return recentStats;
+        return { ...recentStats, volatility };
     }
 
     // Calculate old stats (matches 4-5)
@@ -188,7 +192,49 @@ function calculateTeamStatsWeighted(recentDetails, oldDetails, teamName) {
         ftConcededAvg: (recentStats.ftConcededAvg * RECENT_WEIGHT) + (oldStats.ftConcededAvg * OLD_WEIGHT),
         htConcededAvg: (recentStats.htConcededAvg * RECENT_WEIGHT) + (oldStats.htConcededAvg * OLD_WEIGHT),
         matchCount: recentDetails.length + oldDetails.length,
-        isWeighted: true
+        isWeighted: true,
+        volatility
+    };
+}
+
+/**
+ * NEW: Calculate volatility (Coefficient of Variation) from match scores
+ * Lower CV = more consistent, Higher CV = more volatile
+ */
+function calculateVolatility(details, teamName) {
+    if (!details || details.length < 2) {
+        return { cv: 50, isConsistent: false, isVolatile: false }; // Default neutral
+    }
+
+    // Extract goals scored by this team in each match
+    const scores = details.map(d => {
+        if (d.isHome) return d.ftHome;
+        return d.ftAway;
+    });
+
+    // Calculate mean
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+    // If mean is 0, avoid division by zero
+    if (mean === 0) {
+        return { cv: 100, isConsistent: false, isVolatile: true };
+    }
+
+    // Calculate standard deviation
+    const squaredDiffs = scores.map(s => Math.pow(s - mean, 2));
+    const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / scores.length;
+    const stdDev = Math.sqrt(avgSquaredDiff);
+
+    // Coefficient of Variation (CV) = (StdDev / Mean) * 100
+    const cv = (stdDev / mean) * 100;
+
+    return {
+        cv: Math.round(cv),
+        isConsistent: cv < 35,   // Very consistent
+        isVolatile: cv > 70,     // Very volatile
+        scores,
+        mean: Math.round(mean * 100) / 100,
+        stdDev: Math.round(stdDev * 100) / 100
     };
 }
 
@@ -209,6 +255,12 @@ function calculatePotential(formData, score, elapsed) {
     const homeConceded = isFirstHalf ? homeStats.htConcededAvg : homeStats.ftConcededAvg;
     const awayConceded = isFirstHalf ? awayStats.htConcededAvg : awayStats.ftConcededAvg;
 
+    // Calculate combined volatility (average of both teams)
+    const homeVolatility = homeStats.volatility || { cv: 50 };
+    const awayVolatility = awayStats.volatility || { cv: 50 };
+    const combinedCV = (homeVolatility.cv + awayVolatility.cv) / 2;
+    const consistencyBonus = getConsistencyBonus(combinedCV);
+
     // WEIGHTED EXPECTED GOALS:
     // Attack is 70% of the calculation, opponent's defensive weakness is 30%
     // This keeps attack power dominant while considering defense
@@ -226,8 +278,8 @@ function calculatePotential(formData, score, elapsed) {
         : (90 - elapsed) / 45;
     const adjustedRemaining = totalRemaining * Math.max(0.3, timeRatio);
 
-    // Generate market suggestions based on potential
-    const markets = selectMarkets(homeRemaining, awayRemaining, homeGoals, awayGoals, elapsed);
+    // Generate market suggestions based on potential (now with consistency bonus)
+    const markets = selectMarkets(homeRemaining, awayRemaining, homeGoals, awayGoals, elapsed, consistencyBonus);
 
     return {
         valid: true,
@@ -242,18 +294,33 @@ function calculatePotential(formData, score, elapsed) {
         awayAttack: Math.round(awayAttack * 100) / 100,
         awayConceded: Math.round(awayConceded * 100) / 100,
         homeConceded: Math.round(homeConceded * 100) / 100,
+        // NEW: Volatility info
+        homeVolatility: homeVolatility.cv,
+        awayVolatility: awayVolatility.cv,
+        combinedCV: Math.round(combinedCV),
+        consistencyBonus,
         isFirstHalf,
         elapsed,
         score,
         markets,
-        reason: generateReason(homeRemaining, awayRemaining, isFirstHalf, homeExpected, awayExpected)
+        reason: generateReason(homeRemaining, awayRemaining, isFirstHalf, homeExpected, awayExpected, consistencyBonus)
     };
+}
+
+/**
+ * NEW: Get consistency bonus/penalty based on combined CV
+ */
+function getConsistencyBonus(combinedCV) {
+    if (combinedCV < 30) return 5;      // Very consistent: +5%
+    if (combinedCV < 50) return 0;      // Normal: neutral
+    if (combinedCV < 80) return -3;     // Volatile: -3%
+    return -7;                          // Very volatile: -7%
 }
 
 /**
  * Select markets based on remaining potential
  */
-function selectMarkets(homeRem, awayRem, homeGoals, awayGoals, elapsed) {
+function selectMarkets(homeRem, awayRem, homeGoals, awayGoals, elapsed, consistencyBonus = 0) {
     const total = homeGoals + awayGoals;
     const diff = Math.abs(homeGoals - awayGoals);
     const isFirstHalf = elapsed <= 45;
@@ -262,38 +329,38 @@ function selectMarkets(homeRem, awayRem, homeGoals, awayGoals, elapsed) {
     // Both teams have potential
     if (homeRem >= 0.5 && awayRem >= 0.5) {
         if (total === 0 && isFirstHalf) {
-            markets.push({ name: 'İY Over 0.5', type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed) });
+            markets.push({ name: 'İY Over 0.5', type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
         }
         if (total === 0 && !isFirstHalf && elapsed <= 70) {
-            markets.push({ name: 'Over 1.5', type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed) });
+            markets.push({ name: 'Over 1.5', type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
         }
         // Removed BTTS - replaced with next goal market
         if (total >= 1 && elapsed <= 75) {
-            markets.push({ name: `Over ${total + 0.5}`, type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed) });
+            markets.push({ name: `Over ${total + 0.5}`, type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
         }
     }
 
     // Home has potential, away exhausted
     if (homeRem >= 0.8 && awayRem < 0.3) {
-        markets.push({ name: 'Home Goal', type: 'HOME_GOAL', confidence: calculateMarketConfidence(homeRem, 'OVER', elapsed) });
+        markets.push({ name: 'Home Goal', type: 'HOME_GOAL', confidence: calculateMarketConfidence(homeRem, 'OVER', elapsed, consistencyBonus) });
     }
 
     // Away has potential, home exhausted
     if (awayRem >= 0.8 && homeRem < 0.3) {
-        markets.push({ name: 'Away Goal', type: 'AWAY_GOAL', confidence: calculateMarketConfidence(awayRem, 'OVER', elapsed) });
+        markets.push({ name: 'Away Goal', type: 'AWAY_GOAL', confidence: calculateMarketConfidence(awayRem, 'OVER', elapsed, consistencyBonus) });
     }
 
     // Both exhausted
     if (homeRem < 0.3 && awayRem < 0.3) {
-        markets.push({ name: `Under ${total + 0.5}`, type: 'UNDER', confidence: calculateMarketConfidence(-(homeRem + awayRem), 'UNDER', elapsed) });
+        markets.push({ name: `Under ${total + 0.5}`, type: 'UNDER', confidence: calculateMarketConfidence(-(homeRem + awayRem), 'UNDER', elapsed, consistencyBonus) });
         if (homeGoals === awayGoals && elapsed >= 70) {
-            markets.push({ name: 'Draw', type: 'DRAW', confidence: calculateMarketConfidence(0.5, 'DRAW', elapsed) });
+            markets.push({ name: 'Draw', type: 'DRAW', confidence: calculateMarketConfidence(0.5, 'DRAW', elapsed, consistencyBonus) });
         }
     }
 
     // High scoring potential
     if (homeRem + awayRem >= 1.5 && elapsed <= 75) {
-        markets.push({ name: `Over ${total + 0.5}`, type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed) });
+        markets.push({ name: `Over ${total + 0.5}`, type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
     }
 
     // Sort by confidence
@@ -303,7 +370,7 @@ function selectMarkets(homeRem, awayRem, homeGoals, awayGoals, elapsed) {
 /**
  * Calculate market confidence based on potential and timing
  */
-function calculateMarketConfidence(potentialValue, marketType, elapsed) {
+function calculateMarketConfidence(potentialValue, marketType, elapsed, consistencyBonus = 0) {
     let base = 50;
 
     // Potential bonus
@@ -330,13 +397,16 @@ function calculateMarketConfidence(potentialValue, marketType, elapsed) {
         if (marketType === 'OVER') base -= 5; // Too early
     }
 
+    // NEW: Apply consistency bonus/penalty
+    base += consistencyBonus;
+
     return Math.min(92, Math.max(45, base));
 }
 
 /**
  * Generate human-readable reason
  */
-function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp) {
+function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp, consistencyBonus = 0) {
     const parts = [];
 
     if (homeRem >= 1.0) parts.push(`Ev +${homeRem.toFixed(1)} potansiyel`);
@@ -351,6 +421,11 @@ function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp) {
     if (homeExp && awayExp) {
         parts.push(`Beklenen: ${homeExp.toFixed(1)}-${awayExp.toFixed(1)}`);
     }
+
+    // NEW: Add consistency info
+    if (consistencyBonus > 0) parts.push('✓Tutarlı');
+    else if (consistencyBonus < -5) parts.push('⚠️Volatil');
+    else if (consistencyBonus < 0) parts.push('~Değişken');
 
     if (isFirstHalf) parts.push('(HT bazlı)');
 
