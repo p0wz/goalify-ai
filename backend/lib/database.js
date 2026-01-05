@@ -540,7 +540,8 @@ async function getLiveSignals(status = null) {
             args: [status]
         });
     } else {
-        result = await client.execute('SELECT * FROM live_signals ORDER BY entry_time DESC');
+        // LIMIT 100 for performance - prevents timeout with large datasets
+        result = await client.execute('SELECT * FROM live_signals ORDER BY entry_time DESC LIMIT 100');
     }
     return result.rows.map(mapLiveSignalFromDB);
 }
