@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../providers/live_provider.dart';
 import '../../widgets/common/clean_card.dart';
+import '../../providers/auth_provider.dart';
 
 /// Live Signals Screen - Canlı Sinyaller
 class LiveScreen extends ConsumerStatefulWidget {
@@ -17,15 +18,25 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch signals on load
-    Future.microtask(
-      () => ref.read(liveSignalsProvider.notifier).fetchSignals(),
-    );
+    // Initial fetch if already authenticated
+    Future.microtask(() {
+      final authState = ref.read(authProvider);
+      if (authState.isAuthenticated) {
+        ref.read(liveSignalsProvider.notifier).fetchSignals();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(liveSignalsProvider);
+
+    // Listen to Auth State changes to trigger fetch
+    ref.listen(authProvider, (previous, next) {
+      if (previous?.isAuthenticated != true && next.isAuthenticated) {
+        ref.read(liveSignalsProvider.notifier).fetchSignals();
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background(context),
@@ -34,81 +45,43 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             // Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.danger.withAlpha(30),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.sensors,
-                            color: AppColors.danger,
-                            size: 20,
-                          ),
-                        ),
-                        SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'Canlı Sinyaller',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const Spacer(),
-                        // Refresh button
-                        IconButton(
-                          onPressed: state.isLoading
-                              ? null
-                              : () => ref
-                                    .read(liveSignalsProvider.notifier)
-                                    .refresh(),
-                          icon: state.isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.refresh_rounded),
-                        ),
-                      ],
+            SliverAppBar(
+              floating: true,
+              backgroundColor: Colors.transparent,
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.danger.withAlpha(30),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    SizedBox(height: AppSpacing.sm),
-                    // Stats row
-                    Row(
-                      children: [
-                        _buildStatChip(
-                          context,
-                          'Günlük: %${state.dailyWinRate}',
-                          'Başarı',
-                          AppColors.primary,
-                        ),
-                        SizedBox(width: AppSpacing.sm),
-                        _buildStatChip(
-                          context,
-                          'Aylık: %${state.monthlyWinRate}',
-                          'Başarı',
-                          AppColors.success,
-                        ),
-                        SizedBox(width: AppSpacing.sm),
-                        _buildStatChip(
-                          context,
-                          'Bekleyen: ${state.pendingCount}',
-                          'Adet',
-                          Colors.orange,
-                        ),
-                      ],
+                    child: Icon(
+                      Icons.sensors,
+                      color: AppColors.danger,
+                      size: 20,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Canlı Sinyaller'),
+                ],
               ),
+              actions: [
+                IconButton(
+                  onPressed: state.isLoading
+                      ? null
+                      : () => ref.read(liveSignalsProvider.notifier).refresh(),
+                  icon: state.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh_rounded),
+                ),
+                const SizedBox(width: 8),
+              ],
             ),
 
             // Content
@@ -190,33 +163,6 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
             // Bottom padding for nav bar
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatChip(
-    BuildContext context,
-    String value,
-    String label,
-    Color color,
-  ) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withAlpha(50)),
-      ),
-      child: Text(
-        value,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 13,
         ),
       ),
     );

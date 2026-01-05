@@ -813,7 +813,7 @@ async function start() {
         }
     });
 
-    // Mobile live signals (requires auth + premium or admin)
+    // Mobile live signals (Pending Only)
     app.get('/api/mobile/live-signals', auth.authenticateToken, async (req, res) => {
         try {
             // Check if user is premium or admin
@@ -834,67 +834,49 @@ async function start() {
                 });
             }
 
-            // Get all signals from today
-            const allSignals = await database.getLiveSignals();
+            // Get PENDING signals only
+            const signals = await database.getLiveSignals('PENDING');
 
-            // Filter to today's signals only (TRT Timezone Awareness)
-            const TRT_OFFSET = 3 * 60 * 60 * 1000;
-            const now = new Date();
-            const nowTRT = new Date(now.getTime() + TRT_OFFSET);
-            const startOfDayTRT = new Date(nowTRT);
-            startOfDayTRT.setUTCHours(0, 0, 0, 0); // Set to 00:00 of the TRT day
-            // We need the timestamp in UTC that corresponds to 00:00 TRT
-            // 00:00 TRT is (00:00 - 3h) UTC = 21:00 Prev Day UTC
-            const todayTimestamp = startOfDayTRT.getTime() - TRT_OFFSET;
+            // Get stats (Daily/Monthly Win Rate)
+            const stats = await database.getMobileStats();
 
-            const todaySignals = allSignals.filter(s => {
-                const signalTime = s.entryTime || 0;
-                return signalTime >= todayTimestamp;
-            });
+            res.json({ success: true, signals, stats });
+        } catch (error) {
+            console.error('[Mobile] Live signals error:', error.message);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
 
-            // Mobile endpoint logic...
+    // Mobile live history (Settled signals)
+    app.get('/api/mobile/live-history', auth.authenticateToken, async (req, res) => {
+        try {
+            const user = await database.getUserById(req.user.id);
+            if (!user) return res.status(404).json({ success: false, error: 'Kullanıcı bulunamadı' });
 
-            // Group by match and strategy, keeping only the earliest signal for each type
-            // Limit: Max 1 FIRST_HALF, Max 1 LATE_GAME per match
-            const signalMap = new Map(); // key: matchId_strategyCode
+            const isPremium = user.is_premium === 1;
+            const isAdmin = user.role === 'admin';
 
-            for (const signal of todaySignals) {
-                // Normalize strategy code (just in case)
-                let code = signal.strategyCode;
-                if (!code) {
-                    if (signal.strategy.includes('First Half') || signal.strategy.includes('İY')) code = 'FIRST_HALF';
-                    else code = 'LATE_GAME';
-                }
-
-                const key = `${signal.matchId}_${code}`;
-
-                if (!signalMap.has(key)) {
-                    signalMap.set(key, signal);
-                } else {
-                    // Keep the earlier one (smaller timestamps usually better for entry)
-                    const existing = signalMap.get(key);
-                    const existingTime = existing.entryTime || 0;
-                    const newTime = signal.entryTime || 0;
-
-                    if (newTime < existingTime) {
-                        signalMap.set(key, signal);
-                    }
-                }
+            if (!isPremium && !isAdmin) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Bu özellik için PRO üyelik gerekiyor',
+                    requiresPremium: true
+                });
             }
 
-            // Convert back to array
-            const filteredSignals = Array.from(signalMap.values());
-
-            // Verify we don't have > 2 signals per match (implicit by strategyCode grouping)
-            // But just to be sure we can do a final pass check if needed, but above covers it 
-            // since we map by (matchId + CODE) and there are only certain codes.
+            // Get settled signals (WON/LOST)
+            // Limit to last 50 for performance
+            const allSignals = await database.getLiveSignals();
+            const historySignals = allSignals
+                .filter(s => s.status === 'WON' || s.status === 'LOST')
+                .slice(0, 50);
 
             // Get stats
             const stats = await database.getMobileStats();
 
-            res.json({ success: true, signals: filteredSignals, stats });
+            res.json({ success: true, signals: historySignals, stats });
         } catch (error) {
-            console.error('[Mobile] Live signals error:', error.message);
+            console.error('[Mobile] Live history error:', error.message);
             res.status(500).json({ success: false, error: error.message });
         }
     });

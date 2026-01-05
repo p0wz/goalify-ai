@@ -199,6 +199,17 @@ class ApiService {
     }
   }
 
+  // ============ LIVE HISTORY ============
+
+  Future<Map<String, dynamic>> getLiveHistory() async {
+    try {
+      final response = await _dio.get('/mobile/live-history');
+      return response.data;
+    } on DioException catch (e) {
+      return _handleError(e);
+    }
+  }
+
   // ============ ERROR HANDLING ============
 
   Map<String, dynamic> _handleError(DioException e) {

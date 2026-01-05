@@ -6,6 +6,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../widgets/common/clean_card.dart';
+import '../../providers/live_provider.dart';
+import '../../providers/stats_provider.dart';
 
 /// Dashboard - Clean & Modern
 class DashboardScreen extends ConsumerWidget {
@@ -64,12 +66,18 @@ class DashboardScreen extends ConsumerWidget {
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: AppSpacing.lg),
                   _buildWelcome(context, strings),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildWinRates(context, ref),
                   const SizedBox(height: AppSpacing.xxl),
                   _buildHeroCard(context, strings),
                   const SizedBox(height: AppSpacing.xxl),
                   _buildQuickActions(context, strings),
                   const SizedBox(height: AppSpacing.xxl),
-                  _buildInfo(context),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _buildLiveResults(context, ref),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _buildAnalysisResults(context, ref),
+                  const SizedBox(height: 100),
                 ]),
               ),
             ),
@@ -104,6 +112,76 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ],
     ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.05);
+  }
+
+  Widget _buildWinRates(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(liveSignalsProvider);
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildWinRateCard(
+            context,
+            'Günlük Başarı',
+            '%${state.dailyWinRate}',
+            AppColors.primary,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: _buildWinRateCard(
+            context,
+            'Aylık Başarı',
+            '%${state.monthlyWinRate}',
+            AppColors.success,
+          ),
+        ),
+      ],
+    ).animate().fadeIn(delay: 100.ms, duration: 400.ms);
+  }
+
+  Widget _buildWinRateCard(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withAlpha(40)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.trending_up, size: 16, color: color),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildHeroCard(BuildContext context, AppStrings strings) {
@@ -224,94 +302,187 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfo(BuildContext context) {
+  Widget _buildLiveResults(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(liveSignalsProvider);
+    final results = state.signals
+        .where((s) => s.isWon || s.isLost)
+        .take(10) // Show last 10
+        .toList();
+
+    if (results.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
-              Icons.info_outline_rounded,
-              color: AppColors.warning,
-              size: 20,
-            ),
+            Icon(Icons.history, color: AppColors.primary, size: 20),
             const SizedBox(width: 8),
             Text(
-              'Nasıl Çalışır?',
+              'Canlı Sonuçlar',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        _buildInfoItem(
-          context,
-          '1',
-          'Tahminleri İncele',
-          'Bahisler sekmesinden günlük tahminleri gör',
-          AppColors.primary,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        _buildInfoItem(
-          context,
-          '2',
-          'Sonuçları Takip Et',
-          'İstatistik sekmesinden performansı izle',
-          AppColors.success,
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: results.length,
+            clipBehavior: Clip.none,
+            itemBuilder: (context, index) {
+              final signal = results[index];
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: _buildMiniResultCard(
+                  context,
+                  home: signal.homeTeam,
+                  away: signal.awayTeam,
+                  score: signal.finalScore ?? '-',
+                  isWin: signal.isWon,
+                  label: 'Canlı Bot',
+                ),
+              );
+            },
+          ),
         ),
       ],
     ).animate().fadeIn(delay: 400.ms, duration: 400.ms);
   }
 
-  Widget _buildInfoItem(
-    BuildContext context,
-    String number,
-    String title,
-    String desc,
-    Color color,
-  ) {
-    return CleanCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color.withAlpha(25),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Center(
-              child: Text(
-                number,
-                style: TextStyle(fontWeight: FontWeight.w700, color: color),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildAnalysisResults(BuildContext context, WidgetRef ref) {
+    final settledAsync = ref.watch(settledBetsProvider);
+
+    return settledAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (bets) {
+        if (bets.isEmpty) return const SizedBox.shrink();
+
+        final results = bets.take(10).toList(); // Show last 10
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                Icon(
+                  Icons.analytics_outlined,
+                  color: AppColors.success,
+                  size: 20,
                 ),
+                const SizedBox(width: 8),
                 Text(
-                  desc,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted(context),
+                  'Analiz Sonuçları',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              height: 100,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: results.length,
+                clipBehavior: Clip.none,
+                itemBuilder: (context, index) {
+                  final bet = results[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: _buildMiniResultCard(
+                      context,
+                      home: bet['homeTeam'],
+                      away: bet['awayTeam'],
+                      score: bet['finalScore'] ?? '-',
+                      isWin: bet['status'] == 'WON',
+                      label: bet['market'] ?? 'Analiz',
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ).animate().fadeIn(delay: 500.ms, duration: 400.ms);
+      },
+    );
+  }
+
+  Widget _buildMiniResultCard(
+    BuildContext context, {
+    required String home,
+    required String away,
+    required String score,
+    required bool isWin,
+    required String label,
+  }) {
+    return SizedBox(
+      width: 160,
+      child: CleanCard(
+        padding: const EdgeInsets.all(12),
+        variant: isWin ? CleanCardVariant.success : CleanCardVariant.danger,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (isWin ? AppColors.success : AppColors.danger)
+                        .withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    isWin ? 'WON' : 'LOST',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isWin ? AppColors.success : AppColors.danger,
+                    ),
+                  ),
+                ),
+                Text(
+                  score,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$home\n$away',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                color: AppColors.textMuted(context),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

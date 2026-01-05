@@ -4,36 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
-import '../../../data/services/api_service.dart';
 import '../../widgets/common/clean_card.dart';
+
+import '../../providers/stats_provider.dart';
 
 /// Providers
 final selectedMarketProvider = StateProvider<String?>((ref) => null);
 
-final settledBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
-  ref,
-) async {
-  try {
-    final wonResponse = await apiService.getMobileBets(status: 'WON');
-    final wonBets = (wonResponse['bets'] as List?) ?? [];
-
-    final lostResponse = await apiService.getMobileBets(status: 'LOST');
-    final lostBets = (lostResponse['bets'] as List?) ?? [];
-
-    final allSettled = [...wonBets, ...lostBets];
-    allSettled.sort(
-      (a, b) => (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? ''),
-    );
-
-    return allSettled.cast<Map<String, dynamic>>();
-  } catch (e) {
-    return [];
-  }
-});
-
 /// Statistics Screen - Clean Design
-class StatsScreen extends ConsumerWidget {
-  const StatsScreen({super.key});
+class StatsView extends ConsumerWidget {
+  const StatsView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,57 +21,40 @@ class StatsScreen extends ConsumerWidget {
     final settledBetsAsync = ref.watch(settledBetsProvider);
     final selectedMarket = ref.watch(selectedMarketProvider);
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: () async => ref.refresh(settledBetsProvider),
-          color: AppColors.primary,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverAppBar(
-                floating: true,
-                backgroundColor: Colors.transparent,
-                title: Row(
-                  children: [
-                    Icon(Icons.bar_chart_rounded, color: AppColors.success),
-                    const SizedBox(width: 10),
-                    const Text('İstatistikler'),
-                  ],
+    return RefreshIndicator(
+      onRefresh: () async => ref.refresh(settledBetsProvider),
+      color: AppColors.primary,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              120,
+            ),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildSuccessRate(context, settledBetsAsync),
+                const SizedBox(height: AppSpacing.xxl),
+                _buildMarketFilter(
+                  context,
+                  ref,
+                  settledBetsAsync,
+                  selectedMarket,
                 ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  0,
-                  AppSpacing.lg,
-                  120,
+                const SizedBox(height: AppSpacing.lg),
+                _buildBetsList(
+                  context,
+                  strings,
+                  settledBetsAsync,
+                  selectedMarket,
                 ),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    const SizedBox(height: AppSpacing.lg),
-                    _buildSuccessRate(context, settledBetsAsync),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _buildMarketFilter(
-                      context,
-                      ref,
-                      settledBetsAsync,
-                      selectedMarket,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    _buildBetsList(
-                      context,
-                      strings,
-                      settledBetsAsync,
-                      selectedMarket,
-                    ),
-                  ]),
-                ),
-              ),
-            ],
+              ]),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

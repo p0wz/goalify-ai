@@ -13,9 +13,10 @@ class MainNavigation extends ConsumerWidget {
 
   int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
-    if (location.startsWith('/predictions')) return 1;
+    if (location.startsWith('/pre-match')) return 1;
+    if (location.startsWith('/live-history'))
+      return 3; // Swapped Live and Live History order? No, Live is 2.
     if (location.startsWith('/live')) return 2;
-    if (location.startsWith('/stats')) return 3;
     if (location.startsWith('/profile')) return 4;
     return 0;
   }
@@ -26,13 +27,13 @@ class MainNavigation extends ConsumerWidget {
         context.go('/');
         break;
       case 1:
-        context.go('/predictions');
+        context.go('/pre-match');
         break;
       case 2:
         context.go('/live');
         break;
       case 3:
-        context.go('/stats');
+        context.go('/live-history');
         break;
       case 4:
         context.go('/profile');
@@ -81,9 +82,9 @@ class MainNavigation extends ConsumerWidget {
                     ),
                     _buildNavItem(
                       context,
-                      Icons.layers_outlined,
-                      Icons.layers_rounded,
-                      strings.bets,
+                      Icons.analytics_outlined,
+                      Icons.analytics_rounded,
+                      'Maç Önü',
                       selectedIndex == 1,
                       () => _onItemTapped(context, 1),
                     ),
@@ -97,9 +98,9 @@ class MainNavigation extends ConsumerWidget {
                     ),
                     _buildNavItem(
                       context,
-                      Icons.bar_chart_outlined,
-                      Icons.bar_chart_rounded,
-                      'İstatistik',
+                      Icons.history_rounded,
+                      Icons.history_toggle_off_rounded,
+                      'Geçmiş',
                       selectedIndex == 3,
                       () => _onItemTapped(context, 3),
                     ),

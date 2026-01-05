@@ -20,69 +20,41 @@ final pendingBetsProvider = FutureProvider<List<Map<String, dynamic>>>((
   }
 });
 
-/// Predictions Screen - Clean Design
-class PredictionsScreen extends ConsumerWidget {
-  const PredictionsScreen({super.key});
+/// Predictions View - Clean Design
+class PredictionsView extends ConsumerWidget {
+  const PredictionsView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = ref.watch(stringsProvider);
     final pendingBetsAsync = ref.watch(pendingBetsProvider);
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: () async => ref.refresh(pendingBetsProvider),
-          color: AppColors.primary,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverAppBar(
-                floating: true,
-                backgroundColor: Colors.transparent,
-                title: Row(
-                  children: [
-                    Icon(Icons.layers_rounded, color: AppColors.primary),
-                    const SizedBox(width: 10),
-                    Text(strings.bets),
-                  ],
-                ),
-                actions: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.refresh_rounded,
-                      color: AppColors.textSecondary(context),
-                    ),
-                    onPressed: () => ref.refresh(pendingBetsProvider),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  0,
-                  AppSpacing.lg,
-                  120,
-                ),
-                sliver: pendingBetsAsync.when(
-                  loading: () => const SliverFillRemaining(
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                  error: (e, _) => SliverFillRemaining(
-                    child: Center(child: Text('${strings.error}: $e')),
-                  ),
-                  data: (bets) => _buildBetsList(context, strings, bets),
+    return RefreshIndicator(
+      onRefresh: () async => ref.refresh(pendingBetsProvider),
+      color: AppColors.primary,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              120,
+            ),
+            sliver: pendingBetsAsync.when(
+              loading: () => const SliverFillRemaining(
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               ),
-            ],
+              error: (e, _) => SliverFillRemaining(
+                child: Center(child: Text('${strings.error}: $e')),
+              ),
+              data: (bets) => _buildBetsList(context, strings, bets),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
