@@ -241,7 +241,7 @@ async function scanLiveMatches() {
             console.log(`[LiveBot]    ✓ Best Market: ${bestMarket.name} (${bestMarket.confidence}%)`);
 
             // Minimum confidence check (stricter for filterless mode)
-            const minConfidence = useLeagueFilter ? 60 : 70;
+            const minConfidence = useLeagueFilter ? 60 : 65;
             if (bestMarket.confidence < minConfidence) {
                 console.log(`[LiveBot]    ❌ Confidence too low (${bestMarket.confidence}% < ${minConfidence}%)`);
                 continue;
