@@ -217,9 +217,15 @@ async function scanLiveMatches() {
             console.log(`[LiveBot]    League: ${league}`);
             console.log(`[LiveBot]    Score: ${score} | Time: ${elapsed}'`);
 
-            // ============ FORM ANALYSIS (replaces momentum) ============
+            // ============ FETCH LIVE STATS ============
+            console.log(`[LiveBot]    📊 Fetching live stats...`);
+            const statsData = await flashscore.fetchMatchStats(matchId);
+            const liveStats = parseMatchStats(statsData || {});
+            console.log(`[LiveBot]    Stats: ${liveStats.shots.home + liveStats.shots.away} shots, ${liveStats.shotsOnTarget.home + liveStats.shotsOnTarget.away} SoT, ${liveStats.corners.home + liveStats.corners.away} corners`);
+
+            // ============ FORM ANALYSIS (now with live stats for tempo) ============
             console.log(`[LiveBot]    📈 Running form analysis...`);
-            const formResult = await formAnalysis.analyzeForm(matchId, homeTeam, awayTeam, score, elapsed);
+            const formResult = await formAnalysis.analyzeForm(matchId, homeTeam, awayTeam, score, elapsed, liveStats);
 
             if (!formResult.valid) {
                 console.log(`[LiveBot]    ❌ Form analysis failed: ${formResult.reason}`);

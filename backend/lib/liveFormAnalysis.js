@@ -16,15 +16,16 @@ const formCache = {};
  * @param {string} awayTeam 
  * @param {string} score - Current score e.g. "1-0"
  * @param {number} elapsed - Current minute
+ * @param {object} liveStats - Live match statistics (optional)
  * @returns {object} Form analysis result with remaining potential
  */
-async function analyzeForm(matchId, homeTeam, awayTeam, score, elapsed) {
+async function analyzeForm(matchId, homeTeam, awayTeam, score, elapsed, liveStats = null) {
     const cacheKey = matchId;
     const isFirstHalf = elapsed <= 45;
 
     // Check cache (form data doesn't change during match)
     if (formCache[cacheKey]) {
-        return calculatePotential(formCache[cacheKey], score, elapsed);
+        return calculatePotential(formCache[cacheKey], score, elapsed, liveStats);
     }
 
     console.log(`[FormAnalysis] Fetching form data for ${homeTeam} vs ${awayTeam}`);
@@ -84,7 +85,7 @@ async function analyzeForm(matchId, homeTeam, awayTeam, score, elapsed) {
             timestamp: Date.now()
         };
 
-        return calculatePotential(formCache[cacheKey], score, elapsed);
+        return calculatePotential(formCache[cacheKey], score, elapsed, liveStats);
 
     } catch (error) {
         console.error('[FormAnalysis] Error:', error.message);
@@ -240,9 +241,9 @@ function calculateVolatility(details, teamName) {
 
 /**
  * Calculate remaining potential based on form and current score
- * Now considers both attack strength AND opponent's defensive weakness
+ * Now considers attack strength, defensive weakness, tempo, and consistency
  */
-function calculatePotential(formData, score, elapsed) {
+function calculatePotential(formData, score, elapsed, liveStats = null) {
     const [homeGoals, awayGoals] = score.split('-').map(s => parseInt(s) || 0);
     const totalGoals = homeGoals + awayGoals;
     const isFirstHalf = elapsed <= 45;
@@ -261,6 +262,13 @@ function calculatePotential(formData, score, elapsed) {
     const combinedCV = (homeVolatility.cv + awayVolatility.cv) / 2;
     const consistencyBonus = getConsistencyBonus(combinedCV);
 
+    // NEW: Calculate tempo bonus from live stats
+    const tempoResult = calculateTempo(liveStats, elapsed);
+    const tempoBonus = tempoResult.bonus;
+
+    // Combined bonus (consistency + tempo)
+    const totalBonus = consistencyBonus + tempoBonus;
+
     // WEIGHTED EXPECTED GOALS:
     // Attack is 70% of the calculation, opponent's defensive weakness is 30%
     // This keeps attack power dominant while considering defense
@@ -278,8 +286,8 @@ function calculatePotential(formData, score, elapsed) {
         : (90 - elapsed) / 45;
     const adjustedRemaining = totalRemaining * Math.max(0.3, timeRatio);
 
-    // Generate market suggestions based on potential (now with consistency bonus)
-    const markets = selectMarkets(homeRemaining, awayRemaining, homeGoals, awayGoals, elapsed, consistencyBonus);
+    // Generate market suggestions based on potential (now with combined bonus)
+    const markets = selectMarkets(homeRemaining, awayRemaining, homeGoals, awayGoals, elapsed, totalBonus);
 
     return {
         valid: true,
@@ -294,16 +302,76 @@ function calculatePotential(formData, score, elapsed) {
         awayAttack: Math.round(awayAttack * 100) / 100,
         awayConceded: Math.round(awayConceded * 100) / 100,
         homeConceded: Math.round(homeConceded * 100) / 100,
-        // NEW: Volatility info
+        // Volatility info
         homeVolatility: homeVolatility.cv,
         awayVolatility: awayVolatility.cv,
         combinedCV: Math.round(combinedCV),
         consistencyBonus,
+        // NEW: Tempo info
+        tempo: tempoResult.tempo,
+        tempoBonus,
+        totalBonus,
+        liveShots: tempoResult.totalShots,
+        liveSoT: tempoResult.totalSoT,
+        liveCorners: tempoResult.totalCorners,
         isFirstHalf,
         elapsed,
         score,
         markets,
-        reason: generateReason(homeRemaining, awayRemaining, isFirstHalf, homeExpected, awayExpected, consistencyBonus)
+        reason: generateReason(homeRemaining, awayRemaining, isFirstHalf, homeExpected, awayExpected, consistencyBonus, tempoResult)
+    };
+}
+
+/**
+ * NEW: Calculate tempo from live match stats
+ * Tempo = (shots / elapsed) * 90 (normalized to 90 min projection)
+ */
+function calculateTempo(liveStats, elapsed) {
+    if (!liveStats || elapsed < 10) {
+        return { tempo: 'normal', bonus: 0, totalShots: 0, totalSoT: 0, totalCorners: 0 };
+    }
+
+    const totalShots = (liveStats.shots?.home || 0) + (liveStats.shots?.away || 0);
+    const totalSoT = (liveStats.shotsOnTarget?.home || 0) + (liveStats.shotsOnTarget?.away || 0);
+    const totalCorners = (liveStats.corners?.home || 0) + (liveStats.corners?.away || 0);
+
+    // Normalize to 90-minute projection
+    const projectedShots = (totalShots / elapsed) * 90;
+    const projectedSoT = (totalSoT / elapsed) * 90;
+    const projectedCorners = (totalCorners / elapsed) * 90;
+
+    // Determine tempo level
+    let tempo = 'normal';
+    let bonus = 0;
+
+    // High tempo: > 15 projected shots OR > 6 projected SoT
+    if (projectedShots >= 18 || projectedSoT >= 8) {
+        tempo = 'very_high';
+        bonus = 7;
+    } else if (projectedShots >= 14 || projectedSoT >= 5) {
+        tempo = 'high';
+        bonus = 4;
+    }
+    // Low tempo: < 8 projected shots AND < 3 projected SoT
+    else if (projectedShots < 8 && projectedSoT < 3) {
+        tempo = 'low';
+        bonus = -5;
+    } else if (projectedShots < 10 && projectedSoT < 4) {
+        tempo = 'slow';
+        bonus = -2;
+    }
+
+    console.log(`[FormAnalysis] Tempo: ${tempo} (${projectedShots.toFixed(1)} proj shots, ${projectedSoT.toFixed(1)} proj SoT) → ${bonus >= 0 ? '+' : ''}${bonus}%`);
+
+    return {
+        tempo,
+        bonus,
+        totalShots,
+        totalSoT,
+        totalCorners,
+        projectedShots: Math.round(projectedShots * 10) / 10,
+        projectedSoT: Math.round(projectedSoT * 10) / 10,
+        projectedCorners: Math.round(projectedCorners * 10) / 10
     };
 }
 
@@ -406,7 +474,7 @@ function calculateMarketConfidence(potentialValue, marketType, elapsed, consiste
 /**
  * Generate human-readable reason
  */
-function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp, consistencyBonus = 0) {
+function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp, consistencyBonus = 0, tempoResult = null) {
     const parts = [];
 
     if (homeRem >= 1.0) parts.push(`Ev +${homeRem.toFixed(1)} potansiyel`);
@@ -422,10 +490,18 @@ function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp, consist
         parts.push(`Beklenen: ${homeExp.toFixed(1)}-${awayExp.toFixed(1)}`);
     }
 
-    // NEW: Add consistency info
+    // Add consistency info
     if (consistencyBonus > 0) parts.push('✓Tutarlı');
     else if (consistencyBonus < -5) parts.push('⚠️Volatil');
     else if (consistencyBonus < 0) parts.push('~Değişken');
+
+    // NEW: Add tempo info
+    if (tempoResult && tempoResult.tempo) {
+        if (tempoResult.tempo === 'very_high') parts.push('🔥Yüksek Tempo');
+        else if (tempoResult.tempo === 'high') parts.push('⚡Hızlı');
+        else if (tempoResult.tempo === 'low') parts.push('💤Düşük Tempo');
+        else if (tempoResult.tempo === 'slow') parts.push('🐢Yavaş');
+    }
 
     if (isFirstHalf) parts.push('(HT bazlı)');
 
@@ -433,8 +509,8 @@ function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp, consist
 }
 
 /**
- * Default result when form data unavailable
- */
+     * Default result when form data unavailable
+     */
 function getDefaultResult() {
     return {
         valid: false,
