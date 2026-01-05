@@ -40,22 +40,37 @@ async function analyzeForm(matchId, homeTeam, awayTeam, score, elapsed) {
 
         const matches = Array.isArray(h2hData) ? h2hData : (h2hData.DATA || []);
 
-        // Get last 5 matches for each team
+        // NEW: Home/Away Separation
+        // Home team's HOME matches only (more relevant for home performance)
         const homeMatches = matches.filter(m =>
+            m.home_team?.name === homeTeam
+        ).slice(0, 5);
+
+        // Away team's AWAY matches only (more relevant for away performance)
+        const awayMatches = matches.filter(m =>
+            m.away_team?.name === awayTeam
+        ).slice(0, 5);
+
+        // Fallback: If not enough home/away specific matches, use all matches
+        const homeMatchesFallback = homeMatches.length >= 2 ? homeMatches : matches.filter(m =>
             m.home_team?.name === homeTeam || m.away_team?.name === homeTeam
         ).slice(0, 5);
 
-        const awayMatches = matches.filter(m =>
+        const awayMatchesFallback = awayMatches.length >= 2 ? awayMatches : matches.filter(m =>
             m.home_team?.name === awayTeam || m.away_team?.name === awayTeam
         ).slice(0, 5);
 
         // Fetch match details for HT scores (last 3 matches each)
-        const homeDetails = await fetchMatchDetails(homeMatches.slice(0, 3), homeTeam);
-        const awayDetails = await fetchMatchDetails(awayMatches.slice(0, 3), awayTeam);
+        const homeDetails = await fetchMatchDetails(homeMatchesFallback.slice(0, 3), homeTeam);
+        const awayDetails = await fetchMatchDetails(awayMatchesFallback.slice(0, 3), awayTeam);
 
-        // Calculate averages
-        const homeStats = calculateTeamStats(homeDetails, homeTeam);
-        const awayStats = calculateTeamStats(awayDetails, awayTeam);
+        // NEW: Also fetch older matches for recency weighting
+        const homeDetailsOld = await fetchMatchDetails(homeMatchesFallback.slice(3, 5), homeTeam);
+        const awayDetailsOld = await fetchMatchDetails(awayMatchesFallback.slice(3, 5), awayTeam);
+
+        // Calculate averages with recency weighting
+        const homeStats = calculateTeamStatsWeighted(homeDetails, homeDetailsOld, homeTeam);
+        const awayStats = calculateTeamStatsWeighted(awayDetails, awayDetailsOld, awayTeam);
 
         console.log(`[FormAnalysis] Home (${homeTeam}): FT avg ${homeStats.ftAvg.toFixed(2)}, HT avg ${homeStats.htAvg.toFixed(2)}`);
         console.log(`[FormAnalysis] Away (${awayTeam}): FT avg ${awayStats.ftAvg.toFixed(2)}, HT avg ${awayStats.htAvg.toFixed(2)}`);
@@ -144,6 +159,36 @@ function calculateTeamStats(details, teamName) {
         ftConcededAvg: ftConceded / count,
         htConcededAvg: htConceded / count,
         matchCount: count
+    };
+}
+
+/**
+ * NEW: Calculate team stats with recency weighting
+ * Last 3 matches: 70% weight, Older matches (4-5): 30% weight
+ */
+function calculateTeamStatsWeighted(recentDetails, oldDetails, teamName) {
+    // Calculate recent stats (last 3)
+    const recentStats = calculateTeamStats(recentDetails, teamName);
+
+    // If no old matches, just return recent
+    if (!oldDetails || oldDetails.length === 0) {
+        return recentStats;
+    }
+
+    // Calculate old stats (matches 4-5)
+    const oldStats = calculateTeamStats(oldDetails, teamName);
+
+    // Weighted average: 70% recent, 30% old
+    const RECENT_WEIGHT = 0.70;
+    const OLD_WEIGHT = 0.30;
+
+    return {
+        ftAvg: (recentStats.ftAvg * RECENT_WEIGHT) + (oldStats.ftAvg * OLD_WEIGHT),
+        htAvg: (recentStats.htAvg * RECENT_WEIGHT) + (oldStats.htAvg * OLD_WEIGHT),
+        ftConcededAvg: (recentStats.ftConcededAvg * RECENT_WEIGHT) + (oldStats.ftConcededAvg * OLD_WEIGHT),
+        htConcededAvg: (recentStats.htConcededAvg * RECENT_WEIGHT) + (oldStats.htConcededAvg * OLD_WEIGHT),
+        matchCount: recentDetails.length + oldDetails.length,
+        isWeighted: true
     };
 }
 
