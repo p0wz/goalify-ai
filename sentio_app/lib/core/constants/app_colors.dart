@@ -38,6 +38,12 @@ class AppColors {
   static const Color warningLight = Color(0xFFFBBF24);
   static const Color warningDark = Color(0xFFD97706);
 
+  // ============= SEMANTIC ALIASES & SURFACES =============
+  static const Color error = danger;
+
+  static const Color surfaceDark = Color(0xFF27272A);
+  static const Color surfaceLight = Color(0xFFF4F4F5);
+
   // ============= HELPERS =============
   /// Get card color based on brightness
   static Color card(BuildContext context) {

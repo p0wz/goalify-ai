@@ -114,41 +114,82 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Sync Firebase user with backend
   Future<void> _syncWithBackend(User firebaseUser) async {
     try {
-      // Get Firebase ID token
       final idToken = await firebaseUser.getIdToken();
 
       // Sync with backend
       final response = await apiService.firebaseSync(
         firebaseUid: firebaseUser.uid,
-        email: firebaseUser.email ?? '',
-        name:
-            firebaseUser.displayName ??
-            firebaseUser.email?.split('@')[0] ??
-            'User',
-        idToken: idToken ?? '',
+        email: firebaseUser.email!,
+        name: firebaseUser.displayName,
+        idToken: idToken!,
       );
 
-      if (response['success'] == true) {
-        final backendToken = response['token'];
-        final userData = response['user'];
+      if (response['success']) {
+        final token = response['token'];
+        await _secureStorage.write(key: 'auth_token', value: token);
+        apiService.setAuthToken(token);
 
-        await _secureStorage.write(key: 'auth_token', value: backendToken);
-        apiService.setAuthToken(backendToken);
+        // Identify user in RevenueCat
+        final userId = response['user']['id'];
+        await RevenueCatService().login(userId);
+
+        // Check if actually premium in RevenueCat (source of truth for mobile)
+        final isRevenueCatPremium = RevenueCatService().isPremium;
+
+        // Use backend user but override premium status if RevenueCat says so
+        var user = AppUser.fromJson(response['user']);
+        if (isRevenueCatPremium && !user.isPremium) {
+          // TODO: Sync back to server that user is premium
+          user = AppUser(
+            id: user.id,
+            firebaseUid: user.firebaseUid,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            isPremium: true,
+          );
+        }
 
         state = state.copyWith(
           isAuthenticated: true,
-          token: backendToken,
-          user: userData != null ? AppUser.fromJson(userData) : null,
           isLoading: false,
+          token: token,
+          user: user,
+          error: null,
         );
       } else {
-        state = state.copyWith(
-          isLoading: false,
-          error: response['error'] ?? 'Backend sync failed',
-        );
+        await logout();
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Sync error: $e');
+      print('Sync Error: $e');
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// Refresh premium status from RevenueCat
+  Future<void> refreshUser() async {
+    if (state.user == null) return;
+
+    // Check RevenueCat
+    await RevenueCatService().refreshCustomerInfo();
+    final isPremium = RevenueCatService().isPremium;
+
+    if (isPremium != state.user!.isPremium) {
+      final updatedUser = AppUser(
+        id: state.user!.id,
+        firebaseUid: state.user!.firebaseUid,
+        name: state.user!.name,
+        email: state.user!.email,
+        role: state.user!.role,
+        isPremium: isPremium,
+      );
+
+      state = state.copyWith(user: updatedUser);
+
+      // Sync to backend if needed
+      if (isPremium) {
+        // apiService.updatePremiumStatus(true); // Implement this later
+      }
     }
   }
 
