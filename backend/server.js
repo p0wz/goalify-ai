@@ -83,7 +83,24 @@ cron.schedule('*/10 * * * *', runSettlementCycle);
 console.log('[Cron] Settlement job scheduled (Every 10 mins)');
 
 const app = express();
-app.use(cors());
+
+// CORS Configuration for cross-origin requests
+app.use(cors({
+    origin: [
+        'https://sentio.pages.dev',
+        'https://goalify-ai.pages.dev',
+        'http://localhost:5173',
+        'http://localhost:3000',
+        /\.pages\.dev$/  // Allow all Cloudflare Pages subdomains
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
+
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
