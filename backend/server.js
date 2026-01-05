@@ -928,13 +928,28 @@ async function start() {
         }
     });
 
-    // Get live history
+    // Get live history (LIMITED for performance)
     app.get('/api/live/history', auth.authenticateToken, async (req, res) => {
         try {
+            console.log('[API] /api/live/history called');
+
+            // Limit to last 50 signals for performance
             const all = await database.getLiveSignals();
-            const stats = await database.getLiveSignalStats();
-            res.json({ success: true, signals: all, stats });
+            const limitedSignals = all.slice(0, 50);
+
+            // Get stats (simple aggregate query)
+            let stats = [];
+            try {
+                stats = await database.getLiveSignalStats();
+            } catch (statsError) {
+                console.error('[API] Stats query failed:', statsError.message);
+                stats = [];
+            }
+
+            console.log(`[API] /api/live/history returning ${limitedSignals.length} signals`);
+            res.json({ success: true, signals: limitedSignals, stats });
         } catch (error) {
+            console.error('[API] /api/live/history error:', error.message);
             res.status(500).json({ success: false, error: error.message });
         }
     });
