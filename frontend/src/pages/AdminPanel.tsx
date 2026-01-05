@@ -584,9 +584,10 @@ const AdminPanel = () => {
     const loadLiveHistory = async () => {
         try {
             const res = await fetch(`${API_BASE}/live/history`, { headers: getAuthHeaders() as any });
-            if (res.ok) {
-                const data = await safeJson(res);
-                setLiveHistory(data.signals || []);
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.signals) {
+                setLiveHistory(data.signals);
             }
         } catch (err: any) {
             console.error('Live history error:', err.message);
