@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../data/services/api_service.dart';
+import '../../data/services/revenuecat_service.dart';
 
 /// Auth State
 class AuthState {
@@ -120,7 +121,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await apiService.firebaseSync(
         firebaseUid: firebaseUser.uid,
         email: firebaseUser.email!,
-        name: firebaseUser.displayName,
+        name: firebaseUser.displayName ?? 'User',
         idToken: idToken!,
       );
 

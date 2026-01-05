@@ -17,6 +17,7 @@ const cron = require('node-cron');
 const liveBot = require('./lib/liveBot');
 const liveDeadBot = require('./lib/liveDeadBot');
 const liveSettlement = require('./lib/liveSettlement');
+const firebaseAdmin = require('./lib/firebase');
 const ALLOWED_LEAGUES = require('./data/leagues');
 
 // ============ SETTLEMENT JOB ============
@@ -178,11 +179,27 @@ app.post('/api/auth/firebase-sync', async (req, res) => {
     try {
         const { firebaseUid, email, name, idToken } = req.body;
 
-        if (!firebaseUid || !email) {
-            return res.status(400).json({ success: false, error: 'Firebase UID and email required' });
+        if (!firebaseUid || !email || !idToken) {
+            return res.status(400).json({ success: false, error: 'Firebase UID, email, and idToken required' });
         }
 
         console.log(`[Auth] Firebase sync: ${email} (${firebaseUid})`);
+
+        // VERIFY TOKEN WITH FIREBASE ADMIN
+        try {
+            const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+            if (decodedToken.uid !== firebaseUid) {
+                console.error('[Auth] Token UID mismatch!');
+                return res.status(403).json({ success: false, error: 'Invalid token: UID mismatch' });
+            }
+            console.log('[Auth] ID Token verified successfully');
+        } catch (verifyError) {
+            console.error('[Auth] Token verification failed:', verifyError.message);
+            // In development, you might want to bypass this if admin is not configured, 
+            // but for production it's critical.
+            // For now, if verification fails, we REJECT.
+            return res.status(401).json({ success: false, error: 'Invalid or expired ID token' });
+        }
 
         // Check if user exists by Firebase UID
         let user = await database.getUserByFirebaseUid(firebaseUid);
@@ -192,6 +209,9 @@ app.post('/api/auth/firebase-sync', async (req, res) => {
             const existingUser = await database.getUserByEmail(email);
             if (existingUser) {
                 // TODO: Link Firebase UID to existing user
+                console.log(`[Auth] Linking existing user ${existingUser.id} to Firebase UID`);
+                // You might need a method to update firebase_uid in DB
+                // await database.updateUserFirebaseUid(existingUser.id, firebaseUid);
                 user = existingUser;
             } else {
                 // Create new user
