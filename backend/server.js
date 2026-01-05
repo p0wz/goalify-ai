@@ -956,6 +956,12 @@ async function start() {
         }
     });
 
+    // TEST endpoint - no auth, no database (for CORS debugging)
+    app.get('/api/live/test', (req, res) => {
+        console.log('[API] /api/live/test called - CORS test');
+        res.json({ success: true, message: 'CORS test OK', timestamp: Date.now() });
+    });
+
     // Get bot status
     app.get('/api/live/status', auth.authenticateToken, async (req, res) => {
         res.json({ success: true, ...liveBot.getStatus() });
