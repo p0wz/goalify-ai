@@ -5,6 +5,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../widgets/common/clean_card.dart';
+import '../../widgets/common/premium_banner.dart';
+import '../../providers/auth_provider.dart';
 
 import '../../providers/stats_provider.dart';
 
@@ -36,6 +38,10 @@ class StatsView extends ConsumerWidget {
             ),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                if (!ref.watch(authProvider).user!.isPremium) ...[
+                  const PremiumBanner(),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
                 _buildSuccessRate(context, settledBetsAsync),
                 const SizedBox(height: AppSpacing.xxl),
                 _buildMarketFilter(

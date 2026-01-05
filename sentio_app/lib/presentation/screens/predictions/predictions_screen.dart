@@ -1,6 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../providers/auth_provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -51,7 +54,7 @@ class PredictionsView extends ConsumerWidget {
               error: (e, _) => SliverFillRemaining(
                 child: Center(child: Text('${strings.error}: $e')),
               ),
-              data: (bets) => _buildBetsList(context, strings, bets),
+              data: (bets) => _buildBetsList(context, strings, bets, ref),
             ),
           ),
         ],
@@ -63,6 +66,7 @@ class PredictionsView extends ConsumerWidget {
     BuildContext context,
     AppStrings strings,
     List<Map<String, dynamic>> bets,
+    WidgetRef ref,
   ) {
     if (bets.isEmpty) {
       return SliverFillRemaining(
@@ -154,7 +158,77 @@ class PredictionsView extends ConsumerWidget {
             ),
           );
         }
-        return _buildBetCard(context, bets[index - 1], index - 1);
+
+        final bet = bets[index - 1]; // Adjust for header
+        final isPremium = ref.watch(authProvider).user?.isPremium ?? false;
+        final isLocked = !isPremium && index > 3; // Free users see top 3
+
+        if (isLocked) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: Stack(
+              children: [
+                // Blurred Content
+                ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                  child: _buildBetCard(context, bet, index - 1),
+                ),
+
+                // Lock Overlay
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () => context.push('/premium'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.warning.withOpacity(0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.lock_outline,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Pro\'ya Geç',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return _buildBetCard(context, bet, index - 1);
       }, childCount: bets.length + 1),
     );
   }

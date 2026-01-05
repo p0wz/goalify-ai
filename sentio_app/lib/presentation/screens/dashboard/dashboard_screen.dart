@@ -8,6 +8,8 @@ import '../../../core/l10n/app_strings.dart';
 import '../../widgets/common/clean_card.dart';
 import '../../providers/live_provider.dart';
 import '../../providers/stats_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/common/premium_banner.dart';
 
 /// Dashboard - Clean & Modern
 class DashboardScreen extends ConsumerWidget {
@@ -65,6 +67,13 @@ class DashboardScreen extends ConsumerWidget {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: AppSpacing.lg),
+
+                  // Premium Banner (Upsell)
+                  if (!ref.watch(authProvider).user!.isPremium) ...[
+                    const PremiumBanner(),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+
                   _buildWelcome(context, strings),
                   const SizedBox(height: AppSpacing.lg),
                   _buildWinRates(context, ref),
