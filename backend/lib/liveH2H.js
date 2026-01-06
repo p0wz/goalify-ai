@@ -43,37 +43,39 @@ async function analyzeH2H(matchId, homeTeam, awayTeam, currentScore = '0-0', ela
             m.home_team?.name === awayTeam || m.away_team?.name === awayTeam
         ).slice(0, 2);
 
-        // Find last H2H match
-        const h2hMatch = matches.find(m =>
-            (m.home_team?.name === homeTeam && m.away_team?.name === awayTeam) ||
-            (m.home_team?.name === awayTeam && m.away_team?.name === homeTeam)
-        );
+        // Find last H2H match (within last 2 years)
+        const TWO_YEARS_MS = 2 * 365 * 24 * 60 * 60 * 1000;
+        const now = Date.now();
 
-        // Analyze each match for HT/FT goals
-        const allMatches = [...homeMatches, ...awayMatches];
-        const uniqueIds = [...new Set(allMatches.map(m => m.match_id).filter(Boolean))].slice(0, 4);
-
-        for (const mId of uniqueIds) {
-            const details = await flashscore.fetchMatchDetails(mId);
-            if (details) {
-                matchesChecked++;
-                const htHome = parseInt(details.home_team?.score_1st_half) || 0;
-                const htAway = parseInt(details.away_team?.score_1st_half) || 0;
-                const ftHome = parseInt(details.home_team?.score) || 0;
-                const ftAway = parseInt(details.away_team?.score) || 0;
-
-                htGoals += htHome + htAway;
-                shGoals += (ftHome - htHome) + (ftAway - htAway);
-                totalGoals += ftHome + ftAway;
-            }
-        }
+        const h2hMatch = matches.find(m => {
+            const isHome = (m.home_team?.name === homeTeam && m.away_team?.name === awayTeam);
+            const isAway = (m.home_team?.name === awayTeam && m.away_team?.name === homeTeam);
+            const matchTime = m.startTime * 1000; // Assuming timestamp is seconds
+            const isRecent = (now - matchTime) < TWO_YEARS_MS;
+            return (isHome || isAway) && isRecent;
+        });
 
         // Analyze H2H match if exists
         if (h2hMatch) {
             const h2hDetails = await flashscore.fetchMatchDetails(h2hMatch.match_id);
             if (h2hDetails) {
                 const h2hTotal = (parseInt(h2hDetails.home_team?.score) || 0) + (parseInt(h2hDetails.away_team?.score) || 0);
-                h2hResult = { goals: h2hTotal, wasGoalFest: h2hTotal >= 3 };
+
+                // HT Specific Analysis
+                const h2hHTHome = parseInt(h2hDetails.home_team?.score_1st_half) || 0;
+                const h2hHTAway = parseInt(h2hDetails.away_team?.score_1st_half) || 0;
+                const h2hHTTotal = h2hHTHome + h2hHTAway;
+
+                h2hResult = {
+                    goals: h2hTotal,
+                    wasGoalFest: h2hTotal >= 3,
+                    htGoals: h2hHTTotal,
+                    date: new Date(h2hMatch.startTime * 1000).toLocaleDateString()
+                };
+
+                if (isFirstHalf) {
+                    console.log(`[LiveH2H] Found recent H2H (${h2hResult.date}): HT Score ${h2hHTHome}-${h2hHTAway} (${h2hHTTotal} goals)`);
+                }
             }
         }
 
@@ -89,7 +91,25 @@ async function analyzeH2H(matchId, homeTeam, awayTeam, currentScore = '0-0', ela
 
     // Score-aware remaining potential
     const relevantAvg = isFirstHalf ? avgHTGoals : avgTotalGoals;
-    const remainingPotential = relevantAvg - currentGoals;
+    let remainingPotential = relevantAvg - currentGoals;
+
+    // Apply H2H specific modifiers
+    if (h2hResult) {
+        if (isFirstHalf) {
+            // If recent H2H had 0 goals in HT, reduce potential
+            if (h2hResult.htGoals === 0) {
+                remainingPotential -= 0.3;
+                console.log(`[LiveH2H] Dampened potential due to 0-0 HT H2H history`);
+            } else if (h2hResult.htGoals >= 2) {
+                remainingPotential += 0.2; // Boost for history of action
+            }
+        } else {
+            // Second half or late game
+            if (h2hResult.goals < 2) {
+                remainingPotential -= 0.2; // Low scoring history
+            }
+        }
+    }
 
     // Determine validity based on remaining potential
     if (remainingPotential < 0.5) {
