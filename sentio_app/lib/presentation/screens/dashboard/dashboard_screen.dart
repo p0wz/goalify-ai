@@ -293,10 +293,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Expanded(
               child: _buildActionCard(
                 context,
-                icon: Icons.bar_chart_rounded,
-                label: 'İstatistik',
-                color: AppColors.success,
-                onTap: () => context.go('/stats'),
+                icon: Icons.live_tv_rounded,
+                label: 'Canlı Tahminler',
+                color: AppColors.error,
+                onTap: () => context.go('/live'),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -345,8 +345,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildLiveHistoryPreview(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(liveSignalsProvider);
-    final history = state.historySignals.take(5).toList(); // Show top 5 history
+    final state = ref.watch(liveHistoryProvider);
+    final history = state.signals.take(5).toList(); // Show top 5 history
 
     if (history.isEmpty) return const SizedBox.shrink();
 
