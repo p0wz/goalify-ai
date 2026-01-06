@@ -565,3 +565,4 @@ function calculateTeamStats(details, teamName) {
             calculatePotential,
             clearCache
         };
+// Force deploy update
