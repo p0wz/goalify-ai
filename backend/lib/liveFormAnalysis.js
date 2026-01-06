@@ -314,8 +314,8 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
     }
 
     // Rule 3: Goal Fest Continuation (High Scoring Match)
-    // If 3+ goals already, or 2+ goals before 55'
-    if (totalGoals >= 3 || (totalGoals >= 2 && elapsed <= 55)) {
+    // If 4+ goals already, or 3+ goals before 60'
+    if (totalGoals >= 4 || (totalGoals >= 3 && elapsed <= 60)) {
         // Only apply if tempo is NOT slow
         const tempoCheck = calculateTempo(liveStats, elapsed);
         if (tempoCheck.tempo !== 'slow') {
