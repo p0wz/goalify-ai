@@ -65,6 +65,7 @@ class LiveSignal {
 /// Live Signals State
 class LiveSignalsState {
   final List<LiveSignal> signals;
+  final List<LiveSignal> historySignals;
   final bool isLoading;
   final String? error;
   final int dailyWinRate;
@@ -72,6 +73,7 @@ class LiveSignalsState {
 
   LiveSignalsState({
     this.signals = const [],
+    this.historySignals = const [],
     this.isLoading = false,
     this.error,
     this.dailyWinRate = 0,
@@ -80,6 +82,7 @@ class LiveSignalsState {
 
   LiveSignalsState copyWith({
     List<LiveSignal>? signals,
+    List<LiveSignal>? historySignals,
     bool? isLoading,
     String? error,
     int? dailyWinRate,
@@ -87,6 +90,7 @@ class LiveSignalsState {
   }) {
     return LiveSignalsState(
       signals: signals ?? this.signals,
+      historySignals: historySignals ?? this.historySignals,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       dailyWinRate: dailyWinRate ?? this.dailyWinRate,
@@ -116,9 +120,9 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
       super(LiveSignalsState());
 
   Future<void> fetchSignals() async {
+    // Keep existing fetchSignals logic but ensure it preserves history
     state = state.copyWith(isLoading: true, error: null);
 
-    // Get auth token from auth provider
     final authState = _ref.read(authProvider);
     final token = authState.token;
 
@@ -140,12 +144,10 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
         final List<dynamic> data = response.data['signals'] ?? [];
         final signals = data.map((json) => LiveSignal.fromJson(json)).toList();
 
-        // Parse stats
         final stats = response.data['stats'] ?? {};
         final dailyWR = stats['dailyWinRate'] ?? 0;
         final monthlyWR = stats['monthlyWinRate'] ?? 0;
 
-        // Sort: pending first, then by date desc
         signals.sort((a, b) {
           if (a.isPending && !b.isPending) return -1;
           if (!a.isPending && b.isPending) return 1;
@@ -164,25 +166,34 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
           error: response.data?['error'] ?? 'Sinyaller yüklenemedi',
         );
       }
-    } on DioException catch (e) {
-      if (kDebugMode) {
-        print('Live signals fetch error: ${e.message}');
-      }
-
-      if (e.response?.statusCode == 401) {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'Oturum süresi doldu, tekrar giriş yapın',
-        );
-      } else {
-        state = state.copyWith(isLoading: false, error: 'Bağlantı hatası');
-      }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Beklenmeyen hata');
+      state = state.copyWith(isLoading: false, error: 'Hata: $e');
     }
   }
 
-  void refresh() => fetchSignals();
+  Future<void> fetchHistory() async {
+    // Don't set global loading to avoid flickering dashboard
+    try {
+      final response = await _dio.get('/mobile/live-history');
+
+      if (response.data != null && response.data['success'] == true) {
+        final List<dynamic> data = response.data['history'] ?? [];
+        final history = data.map((json) => LiveSignal.fromJson(json)).toList();
+
+        // Sort by date desc
+        history.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        state = state.copyWith(historySignals: history);
+      }
+    } catch (e) {
+      if (kDebugMode) print('History fetch error: $e');
+    }
+  }
+
+  void refresh() {
+    fetchSignals();
+    fetchHistory();
+  }
 }
 
 /// Provider - uses ref to access auth token

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../providers/live_provider.dart';
@@ -18,10 +19,10 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
   @override
   void initState() {
     super.initState();
-    // Initial fetch if already authenticated
+    // Initial fetch if already authenticated AND premium
     Future.microtask(() {
       final authState = ref.read(authProvider);
-      if (authState.isAuthenticated) {
+      if (authState.isAuthenticated && (authState.user?.isPremium ?? false)) {
         ref.read(liveSignalsProvider.notifier).fetchSignals();
       }
     });
@@ -30,10 +31,14 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(liveSignalsProvider);
+    final user = ref.watch(authProvider).user;
+    final isPremium = user?.isPremium ?? false;
 
-    // Listen to Auth State changes to trigger fetch
+    // Listen to Auth State changes to trigger fetch ONLY if premium
     ref.listen(authProvider, (previous, next) {
-      if (previous?.isAuthenticated != true && next.isAuthenticated) {
+      if (previous?.isAuthenticated != true &&
+          next.isAuthenticated &&
+          (next.user?.isPremium ?? false)) {
         ref.read(liveSignalsProvider.notifier).fetchSignals();
       }
     });
@@ -68,24 +73,90 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
                 ],
               ),
               actions: [
-                IconButton(
-                  onPressed: state.isLoading
-                      ? null
-                      : () => ref.read(liveSignalsProvider.notifier).refresh(),
-                  icon: state.isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.refresh_rounded),
-                ),
+                if (isPremium)
+                  IconButton(
+                    onPressed: state.isLoading
+                        ? null
+                        : () =>
+                              ref.read(liveSignalsProvider.notifier).refresh(),
+                    icon: state.isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh_rounded),
+                  ),
                 const SizedBox(width: 8),
               ],
             ),
 
             // Content
-            if (state.error != null)
+            if (!isPremium)
+              SliverFillRemaining(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.lock_rounded,
+                            size: 64,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Sadece Pro Üyeler',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Canlı sinyallere erişmek ve anlık bildirimler almak için Pro plana geçin.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.textSecondary(context),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        ElevatedButton(
+                          onPressed: () => context.push('/premium'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: const Text(
+                            'Pro\'ya Geç',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else if (state.error != null)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.all(AppSpacing.lg),

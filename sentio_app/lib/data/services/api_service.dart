@@ -130,6 +130,31 @@ class ApiService {
     }
   }
 
+  // ============ LIVE SIGNALS ============
+
+  Future<Map<String, dynamic>> getLiveSignals() async {
+    try {
+      final response = await _dio.get('/mobile/live-signals');
+      return response.data;
+    } on DioException catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getLiveHistory() async {
+    try {
+      final response = await _dio.get('/mobile/live-history');
+      return response.data;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return {'success': true, 'history': []};
+      }
+      return _handleError(e);
+    }
+  }
+
+  // ============ BETS ============
+
   Future<Map<String, dynamic>> runAnalysis({
     int limit = 500,
     bool leagueFilter = true,
@@ -193,17 +218,6 @@ class ApiService {
         '/mobile-bets',
         queryParameters: queryParams,
       );
-      return response.data;
-    } on DioException catch (e) {
-      return _handleError(e);
-    }
-  }
-
-  // ============ LIVE HISTORY ============
-
-  Future<Map<String, dynamic>> getLiveHistory() async {
-    try {
-      final response = await _dio.get('/mobile/live-history');
       return response.data;
     } on DioException catch (e) {
       return _handleError(e);

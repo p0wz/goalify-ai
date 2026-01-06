@@ -895,13 +895,8 @@ async function start() {
             const isPremium = user.is_premium === 1;
             const isAdmin = user.role === 'admin';
 
-            if (!isPremium && !isAdmin) {
-                return res.status(403).json({
-                    success: false,
-                    error: 'Bu özellik için PRO üyelik gerekiyor',
-                    requiresPremium: true
-                });
-            }
+            // Premium check removed for history as per user request
+            // History is now accessible to all users
 
             // Get settled signals (WON/LOST)
             // Limit to last 50 for performance

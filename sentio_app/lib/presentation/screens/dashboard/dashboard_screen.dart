@@ -12,12 +12,29 @@ import '../../providers/auth_provider.dart';
 import '../../widgets/common/premium_banner.dart';
 
 /// Dashboard - Clean & Modern
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Auto-fetch data on load
+    Future.microtask(() {
+      ref.refresh(settledBetsProvider); // Correct way to refresh FutureProvider
+      ref.read(liveSignalsProvider.notifier).fetchHistory();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final strings = ref.watch(stringsProvider);
+    final user = ref.watch(authProvider).user;
+    final isPremium = user?.isPremium ?? false;
 
     return Scaffold(
       body: SafeArea(
@@ -68,8 +85,8 @@ class DashboardScreen extends ConsumerWidget {
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: AppSpacing.lg),
 
-                  // Premium Banner (Upsell)
-                  if (!ref.watch(authProvider).user!.isPremium) ...[
+                  // Premium Banner (Upsell) - Safe check
+                  if (!isPremium) ...[
                     const PremiumBanner(),
                     const SizedBox(height: AppSpacing.lg),
                   ],
@@ -82,9 +99,13 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.xxl),
                   _buildQuickActions(context, strings),
                   const SizedBox(height: AppSpacing.xxl),
+
+                  // Live History Preview (New)
+                  _buildLiveHistoryPreview(context, ref),
                   const SizedBox(height: AppSpacing.xxl),
-                  _buildLiveResults(context, ref),
-                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Live Results (Bot) - Kept for compatibility if needed, using History instead now
+                  // _buildLiveResults(context, ref),
                   _buildAnalysisResults(context, ref),
                   const SizedBox(height: 100),
                 ]),
@@ -311,27 +332,34 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildLiveResults(BuildContext context, WidgetRef ref) {
+  Widget _buildLiveHistoryPreview(BuildContext context, WidgetRef ref) {
     final state = ref.watch(liveSignalsProvider);
-    final results = state.signals
-        .where((s) => s.isWon || s.isLost)
-        .take(10) // Show last 10
-        .toList();
+    final history = state.historySignals.take(5).toList(); // Show top 5 history
 
-    if (results.isEmpty) return const SizedBox.shrink();
+    if (history.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(Icons.history, color: AppColors.primary, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              'Canlı Sonuçlar',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            Row(
+              children: [
+                Icon(Icons.history, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Canlı Geçmişi',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            TextButton(
+              onPressed: () =>
+                  context.push('/live-history'), // Corrected route path
+              child: const Text('Tümünü Gör'),
             ),
           ],
         ),
@@ -340,10 +368,10 @@ class DashboardScreen extends ConsumerWidget {
           height: 100,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: results.length,
+            itemCount: history.length,
             clipBehavior: Clip.none,
             itemBuilder: (context, index) {
-              final signal = results[index];
+              final signal = history[index];
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: _buildMiniResultCard(
@@ -351,8 +379,8 @@ class DashboardScreen extends ConsumerWidget {
                   home: signal.homeTeam,
                   away: signal.awayTeam,
                   score: signal.finalScore ?? '-',
-                  isWin: signal.isWon,
-                  label: 'Canlı Bot',
+                  isWin: signal.status == 'WON',
+                  label: signal.market,
                 ),
               );
             },
