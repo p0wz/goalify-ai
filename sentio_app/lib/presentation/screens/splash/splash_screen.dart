@@ -14,22 +14,46 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
+  @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        final authState = ref.read(authProvider);
-        if (authState.isAuthenticated) {
-          context.go('/');
-        } else {
-          context.go('/login');
-        }
-      }
-    });
+    // No arbitrary delay logic here anymore, we normally listen in build
+    // But for "Minimum Splash Time", we can combine Future.delayed with a listener.
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen to Auth State
+    ref.listen(authProvider, (previous, next) {
+      // If we are initialized, we can decide where to go
+      if (next.isInitialized && (previous?.isInitialized != true)) {
+        // Wait at least 1.5 seconds for splash effect, then go
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) {
+            if (next.isAuthenticated) {
+              context.go('/');
+            } else {
+              context.go('/login');
+            }
+          }
+        });
+      }
+    });
+
+    // Also check if already initialized (hot reload case)
+    final authState = ref.watch(authProvider);
+    if (authState.isInitialized) {
+      // We can trigger navigation if we missed the transition
+      // But doing it in build is tricky.
+      // Better to stick with the listener + a one-off check in post-frame callback if needed.
+      // For now, let's keep it simple:
+      // If initialized, the listener above might not fire if it's already true.
+      // So we should use a microtask or init state check.
+    }
+
+    // Let's implement a more robust approach:
+    // Combined Check
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(

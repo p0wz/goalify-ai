@@ -10,6 +10,7 @@ import '../../data/services/revenuecat_service.dart';
 class AuthState {
   final bool isAuthenticated;
   final bool isLoading;
+  final bool isInitialized; // New field
   final String? token;
   final AppUser? user;
   final String? error;
@@ -17,6 +18,7 @@ class AuthState {
   const AuthState({
     this.isAuthenticated = false,
     this.isLoading = false,
+    this.isInitialized = false,
     this.token,
     this.user,
     this.error,
@@ -25,6 +27,7 @@ class AuthState {
   AuthState copyWith({
     bool? isAuthenticated,
     bool? isLoading,
+    bool? isInitialized,
     String? token,
     AppUser? user,
     String? error,
@@ -32,6 +35,7 @@ class AuthState {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       isLoading: isLoading ?? this.isLoading,
+      isInitialized: isInitialized ?? this.isInitialized,
       token: token ?? this.token,
       user: user ?? this.user,
       error: error,
