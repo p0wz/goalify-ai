@@ -341,7 +341,12 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
 
             // Store Basic Match Data (Marketless)
             if (analysis && analysis.stats) {
-                const detailedStats = analyzer.generateDetailedStats(match, analysis.stats, h2hData);
+                // Filter to only include actual H2H matches (both teams involved)
+                const actualH2H = Array.isArray(h2hData) ? h2hData.filter(g =>
+                    (g.home_team?.name === match.homeTeam && g.away_team?.name === match.awayTeam) ||
+                    (g.home_team?.name === match.awayTeam && g.away_team?.name === match.homeTeam)
+                ).slice(0, 5) : [];
+                const detailedStats = analyzer.generateDetailedStats(match, analysis.stats, actualH2H);
                 allMatches.push({
                     matchId: match.matchId,
                     homeTeam: match.homeTeam,
