@@ -158,6 +158,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(
           isAuthenticated: true,
           isLoading: false,
+          isInitialized: true, // Init complete
           token: token,
           user: user,
           error: null,
@@ -167,7 +168,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
     } catch (e) {
       print('Sync Error: $e');
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+        isInitialized: true,
+      );
     }
   }
 
@@ -320,7 +325,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _firebaseAuth.signOut();
     await _secureStorage.delete(key: 'auth_token');
     apiService.setAuthToken(null);
-    state = const AuthState();
+    state = const AuthState(isInitialized: true);
   }
 }
 
