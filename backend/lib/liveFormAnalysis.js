@@ -535,8 +535,8 @@ function calculateTeamStats(details, teamName) {
         }
 
         /**
-             * Default result when form data unavailable
-             */
+         * Default result when form data unavailable
+         */
         function getDefaultResult() {
             return {
                 valid: false,
