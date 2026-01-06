@@ -313,6 +313,18 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
         }
     }
 
+    // Rule 3: Goal Fest Continuation (High Scoring Match)
+    // If 3+ goals already, or 2+ goals before 55'
+    if (totalGoals >= 3 || (totalGoals >= 2 && elapsed <= 55)) {
+        // Only apply if tempo is NOT slow
+        const tempoCheck = calculateTempo(liveStats, elapsed);
+        if (tempoCheck.tempo !== 'slow') {
+            potentialModifier += 0.6; // Broken defenses
+            confidenceBooster += 10;
+            reason.push("🔥 Goal Fest: High scoring match, defenses are open");
+        }
+    }
+
     const { homeStats, awayStats } = formData;
 
     // Get attack and defense stats based on half
