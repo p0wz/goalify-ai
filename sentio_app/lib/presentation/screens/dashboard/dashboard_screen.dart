@@ -8,6 +8,7 @@ import '../../../core/l10n/app_strings.dart';
 import '../../widgets/common/clean_card.dart';
 import '../../providers/live_provider.dart';
 import '../../providers/stats_provider.dart';
+import '../../providers/live_history_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/premium_banner.dart';
 
@@ -26,7 +27,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Auto-fetch data on load
     Future.microtask(() {
       ref.refresh(settledBetsProvider); // Correct way to refresh FutureProvider
-      ref.read(liveSignalsProvider.notifier).fetchHistory();
+      ref
+          .read(liveHistoryProvider.notifier)
+          .fetchHistory(); // Fetch stats via history provider
     });
   }
 
@@ -145,7 +148,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildWinRates(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(liveSignalsProvider);
+    // USE LIVE HISTORY PROVIDER FOR STATS (Since it's verified to work)
+    final state = ref.watch(liveHistoryProvider);
 
     return Row(
       children: [
