@@ -343,9 +343,34 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
     const homeExpected = (homeAttack * 0.7) + (awayConceded * 0.3);
     const awayExpected = (awayAttack * 0.7) + (homeConceded * 0.3);
 
-    // Remaining potential per team (with Game State modifier)
-    const homeRemaining = (homeExpected - homeGoals) + (potentialModifier / 2);
-    const awayRemaining = (awayExpected - awayGoals) + (potentialModifier / 2);
+    // NEW: H2H Potential Modifier (based on last H2H match only)
+    let h2hPotentialMod = 0;
+    const h2hResult = formData.h2hAnalysis?.h2hResult;
+    if (h2hResult) {
+        if (isFirstHalf) {
+            // First half: use HT goals from last H2H
+            if (h2hResult.htGoals === 0) {
+                h2hPotentialMod = -0.3; // Golsüz HT H2H
+                console.log(`[FormAnalysis] 📉 H2H HT Modifier: -0.3 (Last H2H had 0 HT goals)`);
+            } else if (h2hResult.htGoals >= 2) {
+                h2hPotentialMod = 0.25; // Aksiyonlu HT H2H
+                console.log(`[FormAnalysis] 📈 H2H HT Modifier: +0.25 (Last H2H had ${h2hResult.htGoals} HT goals)`);
+            }
+        } else {
+            // Second half: use FT goals from last H2H
+            if (h2hResult.goals < 2) {
+                h2hPotentialMod = -0.25; // Düşük skorlu H2H
+                console.log(`[FormAnalysis] 📉 H2H FT Modifier: -0.25 (Last H2H had only ${h2hResult.goals} goals)`);
+            } else if (h2hResult.wasGoalFest) {
+                h2hPotentialMod = 0.3; // Goal Fest H2H (3+ gol)
+                console.log(`[FormAnalysis] 📈 H2H FT Modifier: +0.3 (Last H2H was Goal Fest: ${h2hResult.goals} goals)`);
+            }
+        }
+    }
+
+    // Remaining potential per team (with Game State + H2H modifiers)
+    const homeRemaining = (homeExpected - homeGoals) + (potentialModifier / 2) + (h2hPotentialMod / 2);
+    const awayRemaining = (awayExpected - awayGoals) + (potentialModifier / 2) + (h2hPotentialMod / 2);
     const totalRemaining = homeRemaining + awayRemaining;
 
     // Time adjustment (less time = less potential)
