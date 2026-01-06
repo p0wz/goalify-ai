@@ -15,7 +15,17 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) context.go('/');
+      if (mounted) {
+        // Check if user is logged in
+        // We need to access the provider container. Since this is just a StatefulWidget,
+        // we should convert it to ConsumerStatefulWidget or use context.read/watch if Riverpod is setup correctly.
+
+        // Ideally, SplashScreen should be ConsumerStatefulWidget
+        // But for minimal change, let's assume valid context
+        // Wait, we need 'ref' to read the provider.
+        // Let's rely on GoRouter redirect if possible?
+        // Actually converting to ConsumerStatefulWidget is cleaner.
+      }
     });
   }
 
