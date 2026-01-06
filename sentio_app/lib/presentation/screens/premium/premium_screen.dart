@@ -121,7 +121,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Premium'),
+        title: const Text('PRO'),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: () => Navigator.pop(context),
