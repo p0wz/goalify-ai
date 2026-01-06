@@ -35,6 +35,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for Auth changes to fetch data once logged in
+    ref.listen(authProvider, (previous, next) {
+      if (previous?.isAuthenticated != true && next.isAuthenticated) {
+        ref.read(liveHistoryProvider.notifier).fetchHistory();
+        ref.refresh(settledBetsProvider);
+      }
+    });
+
     final strings = ref.watch(stringsProvider);
     final user = ref.watch(authProvider).user;
     final isPremium = user?.isPremium ?? false;
