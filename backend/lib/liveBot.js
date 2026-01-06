@@ -236,6 +236,36 @@ async function scanLiveMatches() {
             console.log(`[LiveBot]    Toplam Potansiyel: ${formResult.totalRemaining} (adj: ${formResult.adjustedRemaining})`);
             console.log(`[LiveBot]    ${formResult.reason}`);
 
+            // ============ STRICT FILTER MODE ============
+            // Filter 1: Minimum Potential Check
+            const minPotential = 1.2;
+            if (formResult.totalRemaining < minPotential) {
+                console.log(`[LiveBot]    ❌ STRICT: Low potential (${formResult.totalRemaining} < ${minPotential})`);
+                continue;
+            }
+
+            // Filter 2: Tempo Check (reject low/slow tempo matches)
+            if (formResult.tempo === 'low' || formResult.tempo === 'slow') {
+                console.log(`[LiveBot]    ❌ STRICT: Low tempo match (${formResult.tempo})`);
+                continue;
+            }
+
+            // Filter 3: Volatility Check (reject highly volatile matches)
+            if (formResult.combinedCV && formResult.combinedCV > 70) {
+                console.log(`[LiveBot]    ❌ STRICT: High volatility (CV: ${formResult.combinedCV} > 70)`);
+                continue;
+            }
+
+            // Filter 4: Live Stats Minimum (at least some activity)
+            const totalShots = formResult.liveShots || 0;
+            if (totalShots < 4 && elapsed > 30) {
+                console.log(`[LiveBot]    ❌ STRICT: Match too passive (${totalShots} shots in ${elapsed}')`);
+                continue;
+            }
+
+            console.log(`[LiveBot]    ✓ STRICT FILTERS PASSED`);
+            // ============ END STRICT FILTER MODE ============
+
             // Check if any markets available
             if (!formResult.markets || formResult.markets.length === 0) {
                 console.log(`[LiveBot]    ❌ No suitable markets found`);
