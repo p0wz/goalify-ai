@@ -422,10 +422,176 @@ function getStatus() {
     };
 }
 
+/**
+ * Debug Scan - Returns detailed match data for AI analysis (no signals generated)
+ */
+async function debugScanMatches() {
+    console.log('[LiveBot] Starting DEBUG scan for AI analysis...');
+    const matchesData = [];
+
+    try {
+        const liveData = await flashscore.fetchLiveMatches();
+        const tournaments = Array.isArray(liveData) ? liveData : [];
+
+        const allMatches = [];
+        for (const tournament of tournaments) {
+            for (const match of tournament.matches || []) {
+                allMatches.push({
+                    ...match,
+                    league_name: tournament.name,
+                    country_name: tournament.country_name
+                });
+            }
+        }
+
+        // Filter for active matches (not finished)
+        const candidates = allMatches.filter(m => {
+            const elapsed = parseElapsedTime(m.stage);
+            const stageStr = (m.stage || '').toString().toUpperCase();
+            const isFinished = stageStr.includes('FT') || stageStr.includes('AET') || elapsed >= 90;
+            return !isFinished && elapsed >= 10;
+        });
+
+        console.log(`[LiveBot] DEBUG: Found ${candidates.length} active matches`);
+
+        for (const match of candidates.slice(0, 30)) { // Limit to 30 for API quota
+            const elapsed = parseElapsedTime(match.stage);
+            const matchId = match.match_id;
+            const homeTeam = match.home_team?.name || 'Unknown';
+            const awayTeam = match.away_team?.name || 'Unknown';
+            const score = `${match.home_team?.score || 0}-${match.away_team?.score || 0}`;
+            const league = `${match.country_name}: ${match.league_name}`;
+
+            // Fetch live stats
+            const statsData = await flashscore.fetchMatchStats(matchId);
+            const liveStats = parseMatchStats(statsData || {});
+
+            // Run form analysis
+            let formResult = { valid: false, reason: 'Not analyzed' };
+            try {
+                formResult = await formAnalysis.analyzeForm(matchId, homeTeam, awayTeam, score, elapsed, liveStats);
+            } catch (e) {
+                formResult = { valid: false, reason: e.message };
+            }
+
+            // Apply strict filters (simulate)
+            const strictFilters = {
+                minPotential: { passed: formResult.totalRemaining >= 1.2, value: formResult.totalRemaining },
+                tempo: { passed: formResult.tempo !== 'low' && formResult.tempo !== 'slow', value: formResult.tempo },
+                activity: { passed: (formResult.liveShots || 0) >= 4 || elapsed <= 30, value: formResult.liveShots || 0 }
+            };
+            const allFiltersPassed = Object.values(strictFilters).every(f => f.passed);
+
+            matchesData.push({
+                matchId,
+                home: homeTeam,
+                away: awayTeam,
+                league,
+                score,
+                elapsed,
+                stats: {
+                    shots: `${liveStats.shots.home}-${liveStats.shots.away}`,
+                    shotsOnTarget: `${liveStats.shotsOnTarget.home}-${liveStats.shotsOnTarget.away}`,
+                    corners: `${liveStats.corners.home}-${liveStats.corners.away}`,
+                    possession: `${liveStats.possession.home}%-${liveStats.possession.away}%`
+                },
+                formAnalysis: formResult.valid ? {
+                    homeRemaining: formResult.homeRemaining,
+                    awayRemaining: formResult.awayRemaining,
+                    totalRemaining: formResult.totalRemaining,
+                    adjustedRemaining: formResult.adjustedRemaining,
+                    homeExpected: formResult.homeExpected,
+                    awayExpected: formResult.awayExpected,
+                    tempo: formResult.tempo,
+                    tempoBonus: formResult.tempoBonus,
+                    combinedCV: formResult.combinedCV,
+                    consistencyBonus: formResult.consistencyBonus,
+                    totalBonus: formResult.totalBonus
+                } : { error: formResult.reason },
+                strictFilters,
+                allFiltersPassed,
+                markets: formResult.markets || [],
+                topMarket: formResult.markets?.[0] || null,
+                reason: formResult.reason
+            });
+
+            // Rate limit
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Generate AI Prompt
+        const prompt = generateAIPrompt(matchesData);
+
+        return {
+            success: true,
+            timestamp: new Date().toISOString(),
+            matchCount: matchesData.length,
+            matches: matchesData,
+            prompt
+        };
+
+    } catch (error) {
+        console.error('[LiveBot] DEBUG scan error:', error.message);
+        return { success: false, error: error.message, matches: [], prompt: '' };
+    }
+}
+
+/**
+ * Generate AI-ready prompt from match data
+ */
+function generateAIPrompt(matches) {
+    const lines = [
+        '# Canlı Maç Analizi - AI Değerlendirmesi',
+        `Tarih: ${new Date().toLocaleString('tr-TR')}`,
+        `Toplam Maç: ${matches.length}`,
+        '',
+        '---',
+        ''
+    ];
+
+    for (const m of matches) {
+        lines.push(`## ${m.home} vs ${m.away}`);
+        lines.push(`- **Lig:** ${m.league}`);
+        lines.push(`- **Skor:** ${m.score} | **Dakika:** ${m.elapsed}'`);
+        lines.push(`- **Şut:** ${m.stats.shots} | **İsabetli:** ${m.stats.shotsOnTarget} | **Korner:** ${m.stats.corners}`);
+        lines.push(`- **Topa Sahip Olma:** ${m.stats.possession}`);
+
+        if (m.formAnalysis && !m.formAnalysis.error) {
+            lines.push(`- **Ev Kalan Potansiyel:** ${m.formAnalysis.homeRemaining?.toFixed(2)} | **Dep Kalan:** ${m.formAnalysis.awayRemaining?.toFixed(2)}`);
+            lines.push(`- **Toplam Potansiyel:** ${m.formAnalysis.totalRemaining?.toFixed(2)} (adj: ${m.formAnalysis.adjustedRemaining?.toFixed(2)})`);
+            lines.push(`- **Tempo:** ${m.formAnalysis.tempo} (${m.formAnalysis.tempoBonus >= 0 ? '+' : ''}${m.formAnalysis.tempoBonus}%)`);
+            lines.push(`- **Volatilite (CV):** ${m.formAnalysis.combinedCV} | **Tutarlılık Bonus:** ${m.formAnalysis.consistencyBonus}%`);
+            lines.push(`- **Toplam Bonus:** ${m.formAnalysis.totalBonus}%`);
+        } else {
+            lines.push(`- **Form Analizi:** ${m.formAnalysis?.error || 'Veri yok'}`);
+        }
+
+        lines.push(`- **Strict Filters:** ${m.allFiltersPassed ? '✅ PASSED' : '❌ FAILED'}`);
+        if (!m.strictFilters.minPotential.passed) lines.push(`  - ❌ Min Potansiyel: ${m.strictFilters.minPotential.value?.toFixed(2)} < 1.2`);
+        if (!m.strictFilters.tempo.passed) lines.push(`  - ❌ Tempo: ${m.strictFilters.tempo.value}`);
+        if (!m.strictFilters.activity.passed) lines.push(`  - ❌ Aktivite: ${m.strictFilters.activity.value} şut`);
+
+        if (m.topMarket) {
+            lines.push(`- **Önerilen Market:** ${m.topMarket.name} (%${m.topMarket.confidence})`);
+        }
+
+        lines.push(`- **Reason:** ${m.reason}`);
+        lines.push('');
+    }
+
+    lines.push('---');
+    lines.push('');
+    lines.push('Yukarıdaki maçları analiz et ve hangi maçlarda Over sinyal vermemizi önerirsin? Gerekçeleriyle birlikte açıkla.');
+
+    return lines.join('\n');
+}
+
 module.exports = {
     startBot,
     stopBot,
     getStatus,
     scanLiveMatches,
+    debugScanMatches,
     ALLOWED_LEAGUES
 };
+

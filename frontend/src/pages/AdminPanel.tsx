@@ -190,7 +190,9 @@ const AdminPanel = () => {
     const [liveStatus, setLiveStatus] = useState<any>({});
     const [liveLoading, setLiveLoading] = useState(false);
 
-
+    // AI Debug State
+    const [debugData, setDebugData] = useState<any>(null);
+    const [debugLoading, setDebugLoading] = useState(false);
 
 
     // Load data on mount
@@ -661,6 +663,37 @@ const AdminPanel = () => {
         }
     };
 
+    // ============ AI DEBUG SCAN ============
+    const runDebugScan = async () => {
+        setDebugLoading(true);
+        setDebugData(null);
+        try {
+            const res = await fetch(`${API_BASE}/live/debug-scan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }
+            });
+            if (!res.ok) throw new Error('Debug scan failed');
+            const data = await safeJson(res);
+            setDebugData(data);
+            if (data.success) {
+                toast.success(`${data.matchCount} maç analiz edildi!`);
+            } else {
+                toast.error(data.error || 'Tarama başarısız');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setDebugLoading(false);
+        }
+    };
+
+    const copyDebugPrompt = () => {
+        if (debugData?.prompt) {
+            navigator.clipboard.writeText(debugData.prompt);
+            toast.success('AI Prompt kopyalandı!');
+        }
+    };
+
 
     // ============ HELPERS ============
 
@@ -770,6 +803,10 @@ const AdminPanel = () => {
                         <TabsTrigger value="users" className="flex items-center gap-2">
                             <User className="h-4 w-4" />
                             Kullanıcılar
+                        </TabsTrigger>
+                        <TabsTrigger value="aidebug" className="flex items-center gap-2">
+                            <Zap className="h-4 w-4" />
+                            AI Debug
                         </TabsTrigger>
                     </TabsList>
 
@@ -1591,6 +1628,86 @@ const AdminPanel = () => {
                                 </Table>
                                 {users.length === 0 && !usersLoading && (
                                     <p className="text-center text-muted-foreground py-8">Henüz kullanıcı yok</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* ============ AI DEBUG TAB ============ */}
+                    <TabsContent value="aidebug" className="space-y-4">
+                        <Card className="glass-card">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Zap className="h-5 w-5 text-primary" />
+                                    AI Debug Scanner
+                                </CardTitle>
+                                <CardDescription>
+                                    Tüm canlı maçları tarayarak detaylı AI analizi için prompt oluştur
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex gap-3 items-center">
+                                    <Button
+                                        onClick={runDebugScan}
+                                        disabled={debugLoading}
+                                        className="gradient-primary text-white shadow-glow-primary"
+                                    >
+                                        {debugLoading ? (
+                                            <><Activity className="mr-2 h-4 w-4 animate-spin" />Taranıyor...</>
+                                        ) : (
+                                            <><Play className="mr-2 h-4 w-4" />Tarama Başlat</>
+                                        )}
+                                    </Button>
+                                    {debugData?.matchCount && (
+                                        <Badge variant="secondary" className="text-sm">
+                                            {debugData.matchCount} maç analiz edildi
+                                        </Badge>
+                                    )}
+                                </div>
+
+                                {debugData?.prompt && (
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="font-medium">AI Prompt (Kopyalanabilir)</h4>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={copyDebugPrompt}
+                                                className="gap-2"
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                                Kopyala
+                                            </Button>
+                                        </div>
+                                        <textarea
+                                            readOnly
+                                            value={debugData.prompt}
+                                            className="w-full h-96 p-4 bg-muted/50 rounded-lg text-sm font-mono resize-none border border-border"
+                                        />
+                                    </div>
+                                )}
+
+                                {debugData?.matches?.length > 0 && (
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium">Maç Listesi ({debugData.matches.length})</h4>
+                                        <div className="max-h-64 overflow-y-auto space-y-2">
+                                            {debugData.matches.map((m: any, idx: number) => (
+                                                <div key={idx} className="p-2 bg-muted/30 rounded text-sm flex justify-between items-center">
+                                                    <span>{m.home} vs {m.away} ({m.score}, {m.elapsed}')</span>
+                                                    <div className="flex gap-2">
+                                                        {m.allFiltersPassed ? (
+                                                            <Badge className="bg-win text-white">✓ Passed</Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary">✗ Filtered</Badge>
+                                                        )}
+                                                        {m.topMarket && (
+                                                            <Badge variant="outline">{m.topMarket.name} ({m.topMarket.confidence}%)</Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

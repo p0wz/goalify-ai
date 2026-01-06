@@ -842,6 +842,18 @@ async function start() {
 
     // ============ LIVE BOT ROUTES ============
 
+    // Debug scan - Returns detailed match data for AI analysis (admin only)
+    app.post('/api/live/debug-scan', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
+        try {
+            console.log('[API] Debug scan requested by admin');
+            const result = await liveBot.debugScanMatches();
+            res.json(result);
+        } catch (error) {
+            console.error('[API] Debug scan error:', error.message);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
     // Get live signals (admin - authenticated)
     app.get('/api/live/signals', auth.authenticateToken, async (req, res) => {
         try {
