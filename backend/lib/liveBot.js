@@ -192,7 +192,7 @@ async function scanLiveMatches() {
             const isFinished = stageStr.includes('FT') || stageStr.includes('AET') || elapsed >= 90;
             if (isFinished) return false;
 
-            const isFirstHalf = elapsed >= 12 && elapsed <= 38 && scoreDiff <= 1;
+            const isFirstHalf = elapsed >= 5 && elapsed <= 38 && scoreDiff <= 1;
             const isLateGame = elapsed >= 46 && elapsed <= 82 && scoreDiff <= 2;
 
             return isFirstHalf || isLateGame;
