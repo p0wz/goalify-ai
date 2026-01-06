@@ -5,6 +5,7 @@
  */
 
 const flashscore = require('./flashscore');
+const liveH2H = require('./liveH2H');
 
 // Cache for form data (per match session)
 const formCache = {};
@@ -102,16 +103,23 @@ async function analyzeForm(matchId, homeTeam, awayTeam, score, elapsed, liveStat
         console.log(`[FormAnalysis] Home (${homeTeam}): FT avg ${homeStats.ftAvg.toFixed(2)}, HT avg ${homeStats.htAvg.toFixed(2)}`);
         console.log(`[FormAnalysis] Away (${awayTeam}): FT avg ${awayStats.ftAvg.toFixed(2)}, HT avg ${awayStats.htAvg.toFixed(2)}`);
 
-        // Cache the result
+        // NEW: Analyze H2H for additional context
+        const h2hAnalysis = await liveH2H.analyzeH2H(matchId, homeTeam, awayTeam, score, elapsed);
+        if (h2hAnalysis.confidenceBonus) {
+            console.log(`[FormAnalysis] H2H Bonus: ${h2hAnalysis.confidenceBonus > 0 ? '+' : ''}${h2hAnalysis.confidenceBonus}%`);
+        }
+
+        // Cache the result (now includes H2H)
         formCache[cacheKey] = {
             homeTeam,
             awayTeam,
             homeStats,
             awayStats,
+            h2hAnalysis, // NEW: Store H2H analysis
             timestamp: Date.now()
         };
 
-        return calculatePotential(formCache[cacheKey], score, elapsed, liveStats);
+        return calculatePotential(formCache[cacheKey], score, elapsed, liveStats, favorite);
 
     } catch (error) {
         console.error('[FormAnalysis] Error:', error.message);
@@ -323,8 +331,11 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
     const tempoResult = calculateTempo(liveStats, elapsed);
     const tempoBonus = tempoResult.bonus;
 
-    // Combined bonus (consistency + tempo)
-    const totalBonus = consistencyBonus + tempoBonus;
+    // NEW: Get H2H bonus if available
+    const h2hBonus = formData.h2hAnalysis?.confidenceBonus || 0;
+
+    // Combined bonus (consistency + tempo + Game State + H2H)
+    const totalBonus = consistencyBonus + tempoBonus + confidenceBooster + h2hBonus;
 
     // WEIGHTED EXPECTED GOALS:
     // Attack is 70% of the calculation, opponent's defensive weakness is 30%
@@ -332,9 +343,9 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
     const homeExpected = (homeAttack * 0.7) + (awayConceded * 0.3);
     const awayExpected = (awayAttack * 0.7) + (homeConceded * 0.3);
 
-    // Remaining potential per team
-    const homeRemaining = homeExpected - homeGoals;
-    const awayRemaining = awayExpected - awayGoals;
+    // Remaining potential per team (with Game State modifier)
+    const homeRemaining = (homeExpected - homeGoals) + (potentialModifier / 2);
+    const awayRemaining = (awayExpected - awayGoals) + (potentialModifier / 2);
     const totalRemaining = homeRemaining + awayRemaining;
 
     // Time adjustment (less time = less potential)
