@@ -250,11 +250,7 @@ async function scanLiveMatches() {
                 continue;
             }
 
-            // Filter 3: Volatility Check (reject highly volatile matches)
-            if (formResult.combinedCV && formResult.combinedCV > 70) {
-                console.log(`[LiveBot]    ❌ STRICT: High volatility (CV: ${formResult.combinedCV} > 70)`);
-                continue;
-            }
+            // Note: Volatility (CV) only affects confidence score, not signal blocking
 
             // Filter 4: Live Stats Minimum (at least some activity)
             const totalShots = formResult.liveShots || 0;
