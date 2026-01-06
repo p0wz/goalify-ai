@@ -177,13 +177,24 @@ class LiveSignalsNotifier extends StateNotifier<LiveSignalsState> {
       final response = await _dio.get('/mobile/live-history');
 
       if (response.data != null && response.data['success'] == true) {
-        final List<dynamic> data = response.data['history'] ?? [];
+        // Server returns 'signals' for history endpoint as per server.js checks
+        final List<dynamic> data =
+            response.data['signals'] ?? response.data['history'] ?? [];
         final history = data.map((json) => LiveSignal.fromJson(json)).toList();
+
+        // Parse stats
+        final stats = response.data['stats'] ?? {};
+        final dailyWR = stats['dailyWinRate'] ?? 0;
+        final monthlyWR = stats['monthlyWinRate'] ?? 0;
 
         // Sort by date desc
         history.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-        state = state.copyWith(historySignals: history);
+        state = state.copyWith(
+          historySignals: history,
+          dailyWinRate: dailyWR,
+          monthlyWinRate: monthlyWR,
+        );
       }
     } catch (e) {
       if (kDebugMode) print('History fetch error: $e');
