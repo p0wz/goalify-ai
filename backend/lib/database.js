@@ -602,11 +602,14 @@ async function getMobileStats() {
     startOfDayTRT.setUTCHours(0, 0, 0, 0);
     const startOfDayTimestamp = startOfDayTRT.getTime() - TRT_OFFSET; // Convert back to UTC timestamp for comparison
 
-    // Start of Month TRT
+    // Start of Month TRT (NOW: Rolling 30 Days)
     const startOfMonthTRT = new Date(nowTRT);
-    startOfMonthTRT.setUTCDate(1);
+    startOfMonthTRT.setUTCDate(startOfMonthTRT.getUTCDate() - 30);
     startOfMonthTRT.setUTCHours(0, 0, 0, 0);
     const startOfMonthTimestamp = startOfMonthTRT.getTime() - TRT_OFFSET;
+
+    console.log(`[Stats] TRT Now: ${nowTRT.toISOString()}, StartDay: ${startOfDayTRT.toISOString()}, Start30d: ${startOfMonthTRT.toISOString()}`);
+    console.log(`[Stats] Found ${signals.length} settled signals`);
 
     // Calculate Stats
     let dailyWon = 0;
@@ -617,9 +620,6 @@ async function getMobileStats() {
     for (const s of signals) {
         if (!s.entry_time) continue;
 
-        // entry_time is likely in seconds or milliseconds. 
-        // Based on previous code `Date.now()`, it's milliseconds.
-        // Let's assume it matches the system timestamp format.
         const time = s.entry_time;
 
         if (time >= startOfDayTimestamp) {
@@ -632,6 +632,16 @@ async function getMobileStats() {
             if (s.status === 'WON') monthlyWon++;
         }
     }
+
+    const stats = {
+        dailyWinRate: dailyTotal > 0 ? Math.round((dailyWon / dailyTotal) * 100) : 0,
+        monthlyWinRate: monthlyTotal > 0 ? Math.round((monthlyWon / monthlyTotal) * 100) : 0,
+        dailyTotal,
+        monthlyTotal
+    };
+
+    console.log('[Stats] Calculated:', JSON.stringify(stats));
+    return stats;
 
     return {
         dailyWinRate: dailyTotal > 0 ? Math.round((dailyWon / dailyTotal) * 100) : 0,
