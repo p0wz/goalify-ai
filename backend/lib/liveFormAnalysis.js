@@ -356,6 +356,12 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
                 h2hPotentialMod = 0.25; // Aksiyonlu HT H2H
                 console.log(`[FormAnalysis] 📈 H2H HT Modifier: +0.25 (Last H2H had ${h2hResult.htGoals} HT goals)`);
             }
+
+            // NEW: Score comparison boost - if current score behind H2H at same time
+            if (totalGoals < h2hResult.htGoals) {
+                h2hPotentialMod += 0.15; // Match is "due" to open up
+                console.log(`[FormAnalysis] ⏳ Behind H2H: +0.15 (Current ${totalGoals} vs H2H HT ${h2hResult.htGoals})`);
+            }
         } else {
             // Second half: use FT goals from last H2H
             if (h2hResult.goals < 2) {
@@ -364,6 +370,12 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
             } else if (h2hResult.wasGoalFest) {
                 h2hPotentialMod = 0.3; // Goal Fest H2H (3+ gol)
                 console.log(`[FormAnalysis] 📈 H2H FT Modifier: +0.3 (Last H2H was Goal Fest: ${h2hResult.goals} goals)`);
+            }
+
+            // NEW: Score comparison boost - if current score behind H2H
+            if (totalGoals < h2hResult.goals) {
+                h2hPotentialMod += 0.15; // Match is "due" to catch up
+                console.log(`[FormAnalysis] ⏳ Behind H2H: +0.15 (Current ${totalGoals} vs H2H FT ${h2hResult.goals})`);
             }
         }
     }
