@@ -75,6 +75,8 @@ async function analyzeH2H(matchId, homeTeam, awayTeam, currentScore = '0-0', ela
 
                 if (isFirstHalf) {
                     console.log(`[LiveH2H] Found recent H2H (${h2hResult.date}): HT Score ${h2hHTHome}-${h2hHTAway} (${h2hHTTotal} goals)`);
+                } else {
+                    console.log(`[LiveH2H] Found recent H2H (${h2hResult.date}): FT Score ${h2hDetails.home_team?.score}-${h2hDetails.away_team?.score}`);
                 }
             }
         }
@@ -99,14 +101,16 @@ async function analyzeH2H(matchId, homeTeam, awayTeam, currentScore = '0-0', ela
             // If recent H2H had 0 goals in HT, reduce potential
             if (h2hResult.htGoals === 0) {
                 remainingPotential -= 0.3;
-                console.log(`[LiveH2H] Dampened potential due to 0-0 HT H2H history`);
+                console.log(`[LiveH2H] 📉 Dampened potential (-0.3) due to 0-0 HT H2H history`);
             } else if (h2hResult.htGoals >= 2) {
                 remainingPotential += 0.2; // Boost for history of action
+                console.log(`[LiveH2H] 📈 Boosted potential (+0.2) due to action-packed HT H2H history`);
             }
         } else {
             // Second half or late game
             if (h2hResult.goals < 2) {
                 remainingPotential -= 0.2; // Low scoring history
+                console.log(`[LiveH2H] 📉 Dampened potential (-0.2) due to low scoring H2H history (< 2 goals)`);
             }
         }
     }
