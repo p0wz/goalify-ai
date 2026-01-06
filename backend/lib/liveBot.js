@@ -244,9 +244,10 @@ async function scanLiveMatches() {
                 continue;
             }
 
-            // Filter 2: Tempo Check (reject low/slow tempo matches)
-            if (formResult.tempo === 'low' || formResult.tempo === 'slow') {
-                console.log(`[LiveBot]    ❌ STRICT: Low tempo match (${formResult.tempo})`);
+            // Filter 2: Tempo Check (reject ONLY slow tempo matches)
+            // 'low' tempo is acceptable if potential is high enough
+            if (formResult.tempo === 'slow') {
+                console.log(`[LiveBot]    ❌ STRICT: Slow tempo match (slow)`);
                 continue;
             }
 
