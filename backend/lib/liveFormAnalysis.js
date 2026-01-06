@@ -158,411 +158,442 @@ async function fetchMatchDetails(matches, teamName) {
  */
 function calculateTeamStats(details, teamName) {
     if (details.length === 0) {
-        /**
-         * NEW: Calculate team stats with recency weighting
-         * Last 3 matches: 70% weight, Older matches (4-5): 30% weight
-         */
-        function calculateTeamStatsWeighted(recentDetails, oldDetails, teamName) {
-            // Calculate recent stats (last 3)
-            const recentStats = calculateTeamStats(recentDetails, teamName);
+        return { ftAvg: 1.5, htAvg: 0.7, ftConcededAvg: 1.2, htConcededAvg: 0.5 };
+    }
 
-            // Calculate volatility from all available matches
-            const allDetails = [...recentDetails, ...(oldDetails || [])];
-            const volatility = calculateVolatility(allDetails, teamName);
+    let ftScored = 0, htScored = 0;
+    let ftConceded = 0, htConceded = 0;
 
-            // If no old matches, just return recent with volatility
-            if (!oldDetails || oldDetails.length === 0) {
-                return { ...recentStats, volatility };
-            }
+    for (const d of details) {
+        if (d.isHome) {
+            ftScored += d.ftHome;
+            htScored += d.htHome;
+            ftConceded += d.ftAway;
+            htConceded += d.htAway;
+        } else {
+            ftScored += d.ftAway;
+            htScored += d.htAway;
+            ftConceded += d.ftHome;
+            htConceded += d.htHome;
+        }
+    }
 
-            // Calculate old stats (matches 4-5)
-            const oldStats = calculateTeamStats(oldDetails, teamName);
+    const count = details.length;
 
-            // Weighted average: 70% recent, 30% old
-            const RECENT_WEIGHT = 0.70;
-            const OLD_WEIGHT = 0.30;
+    return {
+        ftAvg: ftScored / count,
+        htAvg: htScored / count,
+        ftConcededAvg: ftConceded / count,
+        htConcededAvg: htConceded / count,
+        matchCount: count
+    };
+}
 
-            return {
-                ftAvg: (recentStats.ftAvg * RECENT_WEIGHT) + (oldStats.ftAvg * OLD_WEIGHT),
-                htAvg: (recentStats.htAvg * RECENT_WEIGHT) + (oldStats.htAvg * OLD_WEIGHT),
-                ftConcededAvg: (recentStats.ftConcededAvg * RECENT_WEIGHT) + (oldStats.ftConcededAvg * OLD_WEIGHT),
-                htConcededAvg: (recentStats.htConcededAvg * RECENT_WEIGHT) + (oldStats.htConcededAvg * OLD_WEIGHT),
-                matchCount: recentDetails.length + oldDetails.length,
-                isWeighted: true,
-                volatility
-            };
+/**
+ * NEW: Calculate team stats with recency weighting
+ * Last 3 matches: 70% weight, Older matches (4-5): 30% weight
+ */
+function calculateTeamStatsWeighted(recentDetails, oldDetails, teamName) {
+    // Calculate recent stats (last 3)
+    const recentStats = calculateTeamStats(recentDetails, teamName);
+
+    // Calculate volatility from all available matches
+    const allDetails = [...recentDetails, ...(oldDetails || [])];
+    const volatility = calculateVolatility(allDetails, teamName);
+
+    // If no old matches, just return recent with volatility
+    if (!oldDetails || oldDetails.length === 0) {
+        return { ...recentStats, volatility };
+    }
+
+    // Calculate old stats (matches 4-5)
+    const oldStats = calculateTeamStats(oldDetails, teamName);
+
+    // Weighted average: 70% recent, 30% old
+    const RECENT_WEIGHT = 0.70;
+    const OLD_WEIGHT = 0.30;
+
+    return {
+        ftAvg: (recentStats.ftAvg * RECENT_WEIGHT) + (oldStats.ftAvg * OLD_WEIGHT),
+        htAvg: (recentStats.htAvg * RECENT_WEIGHT) + (oldStats.htAvg * OLD_WEIGHT),
+        ftConcededAvg: (recentStats.ftConcededAvg * RECENT_WEIGHT) + (oldStats.ftConcededAvg * OLD_WEIGHT),
+        htConcededAvg: (recentStats.htConcededAvg * RECENT_WEIGHT) + (oldStats.htConcededAvg * OLD_WEIGHT),
+        matchCount: recentDetails.length + oldDetails.length,
+        isWeighted: true,
+        volatility
+    };
+}
+
+/**
+ * NEW: Calculate volatility (Coefficient of Variation) from match scores
+ * Lower CV = more consistent, Higher CV = more volatile
+ */
+function calculateVolatility(details, teamName) {
+    if (!details || details.length < 2) {
+        return { cv: 50, isConsistent: false, isVolatile: false }; // Default neutral
+    }
+
+    // Extract goals scored by this team in each match
+    const scores = details.map(d => {
+        if (d.isHome) return d.ftHome;
+        return d.ftAway;
+    });
+
+    // Calculate mean
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+    // If mean is 0, avoid division by zero
+    if (mean === 0) {
+        return { cv: 100, isConsistent: false, isVolatile: true };
+    }
+
+    // Calculate standard deviation
+    const squaredDiffs = scores.map(s => Math.pow(s - mean, 2));
+    const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / scores.length;
+    const stdDev = Math.sqrt(avgSquaredDiff);
+
+    // Coefficient of Variation (CV) = (StdDev / Mean) * 100
+    const cv = (stdDev / mean) * 100;
+
+    return {
+        cv: Math.round(cv),
+        isConsistent: cv < 35,   // Very consistent
+        isVolatile: cv > 70,     // Very volatile
+        scores,
+        mean: Math.round(mean * 100) / 100,
+        stdDev: Math.round(stdDev * 100) / 100
+    };
+}
+
+/**
+ * Calculates remaining potential with Game State Logic
+ */
+function calculatePotential(formData, score, elapsed, liveStats = null, favorite = null) {
+    const [homeGoals, awayGoals] = score.split('-').map(s => parseInt(s) || 0);
+    const scoreDiff = homeGoals - awayGoals;
+    const totalGoals = homeGoals + awayGoals;
+    const isFirstHalf = elapsed <= 45;
+
+    let reason = [];
+    let potentialModifier = 0;
+    let confidenceBooster = 0;
+
+    // --- GAME STATE LOGIC ---
+    if (favorite) {
+        // Rule 1: Dampen Underdog if losing badly to Favorite
+        if (favorite === 'HOME' && scoreDiff >= 2) {
+            potentialModifier -= 1.0;
+            reason.push("📉 Dampened: Favorite winning 2-0+, underdog resistance broken");
+        } else if (favorite === 'AWAY' && scoreDiff <= -2) {
+            potentialModifier -= 1.0;
+            reason.push("📉 Dampened: Favorite winning 0-2+, underdog resistance broken");
         }
 
-        /**
-         * NEW: Calculate volatility (Coefficient of Variation) from match scores
-         * Lower CV = more consistent, Higher CV = more volatile
-         */
-        function calculateVolatility(details, teamName) {
-            if (!details || details.length < 2) {
-                return { cv: 50, isConsistent: false, isVolatile: false }; // Default neutral
-            }
-
-            // Extract goals scored by this team in each match
-            const scores = details.map(d => {
-                if (d.isHome) return d.ftHome;
-                return d.ftAway;
-            });
-
-            // Calculate mean
-            const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-
-            // If mean is 0, avoid division by zero
-            if (mean === 0) {
-                return { cv: 100, isConsistent: false, isVolatile: true };
-            }
-
-            // Calculate standard deviation
-            const squaredDiffs = scores.map(s => Math.pow(s - mean, 2));
-            const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / scores.length;
-            const stdDev = Math.sqrt(avgSquaredDiff);
-
-            // Coefficient of Variation (CV) = (StdDev / Mean) * 100
-            const cv = (stdDev / mean) * 100;
-
-            return {
-                cv: Math.round(cv),
-                isConsistent: cv < 35,   // Very consistent
-                isVolatile: cv > 70,     // Very volatile
-                scores,
-                mean: Math.round(mean * 100) / 100,
-                stdDev: Math.round(stdDev * 100) / 100
-            };
-        }
-
-        /**
-         * Calculates remaining potential with Game State Logic
-         */
-        function calculatePotential(formData, score, elapsed, liveStats = null, favorite = null) {
-            const [homeGoals, awayGoals] = score.split('-').map(s => parseInt(s) || 0);
-            const scoreDiff = homeGoals - awayGoals;
-            const totalGoals = homeGoals + awayGoals;
-            const isFirstHalf = elapsed <= 45;
-
-            let reason = [];
-            let potentialModifier = 0;
-            let confidenceBooster = 0;
-
-            // --- GAME STATE LOGIC ---
-            if (favorite) {
-                // Rule 1: Dampen Underdog if losing badly to Favorite
-                if (favorite === 'HOME' && scoreDiff >= 2) {
-                    potentialModifier -= 1.0;
-                    reason.push("📉 Dampened: Favorite winning 2-0+, underdog resistance broken");
-                } else if (favorite === 'AWAY' && scoreDiff <= -2) {
-                    potentialModifier -= 1.0;
-                    reason.push("📉 Dampened: Favorite winning 0-2+, underdog resistance broken");
-                }
-
-                // Rule 2: Boost Favorite if trailing or drawing (Urgency Mode)
-                // Only apply if match is beyond 30th minute specific to Favorite
-                // Note: Assuming we are analyzing the match as a whole, but we prioritize the Favorite's action
-                if (elapsed > 30) {
-                    if (favorite === 'HOME' && scoreDiff <= 0) {
-                        potentialModifier += 0.3;
-                        confidenceBooster += 15;
-                        reason.push("🦁 Favorite Needs Goal (Trailing/Draw)");
-                    } else if (favorite === 'AWAY' && scoreDiff >= 0) {
-                        potentialModifier += 0.3;
-                        confidenceBooster += 15;
-                        reason.push("🦁 Favorite Needs Goal (Trailing/Draw)");
-                    }
-                }
-            }
-
-            const { homeStats, awayStats } = formData;
-
-            // Get attack and defense stats based on half
-            const homeAttack = isFirstHalf ? homeStats.htAvg : homeStats.ftAvg;
-            const awayAttack = isFirstHalf ? awayStats.htAvg : awayStats.ftAvg;
-            const homeConceded = isFirstHalf ? homeStats.htConcededAvg : homeStats.ftConcededAvg;
-            const awayConceded = isFirstHalf ? awayStats.htConcededAvg : awayStats.ftConcededAvg;
-
-            // Calculate combined volatility (average of both teams)
-            const homeVolatility = homeStats.volatility || { cv: 50 };
-            const awayVolatility = awayStats.volatility || { cv: 50 };
-            const combinedCV = (homeVolatility.cv + awayVolatility.cv) / 2;
-            const consistencyBonus = getConsistencyBonus(combinedCV);
-
-            // NEW: Calculate tempo bonus from live stats
-            const tempoResult = calculateTempo(liveStats, elapsed);
-            const tempoBonus = tempoResult.bonus;
-
-            // Combined bonus (consistency + tempo)
-            const totalBonus = consistencyBonus + tempoBonus;
-
-            // WEIGHTED EXPECTED GOALS:
-            // Attack is 70% of the calculation, opponent's defensive weakness is 30%
-            // This keeps attack power dominant while considering defense
-            const homeExpected = (homeAttack * 0.7) + (awayConceded * 0.3);
-            const awayExpected = (awayAttack * 0.7) + (homeConceded * 0.3);
-
-            // Remaining potential per team
-            const homeRemaining = homeExpected - homeGoals;
-            const awayRemaining = awayExpected - awayGoals;
-            const totalRemaining = homeRemaining + awayRemaining;
-
-            // Time adjustment (less time = less potential)
-            const timeRatio = isFirstHalf
-                ? (45 - elapsed) / 45
-                : (90 - elapsed) / 45;
-            const adjustedRemaining = totalRemaining * Math.max(0.3, timeRatio);
-
-            // Generate market suggestions based on potential (now with combined bonus)
-            const markets = selectMarkets(homeRemaining, awayRemaining, homeGoals, awayGoals, elapsed, totalBonus);
-
-            return {
-                valid: true,
-                homeRemaining: Math.round(homeRemaining * 100) / 100,
-                awayRemaining: Math.round(awayRemaining * 100) / 100,
-                totalRemaining: Math.round(totalRemaining * 100) / 100,
-                adjustedRemaining: Math.round(adjustedRemaining * 100) / 100,
-                homeExpected: Math.round(homeExpected * 100) / 100,
-                awayExpected: Math.round(awayExpected * 100) / 100,
-                // Extra debug info
-                homeAttack: Math.round(homeAttack * 100) / 100,
-                awayAttack: Math.round(awayAttack * 100) / 100,
-                awayConceded: Math.round(awayConceded * 100) / 100,
-                homeConceded: Math.round(homeConceded * 100) / 100,
-                // Volatility info
-                homeVolatility: homeVolatility.cv,
-                awayVolatility: awayVolatility.cv,
-                combinedCV: Math.round(combinedCV),
-                consistencyBonus,
-                // NEW: Tempo info
-                tempo: tempoResult.tempo,
-                tempoBonus,
-                totalBonus,
-                liveShots: tempoResult.totalShots,
-                liveSoT: tempoResult.totalSoT,
-                liveCorners: tempoResult.totalCorners,
-                isFirstHalf,
-                elapsed,
-                score,
-                markets,
-                reason: generateReason(homeRemaining, awayRemaining, isFirstHalf, homeExpected, awayExpected, consistencyBonus, tempoResult)
-            };
-        }
-
-        /**
-         * NEW: Calculate tempo from live match stats
-         * Tempo = (shots / elapsed) * 90 (normalized to 90 min projection)
-         */
-        function calculateTempo(liveStats, elapsed) {
-            if (!liveStats || elapsed < 10) {
-                return { tempo: 'normal', bonus: 0, totalShots: 0, totalSoT: 0, totalCorners: 0 };
-            }
-
-            const totalShots = (liveStats.shots?.home || 0) + (liveStats.shots?.away || 0);
-            const totalSoT = (liveStats.shotsOnTarget?.home || 0) + (liveStats.shotsOnTarget?.away || 0);
-            const totalCorners = (liveStats.corners?.home || 0) + (liveStats.corners?.away || 0);
-
-            // Normalize to 90-minute projection
-            const projectedShots = (totalShots / elapsed) * 90;
-            const projectedSoT = (totalSoT / elapsed) * 90;
-            const projectedCorners = (totalCorners / elapsed) * 90;
-
-            // Determine tempo level
-            let tempo = 'normal';
-            let bonus = 0;
-
-            // High tempo: > 15 projected shots OR > 6 projected SoT
-            if (projectedShots >= 18 || projectedSoT >= 8) {
-                tempo = 'very_high';
-                bonus = 7;
-            } else if (projectedShots >= 14 || projectedSoT >= 5) {
-                tempo = 'high';
-                bonus = 4;
-            }
-            // Low tempo: < 8 projected shots AND < 3 projected SoT
-            else if (projectedShots < 8 && projectedSoT < 3) {
-                tempo = 'low';
-                bonus = -5;
-            } else if (projectedShots < 10 && projectedSoT < 4) {
-                tempo = 'slow';
-                bonus = -2;
-            }
-
-            console.log(`[FormAnalysis] Tempo: ${tempo} (${projectedShots.toFixed(1)} proj shots, ${projectedSoT.toFixed(1)} proj SoT) → ${bonus >= 0 ? '+' : ''}${bonus}%`);
-
-            return {
-                tempo,
-                bonus,
-                totalShots,
-                totalSoT,
-                totalCorners,
-                projectedShots: Math.round(projectedShots * 10) / 10,
-                projectedSoT: Math.round(projectedSoT * 10) / 10,
-                projectedCorners: Math.round(projectedCorners * 10) / 10
-            };
-        }
-
-        /**
-         * NEW: Get consistency bonus/penalty based on combined CV
-         */
-        function getConsistencyBonus(combinedCV) {
-            if (combinedCV < 30) return 5;      // Very consistent: +5%
-            if (combinedCV < 50) return 0;      // Normal: neutral
-            if (combinedCV < 80) return -3;     // Volatile: -3%
-            return -7;                          // Very volatile: -7%
-        }
-
-        /**
-         * Select markets based on remaining potential
-         */
-        function selectMarkets(homeRem, awayRem, homeGoals, awayGoals, elapsed, consistencyBonus = 0) {
-            const total = homeGoals + awayGoals;
-            const diff = Math.abs(homeGoals - awayGoals);
-            const isFirstHalf = elapsed <= 45;
-            const markets = [];
-
-            // Both teams have potential
-            if (homeRem >= 0.5 && awayRem >= 0.5) {
-                if (total === 0 && isFirstHalf) {
-                    markets.push({ name: 'İY Over 0.5', type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
-                }
-                if (total === 0 && !isFirstHalf && elapsed <= 70) {
-                    markets.push({ name: 'Over 1.5', type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
-                }
-                // Removed BTTS - replaced with next goal market
-                if (total >= 1 && elapsed <= 75) {
-                    markets.push({ name: `Over ${total + 0.5}`, type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
-                }
-            }
-
-            // Home has potential, away exhausted
-            if (homeRem >= 0.8 && awayRem < 0.3) {
-                markets.push({ name: 'Home Goal', type: 'HOME_GOAL', confidence: calculateMarketConfidence(homeRem, 'OVER', elapsed, consistencyBonus) });
-            }
-
-            // Away has potential, home exhausted
-            if (awayRem >= 0.8 && homeRem < 0.3) {
-                markets.push({ name: 'Away Goal', type: 'AWAY_GOAL', confidence: calculateMarketConfidence(awayRem, 'OVER', elapsed, consistencyBonus) });
-            }
-
-            // Both exhausted
-            if (homeRem < 0.3 && awayRem < 0.3) {
-                markets.push({ name: `Under ${total + 0.5}`, type: 'UNDER', confidence: calculateMarketConfidence(-(homeRem + awayRem), 'UNDER', elapsed, consistencyBonus) });
-                if (homeGoals === awayGoals && elapsed >= 70) {
-                    markets.push({ name: 'Draw', type: 'DRAW', confidence: calculateMarketConfidence(0.5, 'DRAW', elapsed, consistencyBonus) });
-                }
-            }
-
-            // High scoring potential
-            if (homeRem + awayRem >= 1.5 && elapsed <= 75) {
-                markets.push({ name: `Over ${total + 0.5}`, type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
-            }
-
-            // Sort by confidence
-            return markets.sort((a, b) => b.confidence - a.confidence);
-        }
-
-        /**
-         * Calculate market confidence based on potential and timing
-         */
-        function calculateMarketConfidence(potentialValue, marketType, elapsed, consistencyBonus = 0) {
-            let base = 50;
-
-            // Potential bonus
-            if (marketType === 'OVER' || marketType === 'BTTS') {
-                if (potentialValue >= 2.0) base += 20;
-                else if (potentialValue >= 1.5) base += 15;
-                else if (potentialValue >= 1.0) base += 10;
-                else if (potentialValue >= 0.5) base += 5;
-                else base -= 10;
-            }
-
-            if (marketType === 'UNDER') {
-                if (potentialValue >= 0.5) base += 15; // Negative remaining = good for under
-                else if (potentialValue >= 0) base += 10;
-                else base -= 5;
-            }
-
-            // Time bonus/penalty
-            if (elapsed >= 75) {
-                if (marketType === 'UNDER' || marketType === 'DRAW') base += 10;
-                else base -= 5;
-            }
-            if (elapsed <= 35) {
-                if (marketType === 'OVER') base -= 5; // Too early
-            }
-
-            // NEW: Apply consistency bonus/penalty
-            base += consistencyBonus;
-
-            return Math.min(92, Math.max(45, base));
-        }
-
-        /**
-         * Generate human-readable reason
-         */
-        function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp, consistencyBonus = 0, tempoResult = null) {
-            const parts = [];
-
-            if (homeRem >= 1.0) parts.push(`Ev +${homeRem.toFixed(1)} potansiyel`);
-            else if (homeRem < 0) parts.push(`Ev aştı (${homeRem.toFixed(1)})`);
-            else parts.push(`Ev ${homeRem.toFixed(1)} kalan`);
-
-            if (awayRem >= 1.0) parts.push(`Dep +${awayRem.toFixed(1)} potansiyel`);
-            else if (awayRem < 0) parts.push(`Dep aştı (${awayRem.toFixed(1)})`);
-            else parts.push(`Dep ${awayRem.toFixed(1)} kalan`);
-
-            // Add expected goals info
-            if (homeExp && awayExp) {
-                parts.push(`Beklenen: ${homeExp.toFixed(1)}-${awayExp.toFixed(1)}`);
-            }
-
-            // Add consistency info
-            if (consistencyBonus > 0) parts.push('✓Tutarlı');
-            else if (consistencyBonus < -5) parts.push('⚠️Volatil');
-            else if (consistencyBonus < 0) parts.push('~Değişken');
-
-            // NEW: Add tempo info
-            if (tempoResult && tempoResult.tempo) {
-                if (tempoResult.tempo === 'very_high') parts.push('🔥Yüksek Tempo');
-                else if (tempoResult.tempo === 'high') parts.push('⚡Hızlı');
-                else if (tempoResult.tempo === 'low') parts.push('💤Düşük Tempo');
-                else if (tempoResult.tempo === 'slow') parts.push('🐢Yavaş');
-            }
-
-            if (isFirstHalf) parts.push('(HT bazlı)');
-
-            return parts.join(' | ');
-        }
-
-        /**
-         * Default result when form data unavailable
-         */
-        function getDefaultResult() {
-            return {
-                valid: false,
-                reason: 'Form verisi bulunamadı',
-                homeRemaining: 0,
-                awayRemaining: 0,
-                totalRemaining: 0,
-                markets: []
-            };
-        }
-
-        /**
-         * Clear form cache (call periodically)
-         */
-        function clearCache() {
-            const now = Date.now();
-            for (const key of Object.keys(formCache)) {
-                if (now - formCache[key].timestamp > 2 * 60 * 60 * 1000) { // 2 hours
-                    delete formCache[key];
-                }
+        // Rule 2: Boost Favorite if trailing or drawing (Urgency Mode)
+        // Only apply if match is beyond 30th minute specific to Favorite
+        // Note: Assuming we are analyzing the match as a whole, but we prioritize the Favorite's action
+        if (elapsed > 30) {
+            if (favorite === 'HOME' && scoreDiff <= 0) {
+                potentialModifier += 0.3;
+                confidenceBooster += 15;
+                reason.push("🦁 Favorite Needs Goal (Trailing/Draw)");
+            } else if (favorite === 'AWAY' && scoreDiff >= 0) {
+                potentialModifier += 0.3;
+                confidenceBooster += 15;
+                reason.push("🦁 Favorite Needs Goal (Trailing/Draw)");
             }
         }
+    }
 
-        module.exports = {
-            analyzeForm,
-            calculatePotential,
-            clearCache
-        };
+    const { homeStats, awayStats } = formData;
+
+    // Get attack and defense stats based on half
+    const homeAttack = isFirstHalf ? homeStats.htAvg : homeStats.ftAvg;
+    const awayAttack = isFirstHalf ? awayStats.htAvg : awayStats.ftAvg;
+    const homeConceded = isFirstHalf ? homeStats.htConcededAvg : homeStats.ftConcededAvg;
+    const awayConceded = isFirstHalf ? awayStats.htConcededAvg : awayStats.ftConcededAvg;
+
+    // Calculate combined volatility (average of both teams)
+    const homeVolatility = homeStats.volatility || { cv: 50 };
+    const awayVolatility = awayStats.volatility || { cv: 50 };
+    const combinedCV = (homeVolatility.cv + awayVolatility.cv) / 2;
+    const consistencyBonus = getConsistencyBonus(combinedCV);
+
+    // NEW: Calculate tempo bonus from live stats
+    const tempoResult = calculateTempo(liveStats, elapsed);
+    const tempoBonus = tempoResult.bonus;
+
+    // Combined bonus (consistency + tempo)
+    const totalBonus = consistencyBonus + tempoBonus;
+
+    // WEIGHTED EXPECTED GOALS:
+    // Attack is 70% of the calculation, opponent's defensive weakness is 30%
+    // This keeps attack power dominant while considering defense
+    const homeExpected = (homeAttack * 0.7) + (awayConceded * 0.3);
+    const awayExpected = (awayAttack * 0.7) + (homeConceded * 0.3);
+
+    // Remaining potential per team
+    const homeRemaining = homeExpected - homeGoals;
+    const awayRemaining = awayExpected - awayGoals;
+    const totalRemaining = homeRemaining + awayRemaining;
+
+    // Time adjustment (less time = less potential)
+    const timeRatio = isFirstHalf
+        ? (45 - elapsed) / 45
+        : (90 - elapsed) / 45;
+    const adjustedRemaining = totalRemaining * Math.max(0.3, timeRatio);
+
+    // Generate market suggestions based on potential (now with combined bonus)
+    const markets = selectMarkets(homeRemaining, awayRemaining, homeGoals, awayGoals, elapsed, totalBonus);
+
+    return {
+        valid: true,
+        homeRemaining: Math.round(homeRemaining * 100) / 100,
+        awayRemaining: Math.round(awayRemaining * 100) / 100,
+        totalRemaining: Math.round(totalRemaining * 100) / 100,
+        adjustedRemaining: Math.round(adjustedRemaining * 100) / 100,
+        homeExpected: Math.round(homeExpected * 100) / 100,
+        awayExpected: Math.round(awayExpected * 100) / 100,
+        // Extra debug info
+        homeAttack: Math.round(homeAttack * 100) / 100,
+        awayAttack: Math.round(awayAttack * 100) / 100,
+        awayConceded: Math.round(awayConceded * 100) / 100,
+        homeConceded: Math.round(homeConceded * 100) / 100,
+        // Volatility info
+        homeVolatility: homeVolatility.cv,
+        awayVolatility: awayVolatility.cv,
+        combinedCV: Math.round(combinedCV),
+        consistencyBonus,
+        // NEW: Tempo info
+        tempo: tempoResult.tempo,
+        tempoBonus,
+        totalBonus,
+        liveShots: tempoResult.totalShots,
+        liveSoT: tempoResult.totalSoT,
+        liveCorners: tempoResult.totalCorners,
+        isFirstHalf,
+        elapsed,
+        score,
+        markets,
+        reason: generateReason(homeRemaining, awayRemaining, isFirstHalf, homeExpected, awayExpected, consistencyBonus, tempoResult)
+    };
+}
+
+/**
+ * NEW: Calculate tempo from live match stats
+ * Tempo = (shots / elapsed) * 90 (normalized to 90 min projection)
+ */
+function calculateTempo(liveStats, elapsed) {
+    if (!liveStats || elapsed < 10) {
+        return { tempo: 'normal', bonus: 0, totalShots: 0, totalSoT: 0, totalCorners: 0 };
+    }
+
+    const totalShots = (liveStats.shots?.home || 0) + (liveStats.shots?.away || 0);
+    const totalSoT = (liveStats.shotsOnTarget?.home || 0) + (liveStats.shotsOnTarget?.away || 0);
+    const totalCorners = (liveStats.corners?.home || 0) + (liveStats.corners?.away || 0);
+
+    // Normalize to 90-minute projection
+    const projectedShots = (totalShots / elapsed) * 90;
+    const projectedSoT = (totalSoT / elapsed) * 90;
+    const projectedCorners = (totalCorners / elapsed) * 90;
+
+    // Determine tempo level
+    let tempo = 'normal';
+    let bonus = 0;
+
+    // High tempo: > 15 projected shots OR > 6 projected SoT
+    if (projectedShots >= 18 || projectedSoT >= 8) {
+        tempo = 'very_high';
+        bonus = 7;
+    } else if (projectedShots >= 14 || projectedSoT >= 5) {
+        tempo = 'high';
+        bonus = 4;
+    }
+    // Low tempo: < 8 projected shots AND < 3 projected SoT
+    else if (projectedShots < 8 && projectedSoT < 3) {
+        tempo = 'low';
+        bonus = -5;
+    } else if (projectedShots < 10 && projectedSoT < 4) {
+        tempo = 'slow';
+        bonus = -2;
+    }
+
+    console.log(`[FormAnalysis] Tempo: ${tempo} (${projectedShots.toFixed(1)} proj shots, ${projectedSoT.toFixed(1)} proj SoT) → ${bonus >= 0 ? '+' : ''}${bonus}%`);
+
+    return {
+        tempo,
+        bonus,
+        totalShots,
+        totalSoT,
+        totalCorners,
+        projectedShots: Math.round(projectedShots * 10) / 10,
+        projectedSoT: Math.round(projectedSoT * 10) / 10,
+        projectedCorners: Math.round(projectedCorners * 10) / 10
+    };
+}
+
+/**
+ * NEW: Get consistency bonus/penalty based on combined CV
+ */
+function getConsistencyBonus(combinedCV) {
+    if (combinedCV < 30) return 5;      // Very consistent: +5%
+    if (combinedCV < 50) return 0;      // Normal: neutral
+    if (combinedCV < 80) return -3;     // Volatile: -3%
+    return -7;                          // Very volatile: -7%
+}
+
+/**
+ * Select markets based on remaining potential
+ */
+function selectMarkets(homeRem, awayRem, homeGoals, awayGoals, elapsed, consistencyBonus = 0) {
+    const total = homeGoals + awayGoals;
+    const diff = Math.abs(homeGoals - awayGoals);
+    const isFirstHalf = elapsed <= 45;
+    const markets = [];
+
+    // Both teams have potential
+    if (homeRem >= 0.5 && awayRem >= 0.5) {
+        if (total === 0 && isFirstHalf) {
+            markets.push({ name: 'İY Over 0.5', type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
+        }
+        if (total === 0 && !isFirstHalf && elapsed <= 70) {
+            markets.push({ name: 'Over 1.5', type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
+        }
+        // Removed BTTS - replaced with next goal market
+        if (total >= 1 && elapsed <= 75) {
+            markets.push({ name: `Over ${total + 0.5}`, type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
+        }
+    }
+
+    // Home has potential, away exhausted
+    if (homeRem >= 0.8 && awayRem < 0.3) {
+        markets.push({ name: 'Home Goal', type: 'HOME_GOAL', confidence: calculateMarketConfidence(homeRem, 'OVER', elapsed, consistencyBonus) });
+    }
+
+    // Away has potential, home exhausted
+    if (awayRem >= 0.8 && homeRem < 0.3) {
+        markets.push({ name: 'Away Goal', type: 'AWAY_GOAL', confidence: calculateMarketConfidence(awayRem, 'OVER', elapsed, consistencyBonus) });
+    }
+
+    // Both exhausted
+    if (homeRem < 0.3 && awayRem < 0.3) {
+        markets.push({ name: `Under ${total + 0.5}`, type: 'UNDER', confidence: calculateMarketConfidence(-(homeRem + awayRem), 'UNDER', elapsed, consistencyBonus) });
+        if (homeGoals === awayGoals && elapsed >= 70) {
+            markets.push({ name: 'Draw', type: 'DRAW', confidence: calculateMarketConfidence(0.5, 'DRAW', elapsed, consistencyBonus) });
+        }
+    }
+
+    // High scoring potential
+    if (homeRem + awayRem >= 1.5 && elapsed <= 75) {
+        markets.push({ name: `Over ${total + 0.5}`, type: 'OVER', confidence: calculateMarketConfidence(homeRem + awayRem, 'OVER', elapsed, consistencyBonus) });
+    }
+
+    // Sort by confidence
+    return markets.sort((a, b) => b.confidence - a.confidence);
+}
+
+/**
+ * Calculate market confidence based on potential and timing
+ */
+function calculateMarketConfidence(potentialValue, marketType, elapsed, consistencyBonus = 0) {
+    let base = 50;
+
+    // Potential bonus
+    if (marketType === 'OVER' || marketType === 'BTTS') {
+        if (potentialValue >= 2.0) base += 20;
+        else if (potentialValue >= 1.5) base += 15;
+        else if (potentialValue >= 1.0) base += 10;
+        else if (potentialValue >= 0.5) base += 5;
+        else base -= 10;
+    }
+
+    if (marketType === 'UNDER') {
+        if (potentialValue >= 0.5) base += 15; // Negative remaining = good for under
+        else if (potentialValue >= 0) base += 10;
+        else base -= 5;
+    }
+
+    // Time bonus/penalty
+    if (elapsed >= 75) {
+        if (marketType === 'UNDER' || marketType === 'DRAW') base += 10;
+        else base -= 5;
+    }
+    if (elapsed <= 35) {
+        if (marketType === 'OVER') base -= 5; // Too early
+    }
+
+    // NEW: Apply consistency bonus/penalty
+    base += consistencyBonus;
+
+    return Math.min(92, Math.max(45, base));
+}
+
+/**
+ * Generate human-readable reason
+ */
+function generateReason(homeRem, awayRem, isFirstHalf, homeExp, awayExp, consistencyBonus = 0, tempoResult = null) {
+    const parts = [];
+
+    if (homeRem >= 1.0) parts.push(`Ev +${homeRem.toFixed(1)} potansiyel`);
+    else if (homeRem < 0) parts.push(`Ev aştı (${homeRem.toFixed(1)})`);
+    else parts.push(`Ev ${homeRem.toFixed(1)} kalan`);
+
+    if (awayRem >= 1.0) parts.push(`Dep +${awayRem.toFixed(1)} potansiyel`);
+    else if (awayRem < 0) parts.push(`Dep aştı (${awayRem.toFixed(1)})`);
+    else parts.push(`Dep ${awayRem.toFixed(1)} kalan`);
+
+    // Add expected goals info
+    if (homeExp && awayExp) {
+        parts.push(`Beklenen: ${homeExp.toFixed(1)}-${awayExp.toFixed(1)}`);
+    }
+
+    // Add consistency info
+    if (consistencyBonus > 0) parts.push('✓Tutarlı');
+    else if (consistencyBonus < -5) parts.push('⚠️Volatil');
+    else if (consistencyBonus < 0) parts.push('~Değişken');
+
+    // NEW: Add tempo info
+    if (tempoResult && tempoResult.tempo) {
+        if (tempoResult.tempo === 'very_high') parts.push('🔥Yüksek Tempo');
+        else if (tempoResult.tempo === 'high') parts.push('⚡Hızlı');
+        else if (tempoResult.tempo === 'low') parts.push('💤Düşük Tempo');
+        else if (tempoResult.tempo === 'slow') parts.push('🐢Yavaş');
+    }
+
+    if (isFirstHalf) parts.push('(HT bazlı)');
+
+    return parts.join(' | ');
+}
+
+/**
+ * Default result when form data unavailable
+ */
+function getDefaultResult() {
+    return {
+        valid: false,
+        reason: 'Form verisi bulunamadı',
+        homeRemaining: 0,
+        awayRemaining: 0,
+        totalRemaining: 0,
+        markets: []
+    };
+}
+
+/**
+ * Clear form cache (call periodically)
+ */
+function clearCache() {
+    const now = Date.now();
+    for (const key of Object.keys(formCache)) {
+        if (now - formCache[key].timestamp > 2 * 60 * 60 * 1000) { // 2 hours
+            delete formCache[key];
+        }
+    }
+}
+
+module.exports = {
+    analyzeForm,
+    calculatePotential,
+    clearCache
+};
 // Force deploy update
