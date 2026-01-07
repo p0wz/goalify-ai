@@ -444,7 +444,8 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
  * Tempo = (shots / elapsed) * 90 (normalized to 90 min projection)
  */
 function calculateTempo(liveStats, elapsed) {
-    if (!liveStats || elapsed < 10) {
+    // Grace period: First 15 minutes - no tempo penalties, always 'normal'
+    if (!liveStats || elapsed < 15) {
         return { tempo: 'normal', bonus: 0, totalShots: 0, totalSoT: 0, totalCorners: 0 };
     }
 

@@ -245,10 +245,10 @@ async function scanLiveMatches() {
                 continue;
             }
 
-            // Filter 2: Tempo Check (reject ONLY slow tempo matches)
-            // 'low' tempo is acceptable if potential is high enough
-            if (formResult.tempo === 'slow') {
-                console.log(`[LiveBot]    ❌ STRICT: Slow tempo match (slow)`);
+            // Filter 2: Tempo Check (reject ONLY 'low' tempo matches - worst case)
+            // 'slow' tempo is acceptable, only 'low' (< 8 shots AND < 3 SoT projected) is blocked
+            if (formResult.tempo === 'low') {
+                console.log(`[LiveBot]    ❌ STRICT: Very low tempo match (low)`);
                 continue;
             }
 
