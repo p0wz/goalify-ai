@@ -18,7 +18,7 @@ let lastScanTime = null;
 let dailySignalCounts = {};
 let dailySignalDate = null;
 
-const SCAN_INTERVAL_MS = 8 * 60 * 1000; // 8 minutes
+const SCAN_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const SIGNAL_LIMITS = {
     FIRST_HALF: 1,
     LATE_GAME: 2
