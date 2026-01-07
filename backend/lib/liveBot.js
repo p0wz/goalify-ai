@@ -260,8 +260,8 @@ async function scanLiveMatches() {
 
             // ============ STRICT FILTER MODE ============
             // Filter 1: Minimum Potential Check
-            // Allow if EITHER team has high potential (>= 1.1) OR total is very high
-            const minIndividualPotential = 1.1;
+            // Allow if EITHER team has high potential (>= 1.0) OR total is very high
+            const minIndividualPotential = 1.0;
             if (formResult.homeRemaining < minIndividualPotential && formResult.awayRemaining < minIndividualPotential) {
                 console.log(`[LiveBot]    ❌ STRICT: Low potential (Both teams < ${minIndividualPotential})`);
                 continue;
@@ -296,8 +296,8 @@ async function scanLiveMatches() {
             const bestMarket = formResult.markets[0];
             console.log(`[LiveBot]    ✓ Best Market: ${bestMarket.name} (${bestMarket.confidence}%)`);
 
-            // Minimum confidence check (stricter threshold for quality signals)
-            const minConfidence = 65;
+            // Minimum confidence check (relaxed for more signals)
+            const minConfidence = 58;
             if (bestMarket.confidence < minConfidence) {
                 console.log(`[LiveBot]    ❌ Confidence too low (${bestMarket.confidence}% < ${minConfidence}%)`);
                 continue;
