@@ -48,19 +48,21 @@ async function analyzeForm(matchId, homeTeam, awayTeam, score, elapsed, liveStat
 
         // Determine Favorite from Odds (if available)
         let favorite = null; // 'HOME', 'AWAY', or null
+        let homeOdds = null;
+        let awayOdds = null;
         if (oddsData && Array.isArray(oddsData)) {
             const bookmaker = oddsData.find(b => b.name === 'bet365' || b.name === 'Unibet' || b.name === '1xBet');
             if (bookmaker && bookmaker.odds) {
                 const fullTimeOdds = bookmaker.odds.find(o => o.bettingType === 'HOME_DRAW_AWAY' && o.bettingScope === 'FULL_TIME');
                 if (fullTimeOdds && fullTimeOdds.odds && fullTimeOdds.odds.length >= 2) {
-                    const homeOpening = parseFloat(fullTimeOdds.odds[0].opening);
-                    const awayOpening = parseFloat(fullTimeOdds.odds[1].opening);
+                    homeOdds = parseFloat(fullTimeOdds.odds[0].opening);
+                    awayOdds = parseFloat(fullTimeOdds.odds[1].opening);
 
-                    if (homeOpening < 1.85 && homeOpening < awayOpening) favorite = 'HOME';
-                    else if (awayOpening < 1.85 && awayOpening < homeOpening) favorite = 'AWAY';
+                    if (homeOdds < 1.85 && homeOdds < awayOdds) favorite = 'HOME';
+                    else if (awayOdds < 1.85 && awayOdds < homeOdds) favorite = 'AWAY';
 
                     if (favorite) {
-                        console.log(`[FormAnalysis] 🦁 Detected Favorite: ${favorite} (Odds: H ${homeOpening} - A ${awayOpening})`);
+                        console.log(`[FormAnalysis] 🦁 Detected Favorite: ${favorite} (Odds: H ${homeOdds} - A ${awayOdds})`);
                     }
                 }
             }
@@ -442,6 +444,10 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
         elapsed,
         score,
         markets,
+        // Favorite and odds info
+        favorite,
+        homeOdds,
+        awayOdds,
         reason: generateReason(homeRemaining, awayRemaining, isFirstHalf, homeExpected, awayExpected, consistencyBonus, tempoResult)
     };
 }

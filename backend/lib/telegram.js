@@ -66,6 +66,17 @@ async function sendFormBasedSignal(signal) {
     const strategyEmoji = signal.strategyCode === 'FIRST_HALF' ? '⚽' : '🎯';
     const confidenceBar = getConfidenceBar(signal.confidencePercent);
 
+    // Build favorite info text
+    let favoriteText = '';
+    if (signal.homeOdds && signal.awayOdds) {
+        const favoriteTeam = signal.favorite === 'HOME' ? signal.home : (signal.favorite === 'AWAY' ? signal.away : 'Yok');
+        const favoriteOdds = signal.favorite === 'HOME' ? signal.homeOdds : (signal.favorite === 'AWAY' ? signal.awayOdds : '-');
+        favoriteText = `
+🎲 <b>Maç Öncesi Oranlar:</b>
+• Ev: ${signal.homeOdds?.toFixed(2) || '-'} | Dep: ${signal.awayOdds?.toFixed(2) || '-'}
+• Favori: ${signal.favorite ? `<b>${favoriteTeam}</b> (${favoriteOdds?.toFixed(2)})` : 'Yok'}`;
+    }
+
     const message = `
 ${strategyEmoji} <b>FORM SİNYALİ</b> ${strategyEmoji}
 
@@ -78,6 +89,7 @@ ${strategyEmoji} <b>FORM SİNYALİ</b> ${strategyEmoji}
 
 🎯 <b>Güven:</b> ${signal.confidencePercent}%
 ${confidenceBar}
+${favoriteText}
 
 📊 <b>Potansiyel Analizi:</b>
 • Ev Kalan: ${signal.stats?.homeRemaining || '-'}

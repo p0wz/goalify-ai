@@ -352,6 +352,10 @@ async function scanLiveMatches() {
                     homeExpected: formResult.homeExpected?.toFixed(2),
                     awayExpected: formResult.awayExpected?.toFixed(2)
                 },
+                // Pre-match odds info
+                favorite: formResult.favorite,
+                homeOdds: formResult.homeOdds,
+                awayOdds: formResult.awayOdds,
                 isFormBased: true
             };
 
