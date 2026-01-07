@@ -346,13 +346,34 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
                     (g.home_team?.name === match.homeTeam && g.away_team?.name === match.awayTeam) ||
                     (g.home_team?.name === match.awayTeam && g.away_team?.name === match.homeTeam)
                 ).slice(0, 5) : [];
-                const detailedStats = analyzer.generateDetailedStats(match, analysis.stats, actualH2H);
+
+                // Get home and away matches from h2hData for HT enrichment
+                const homeMatches = Array.isArray(h2hData) ? h2hData.filter(g =>
+                    g.home_team?.name === match.homeTeam
+                ).slice(0, 3) : [];
+                const awayMatches = Array.isArray(h2hData) ? h2hData.filter(g =>
+                    g.away_team?.name === match.awayTeam
+                ).slice(0, 3) : [];
+
+                // Fetch HT details for enriched prompt
+                let htData = null;
+                try {
+                    htData = await analyzer.fetchHTDetailsForMatches(homeMatches, awayMatches, actualH2H.slice(0, 3));
+                } catch (err) {
+                    console.error('[Analysis] Failed to fetch HT details:', err.message);
+                }
+
+                // Use enhanced prompt with HT data
+                const detailedStats = htData
+                    ? analyzer.generateDetailedStatsWithHT(match, analysis.stats, actualH2H, htData)
+                    : analyzer.generateDetailedStats(match, analysis.stats, actualH2H);
+
                 allMatches.push({
                     matchId: match.matchId,
                     homeTeam: match.homeTeam,
                     awayTeam: match.awayTeam,
                     league: match.league,
-                    timestamp: match.timestamp, // Ensure this is present
+                    timestamp: match.timestamp,
                     detailedStats: detailedStats,
                     stats: analysis.stats
                 });

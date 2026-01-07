@@ -691,6 +691,188 @@ Last ${Math.min(mutual.length, 3)} Meetings:
     return text;
 }
 
+/**
+ * Fetch match details to get HT scores for form matches
+ * Returns enriched match data with HT scores
+ */
+async function fetchHTDetailsForMatches(homeMatches, awayMatches, h2hMatches) {
+    const fetchDetailsForList = async (matches, limit = 3) => {
+        const enriched = [];
+        const toFetch = matches.slice(0, limit);
+
+        for (const m of toFetch) {
+            const matchId = m.match_id || m.id || m.eventId;
+            if (!matchId) {
+                enriched.push(m);
+                continue;
+            }
+
+            try {
+                const details = await flashscore.fetchMatchDetails(matchId);
+                if (details) {
+                    const parsed = flashscore.parseMatchResult(details);
+                    if (parsed && parsed.htHome !== null && parsed.htAway !== null) {
+                        // Enrich the match object with HT scores
+                        m.home_team = m.home_team || {};
+                        m.away_team = m.away_team || {};
+                        m.home_team.score_1st_half = parsed.htHome;
+                        m.away_team.score_1st_half = parsed.htAway;
+                        console.log(`[Analyzer] Enriched ${matchId}: HT ${parsed.htHome}-${parsed.htAway}`);
+                    }
+                }
+            } catch (err) {
+                console.error(`[Analyzer] Failed to fetch details for ${matchId}:`, err.message);
+            }
+            enriched.push(m);
+        }
+
+        return enriched;
+    };
+
+    console.log(`[Analyzer] Fetching HT details for ${homeMatches.length} home, ${awayMatches.length} away, ${h2hMatches.length} H2H matches...`);
+
+    const [enrichedHome, enrichedAway, enrichedH2H] = await Promise.all([
+        fetchDetailsForList(homeMatches, 3),
+        fetchDetailsForList(awayMatches, 3),
+        fetchDetailsForList(h2hMatches, 3)
+    ]);
+
+    return {
+        homeDetails: enrichedHome,
+        awayDetails: enrichedAway,
+        h2hDetails: enrichedH2H
+    };
+}
+
+/**
+ * Generate detailed stats with HT data for "Tüm Maçlar" prompt
+ */
+function generateDetailedStatsWithHT(match, stats, mutual = [], htData = null) {
+    mutual = mutual || [];
+    const { homeForm, awayForm, homeHomeStats, awayAwayStats } = stats;
+    const kickoff = new Date(match.timestamp * 1000).toLocaleString('tr-TR');
+
+    // Calculate HT stats from enriched data if available
+    let homeHTStats = { scored: 0, conceded: 0, wins: 0, draws: 0, matches: 0 };
+    let awayHTStats = { scored: 0, conceded: 0, wins: 0, draws: 0, matches: 0 };
+
+    if (htData) {
+        // Process home team HT stats
+        for (const m of htData.homeDetails || []) {
+            const htHome = parseInt(m.home_team?.score_1st_half) || 0;
+            const htAway = parseInt(m.away_team?.score_1st_half) || 0;
+            if (htHome + htAway > 0 || m.home_team?.score_1st_half !== undefined) {
+                const isHome = m.home_team?.name === match.homeTeam;
+                const myHT = isHome ? htHome : htAway;
+                const oppHT = isHome ? htAway : htHome;
+                homeHTStats.scored += myHT;
+                homeHTStats.conceded += oppHT;
+                homeHTStats.matches++;
+                if (myHT > oppHT) homeHTStats.wins++;
+                else if (myHT === oppHT) homeHTStats.draws++;
+            }
+        }
+
+        // Process away team HT stats
+        for (const m of htData.awayDetails || []) {
+            const htHome = parseInt(m.home_team?.score_1st_half) || 0;
+            const htAway = parseInt(m.away_team?.score_1st_half) || 0;
+            if (htHome + htAway > 0 || m.away_team?.score_1st_half !== undefined) {
+                const isHome = m.home_team?.name === match.awayTeam;
+                const myHT = isHome ? htHome : htAway;
+                const oppHT = isHome ? htAway : htHome;
+                awayHTStats.scored += myHT;
+                awayHTStats.conceded += oppHT;
+                awayHTStats.matches++;
+                if (myHT > oppHT) awayHTStats.wins++;
+                else if (myHT === oppHT) awayHTStats.draws++;
+            }
+        }
+    }
+
+    const homeHTAvgScored = homeHTStats.matches > 0 ? (homeHTStats.scored / homeHTStats.matches).toFixed(2) : '0.00';
+    const homeHTAvgConceded = homeHTStats.matches > 0 ? (homeHTStats.conceded / homeHTStats.matches).toFixed(2) : '0.00';
+    const homeHTWinRate = homeHTStats.matches > 0 ? ((homeHTStats.wins / homeHTStats.matches) * 100).toFixed(0) : '0';
+    const homeHTDrawRate = homeHTStats.matches > 0 ? ((homeHTStats.draws / homeHTStats.matches) * 100).toFixed(0) : '0';
+
+    const awayHTAvgScored = awayHTStats.matches > 0 ? (awayHTStats.scored / awayHTStats.matches).toFixed(2) : '0.00';
+    const awayHTAvgConceded = awayHTStats.matches > 0 ? (awayHTStats.conceded / awayHTStats.matches).toFixed(2) : '0.00';
+    const awayHTWinRate = awayHTStats.matches > 0 ? ((awayHTStats.wins / awayHTStats.matches) * 100).toFixed(0) : '0';
+    const awayHTDrawRate = awayHTStats.matches > 0 ? ((awayHTStats.draws / awayHTStats.matches) * 100).toFixed(0) : '0';
+
+    let text = `══════════════════════════════════════════════════
+MATCH REPORT: ${match.homeTeam} vs ${match.awayTeam}
+LEAGUE: ${match.league}
+DATE: ${kickoff}
+
+─────────── HOME TEAM: ${match.homeTeam} ───────────
+A. GENERAL FORM (Last 5):
+   • Record: ${homeForm.matches} Matches
+   • Performance: Win ${homeForm.winRate}% | Draw ${homeForm.drawRate || 0}% | Loss ${homeForm.lossRate || 0}%
+   • Goals: Scored ${homeForm.avgScored.toFixed(2)} | Conceded ${homeForm.avgConceded.toFixed(2)}
+   • Clean Sheets: ${homeForm.cleanSheetRate}% | Failed to Score: ${(100 - homeForm.scoringRate).toFixed(0)}%
+   • Key Lines:
+     - Over 1.5: ${homeForm.over15Rate}%
+     - Over 2.5: ${homeForm.over25Rate}%
+     - Under 2.5: ${homeForm.under25Rate}%
+     - BTTS: ${homeForm.bttsRate}%
+
+B. HOME PERFORMANCE (Last 8 Home):
+   • Win Rate: ${homeHomeStats.winRate.toFixed(1)}%
+   • Scoring Rate: ${homeHomeStats.scoringRate.toFixed(0)}%
+   • Avg Goals: Scored ${homeHomeStats.avgScored.toFixed(2)} | Conceded ${homeHomeStats.avgConceded.toFixed(2)}
+
+C. FIRST HALF PERFORMANCE (Last 3 Home - Verified):
+   • Avg HT Goals: Scored ${homeHTAvgScored} | Conceded ${homeHTAvgConceded}
+   • HT Win Rate: ${homeHTWinRate}% | HT Draw Rate: ${homeHTDrawRate}%
+   • Sequences:
+     - Scored in last ${homeHomeStats.scoringSequence || 0} home matches
+     - Conceded in last ${homeHomeStats.concedingSequence || 0} home matches
+
+─────────── AWAY TEAM: ${match.awayTeam} ───────────
+A. GENERAL FORM (Last 5):
+   • Record: ${awayForm.matches} Matches
+   • Performance: Win ${awayForm.winRate}% | Draw ${awayForm.drawRate || 0}% | Loss ${awayForm.lossRate || 0}%
+   • Goals: Scored ${awayForm.avgScored.toFixed(2)} | Conceded ${awayForm.avgConceded.toFixed(2)}
+   • Clean Sheets: ${awayForm.cleanSheetRate}% | Failed to Score: ${(100 - awayForm.scoringRate).toFixed(0)}%
+   • Key Lines:
+     - Over 1.5: ${awayForm.over15Rate}%
+     - Over 2.5: ${awayForm.over25Rate}%
+     - Under 2.5: ${awayForm.under25Rate}%
+     - BTTS: ${awayForm.bttsRate}%
+
+B. AWAY PERFORMANCE (Last 8 Away):
+   • Win Rate: ${awayAwayStats.winRate.toFixed(1)}%
+   • Scoring Rate: ${awayAwayStats.scoringRate.toFixed(0)}%
+   • Avg Goals: Scored ${awayAwayStats.avgScored.toFixed(2)} | Conceded ${awayAwayStats.avgConceded.toFixed(2)}
+
+C. FIRST HALF PERFORMANCE (Last 3 Away - Verified):
+   • Avg HT Goals: Scored ${awayHTAvgScored} | Conceded ${awayHTAvgConceded}
+   • HT Win Rate: ${awayHTWinRate}% | HT Draw Rate: ${awayHTDrawRate}%
+   • Sequences:
+     - Scored in last ${awayAwayStats.scoringSequence || 0} away matches
+     - Conceded in last ${awayAwayStats.concedingSequence || 0} away matches
+
+─────────── HEAD TO HEAD (H2H) ───────────
+Last ${Math.min(mutual.length, 3)} Meetings:
+`;
+
+    // Use h2hDetails if available, otherwise use mutual
+    const h2hToShow = (htData && htData.h2hDetails && htData.h2hDetails.length > 0) ? htData.h2hDetails : mutual;
+    h2hToShow.slice(0, 3).forEach(g => {
+        const date = new Date(g.timestamp * 1000).toLocaleDateString('tr-TR');
+        const htHome = g.home_team?.score_1st_half;
+        const htAway = g.away_team?.score_1st_half;
+        const ht = (htHome !== null && htHome !== undefined && htAway !== null && htAway !== undefined)
+            ? `(HT: ${htHome}-${htAway})`
+            : '';
+        text += `   • ${date}: ${g.home_team?.name} ${g.home_team?.score}-${g.away_team?.score} ${g.away_team?.name} ${ht}\n`;
+    });
+
+    text += '══════════════════════════════════════════════════';
+    return text;
+}
+
 module.exports = {
     calculateStats,
     analyzeMatch,
@@ -699,5 +881,7 @@ module.exports = {
     generateAIPrompt,
     generateRawStats,
     generateDetailedStats,
+    generateDetailedStatsWithHT,
+    fetchHTDetailsForMatches,
     ALLOWED_LEAGUES
 };
