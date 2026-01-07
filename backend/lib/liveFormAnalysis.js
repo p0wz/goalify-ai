@@ -56,8 +56,8 @@ async function analyzeForm(matchId, homeTeam, awayTeam, score, elapsed, liveStat
                     const homeOpening = parseFloat(fullTimeOdds.odds[0].opening);
                     const awayOpening = parseFloat(fullTimeOdds.odds[1].opening);
 
-                    if (homeOpening < 2.05 && homeOpening < awayOpening) favorite = 'HOME';
-                    else if (awayOpening < 2.05 && awayOpening < homeOpening) favorite = 'AWAY';
+                    if (homeOpening < 1.85 && homeOpening < awayOpening) favorite = 'HOME';
+                    else if (awayOpening < 1.85 && awayOpening < homeOpening) favorite = 'AWAY';
 
                     if (favorite) {
                         console.log(`[FormAnalysis] 🦁 Detected Favorite: ${favorite} (Odds: H ${homeOpening} - A ${awayOpening})`);
