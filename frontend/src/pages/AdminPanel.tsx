@@ -1300,35 +1300,85 @@ const AdminPanel = () => {
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Market Seç" />
                                                     </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="First Half Over 0.5">IY 0.5 Üst</SelectItem>
-                                                        <SelectItem value="Home Wins Either Half">Ev İki Yarıdan Birini Kazanır</SelectItem>
-                                                        <SelectItem value="Match Winner Home">Maç Sonucu 1</SelectItem>
-                                                        <SelectItem value="Over 2.5 Goals">2.5 Üst</SelectItem>
+                                                    <SelectContent className="max-h-80">
+                                                        {/* === OVER/UNDER === */}
+                                                        <SelectItem value="Over 0.5 Goals">0.5 Üst</SelectItem>
                                                         <SelectItem value="Over 1.5 Goals">1.5 Üst</SelectItem>
+                                                        <SelectItem value="Over 2.5 Goals">2.5 Üst</SelectItem>
+                                                        <SelectItem value="Over 3.5 Goals">3.5 Üst</SelectItem>
+                                                        <SelectItem value="Over 4.5 Goals">4.5 Üst</SelectItem>
+                                                        <SelectItem value="Under 1.5 Goals">1.5 Alt</SelectItem>
                                                         <SelectItem value="Under 2.5 Goals">2.5 Alt</SelectItem>
                                                         <SelectItem value="Under 3.5 Goals">3.5 Alt</SelectItem>
+                                                        <SelectItem value="Under 4.5 Goals">4.5 Alt</SelectItem>
+
+                                                        {/* === 1X2 & DOUBLE CHANCE === */}
+                                                        <SelectItem value="Match Winner Home">MS1 (Ev Kazanır)</SelectItem>
+                                                        <SelectItem value="Match Winner Away">MS2 (Dep Kazanır)</SelectItem>
+                                                        <SelectItem value="Draw">Berabere (X)</SelectItem>
+                                                        <SelectItem value="1X">1X (Ev veya Berabere)</SelectItem>
+                                                        <SelectItem value="X2">X2 (Dep veya Berabere)</SelectItem>
+                                                        <SelectItem value="12">12 (Gol Olur)</SelectItem>
+
+                                                        {/* === DNB (DRAW NO BET) === */}
+                                                        <SelectItem value="Home DNB">Ev DNB</SelectItem>
+                                                        <SelectItem value="Away DNB">Dep DNB</SelectItem>
+
+                                                        {/* === BTTS === */}
                                                         <SelectItem value="Both Teams To Score">KG Var</SelectItem>
-                                                        {/* Combination Markets */}
+                                                        <SelectItem value="BTTS No">KG Yok</SelectItem>
+                                                        <SelectItem value="BTTS + Over 2.5">KG Var + 2.5 Üst</SelectItem>
+
+                                                        {/* === TEAM GOALS === */}
+                                                        <SelectItem value="Home Over 0.5">Ev 0.5 Üst</SelectItem>
+                                                        <SelectItem value="Home Over 1.5">Ev 1.5 Üst</SelectItem>
+                                                        <SelectItem value="Away Over 0.5">Dep 0.5 Üst</SelectItem>
+                                                        <SelectItem value="Away Over 1.5">Dep 1.5 Üst</SelectItem>
+
+                                                        {/* === FIRST HALF === */}
+                                                        <SelectItem value="First Half Over 0.5">IY 0.5 Üst</SelectItem>
+                                                        <SelectItem value="First Half Over 1.5">IY 1.5 Üst</SelectItem>
+                                                        <SelectItem value="First Half Under 0.5">IY 0.5 Alt</SelectItem>
+
+                                                        {/* === SECOND HALF === */}
+                                                        <SelectItem value="2H Over 0.5">2Y 0.5 Üst</SelectItem>
+                                                        <SelectItem value="2H Over 1.5">2Y 1.5 Üst</SelectItem>
+
+                                                        {/* === HALF WINNERS === */}
+                                                        <SelectItem value="Home Wins Either Half">Ev Yarı Kazanır</SelectItem>
+                                                        <SelectItem value="Away Wins Either Half">Dep Yarı Kazanır</SelectItem>
+
+                                                        {/* === HANDICAP === */}
+                                                        <SelectItem value="Hnd. Home -1.5">Handikap MS1 (-1.5)</SelectItem>
+                                                        <SelectItem value="Hnd. Away -1.5">Handikap MS2 (-1.5)</SelectItem>
+
+                                                        {/* === 1X COMBINATIONS === */}
+                                                        <SelectItem value="1X + Over 1.5">1X + 1.5 Üst</SelectItem>
+                                                        <SelectItem value="1X + Over 2.5">1X + 2.5 Üst</SelectItem>
+                                                        <SelectItem value="1X + Under 3.5">1X + 3.5 Alt</SelectItem>
+                                                        <SelectItem value="1X + Under 4.5">1X + 4.5 Alt</SelectItem>
+                                                        <SelectItem value="1X + Under 5.5">1X + 5.5 Alt</SelectItem>
+
+                                                        {/* === 2X COMBINATIONS === */}
                                                         <SelectItem value="2X + Over 1.5">2X + 1.5 Üst</SelectItem>
                                                         <SelectItem value="2X + Over 2.5">2X + 2.5 Üst</SelectItem>
                                                         <SelectItem value="2X + Under 3.5">2X + 3.5 Alt</SelectItem>
                                                         <SelectItem value="2X + Under 4.5">2X + 4.5 Alt</SelectItem>
                                                         <SelectItem value="2X + Under 5.5">2X + 5.5 Alt</SelectItem>
-                                                        <SelectItem value="1X + Over 2.5">1X + 2.5 Üst</SelectItem>
-                                                        <SelectItem value="1X + Under 3.5">1X + 3.5 Alt</SelectItem>
-                                                        <SelectItem value="1X + Under 4.5">1X + 4.5 Alt</SelectItem>
-                                                        <SelectItem value="1X + Under 5.5">1X + 5.5 Alt</SelectItem>
-                                                        <SelectItem value="2 + Over 1.5">MS2 + 1.5 Üst</SelectItem>
-                                                        <SelectItem value="2 + Over 2.5">MS2 + 2.5 Üst</SelectItem>
-                                                        <SelectItem value="2 + Under 3.5">MS2 + 3.5 Alt</SelectItem>
-                                                        <SelectItem value="2 + Under 4.5">MS2 + 4.5 Alt</SelectItem>
-                                                        <SelectItem value="2 + Under 5.5">MS2 + 5.5 Alt</SelectItem>
+
+                                                        {/* === MS1 COMBINATIONS === */}
                                                         <SelectItem value="1 + Over 1.5">MS1 + 1.5 Üst</SelectItem>
                                                         <SelectItem value="1 + Over 2.5">MS1 + 2.5 Üst</SelectItem>
                                                         <SelectItem value="1 + Under 3.5">MS1 + 3.5 Alt</SelectItem>
                                                         <SelectItem value="1 + Under 4.5">MS1 + 4.5 Alt</SelectItem>
                                                         <SelectItem value="1 + Under 5.5">MS1 + 5.5 Alt</SelectItem>
+
+                                                        {/* === MS2 COMBINATIONS === */}
+                                                        <SelectItem value="2 + Over 1.5">MS2 + 1.5 Üst</SelectItem>
+                                                        <SelectItem value="2 + Over 2.5">MS2 + 2.5 Üst</SelectItem>
+                                                        <SelectItem value="2 + Under 3.5">MS2 + 3.5 Alt</SelectItem>
+                                                        <SelectItem value="2 + Under 4.5">MS2 + 4.5 Alt</SelectItem>
+                                                        <SelectItem value="2 + Under 5.5">MS2 + 5.5 Alt</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>

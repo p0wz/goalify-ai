@@ -69,13 +69,51 @@ function evaluatePrediction(market, homeGoals, awayGoals, htHome = null, htAway 
         return 'LOST';
     }
 
-    // First Half
+    // First Half Over 0.5
     if (marketLower.includes('first half over 0.5') || marketLower.includes('1h over 0.5') || marketLower.includes('1y 0.5')) {
         if (htHome !== null && htAway !== null) {
             return result((htHome + htAway) >= 1);
         }
         console.log(`[Settlement] Missing HT scores for ${market} (HT: ${htHome}-${htAway})`);
-        return null; // Do NOT use FT result as fallback
+        return null;
+    }
+
+    // First Half Over 1.5
+    if (marketLower.includes('first half over 1.5') || marketLower.includes('1h over 1.5') || marketLower.includes('1y 1.5')) {
+        if (htHome !== null && htAway !== null) {
+            return result((htHome + htAway) >= 2);
+        }
+        console.log(`[Settlement] Missing HT scores for ${market} (HT: ${htHome}-${htAway})`);
+        return null;
+    }
+
+    // First Half Under 0.5
+    if (marketLower.includes('first half under 0.5') || marketLower.includes('1h under 0.5') || marketLower.includes('1y 0.5 alt')) {
+        if (htHome !== null && htAway !== null) {
+            return result((htHome + htAway) === 0);
+        }
+        console.log(`[Settlement] Missing HT scores for ${market} (HT: ${htHome}-${htAway})`);
+        return null;
+    }
+
+    // Second Half Over 0.5
+    if (marketLower.includes('2h over 0.5') || marketLower.includes('2y 0.5')) {
+        if (htHome !== null && htAway !== null) {
+            const h2Goals = (homeGoals - htHome) + (awayGoals - htAway);
+            return result(h2Goals >= 1);
+        }
+        console.log(`[Settlement] Missing HT scores for ${market} (HT: ${htHome}-${htAway})`);
+        return null;
+    }
+
+    // Second Half Over 1.5
+    if (marketLower.includes('2h over 1.5') || marketLower.includes('2y 1.5')) {
+        if (htHome !== null && htAway !== null) {
+            const h2Goals = (homeGoals - htHome) + (awayGoals - htAway);
+            return result(h2Goals >= 2);
+        }
+        console.log(`[Settlement] Missing HT scores for ${market} (HT: ${htHome}-${htAway})`);
+        return null;
     }
 
     // MS1 & 1.5 Üst
@@ -99,6 +137,11 @@ function evaluatePrediction(market, homeGoals, awayGoals, htHome = null, htAway 
     }
 
     // ============ COMBINATION MARKETS ============
+
+    // BTTS + Over 2.5
+    if (marketLower.includes('btts') && marketLower.includes('over 2.5')) {
+        return result(homeGoals >= 1 && awayGoals >= 1 && totalGoals >= 3);
+    }
 
     // 2X + OVER/UNDER (Away or Draw + Goals)
     if (marketLower.includes('2x')) {
@@ -144,7 +187,7 @@ function evaluatePrediction(market, homeGoals, awayGoals, htHome = null, htAway 
         if (marketLower.includes('under 5.5')) return result(homeWin && totalGoals <= 5);
     }
 
-    // Ev Herhangi Yarı
+    // Ev Herhangi Yarı (Home Wins Either Half)
     if (marketLower.includes('ev herhangi') || marketLower.includes('home wins either half')) {
         if (htHome !== null && htAway !== null) {
             const homeWon1H = htHome > htAway;
@@ -154,6 +197,18 @@ function evaluatePrediction(market, homeGoals, awayGoals, htHome = null, htAway 
             return result(homeWon1H || homeWon2H);
         }
         return result(homeGoals > awayGoals); // Fallback
+    }
+
+    // Away Wins Either Half (Dep Yarı Kazanır)
+    if (marketLower.includes('dep herhangi') || marketLower.includes('away wins either half')) {
+        if (htHome !== null && htAway !== null) {
+            const awayWon1H = htAway > htHome;
+            const h2Home = homeGoals - htHome;
+            const h2Away = awayGoals - htAway;
+            const awayWon2H = h2Away > h2Home;
+            return result(awayWon1H || awayWon2H);
+        }
+        return result(awayGoals > homeGoals); // Fallback
     }
 
     console.log(`[Settlement] Unknown market: ${market}`);
