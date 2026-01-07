@@ -470,11 +470,11 @@ function calculateTempo(liveStats, elapsed) {
         tempo = 'high';
         bonus = 4;
     }
-    // Low tempo: < 8 projected shots AND < 3 projected SoT
-    else if (projectedShots < 8 && projectedSoT < 3) {
+    // Low tempo: < 7 projected shots AND < 2 projected SoT (was 8, 3)
+    else if (projectedShots < 7 && projectedSoT < 2) {
         tempo = 'low';
         bonus = -5;
-    } else if (projectedShots < 10 && projectedSoT < 4) {
+    } else if (projectedShots < 9 && projectedSoT < 3) {
         tempo = 'slow';
         bonus = -2;
     }
