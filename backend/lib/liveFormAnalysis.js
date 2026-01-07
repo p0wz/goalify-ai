@@ -319,9 +319,16 @@ function calculatePotential(formData, score, elapsed, liveStats = null, favorite
         // Only apply if tempo is NOT slow
         const tempoCheck = calculateTempo(liveStats, elapsed);
         if (tempoCheck.tempo !== 'slow') {
-            potentialModifier += 0.6; // Broken defenses
-            confidenceBooster += 10;
+            potentialModifier += 0.8; // Broken defenses (increased from 0.6)
+            confidenceBooster += 15; // Increased from 10
             reason.push("🔥 Goal Fest: High scoring match, defenses are open");
+
+            // Extra boost if score difference is 1 or less (tight game = more goals likely)
+            if (Math.abs(scoreDiff) <= 1) {
+                potentialModifier += 0.3;
+                confidenceBooster += 5;
+                reason.push("⚡ Close Game Bonus: Tight score drives urgency");
+            }
         }
     }
 

@@ -24,15 +24,20 @@ const SIGNAL_LIMITS = {
     LATE_GAME: 2
 };
 
+// Track last signal scores per match
+let lastSignalScores = {};
+
 /**
  * Check daily signal limit for match/strategy
+ * Allow extra signal if score changed since last signal
  */
-function checkSignalLimit(matchId, strategyCode) {
+function checkSignalLimit(matchId, strategyCode, currentScore = null) {
     const today = new Date().toISOString().split('T')[0];
 
     // Reset if new day
     if (dailySignalDate !== today) {
         dailySignalCounts = {};
+        lastSignalScores = {};
         dailySignalDate = today;
     }
 
@@ -40,15 +45,32 @@ function checkSignalLimit(matchId, strategyCode) {
     const limit = SIGNAL_LIMITS[strategyCode] || 1;
     const count = dailySignalCounts[key] || 0;
 
-    return count < limit;
+    // Check if under base limit
+    if (count < limit) {
+        return true;
+    }
+
+    // If at limit, check if score changed since last signal
+    if (currentScore && lastSignalScores[key]) {
+        const lastScore = lastSignalScores[key];
+        if (currentScore !== lastScore) {
+            console.log(`[LiveBot] Score changed (${lastScore} → ${currentScore}), allowing extra signal`);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
  * Record signal for daily limit tracking
  */
-function recordSignalSent(matchId, strategyCode) {
+function recordSignalSent(matchId, strategyCode, score = null) {
     const key = `${matchId}_${strategyCode}`;
     dailySignalCounts[key] = (dailySignalCounts[key] || 0) + 1;
+    if (score) {
+        lastSignalScores[key] = score;
+    }
 }
 
 /**
@@ -284,8 +306,8 @@ async function scanLiveMatches() {
             // Determine strategy code based on timing
             const strategyCode = elapsed <= 45 ? 'FIRST_HALF' : 'LATE_GAME';
 
-            // Check signal limit
-            if (!checkSignalLimit(matchId, strategyCode)) {
+            // Check signal limit (pass current score to allow extra signal on score change)
+            if (!checkSignalLimit(matchId, strategyCode, score)) {
                 console.log(`[LiveBot]    ❌ Signal limit reached for ${strategyCode}`);
                 continue;
             }
@@ -342,8 +364,8 @@ async function scanLiveMatches() {
             // Send to Telegram
             await telegram.sendLiveSignal(candidate);
 
-            // Record for limit tracking
-            recordSignalSent(matchId, candidate.strategyCode);
+            // Record for limit tracking (with score for change detection)
+            recordSignalSent(matchId, candidate.strategyCode, score);
 
             signals.push(candidate);
 
