@@ -111,17 +111,21 @@ async function analyzeForm(matchId, homeTeam, awayTeam, score, elapsed, liveStat
             console.log(`[FormAnalysis] H2H Bonus: ${h2hAnalysis.confidenceBonus > 0 ? '+' : ''}${h2hAnalysis.confidenceBonus}%`);
         }
 
-        // Cache the result (now includes H2H)
+        // Cache the result (now includes H2H and odds)
         formCache[cacheKey] = {
             homeTeam,
             awayTeam,
             homeStats,
             awayStats,
             h2hAnalysis, // NEW: Store H2H analysis
+            // Store odds info in cache
+            favorite,
+            homeOdds,
+            awayOdds,
             timestamp: Date.now()
         };
 
-        return calculatePotential(formCache[cacheKey], score, elapsed, liveStats, favorite);
+        return calculatePotential(formCache[cacheKey], score, elapsed, liveStats);
 
     } catch (error) {
         console.error('[FormAnalysis] Error:', error.message);
@@ -278,11 +282,16 @@ function calculateVolatility(details, teamName) {
 /**
  * Calculates remaining potential with Game State Logic
  */
-function calculatePotential(formData, score, elapsed, liveStats = null, favorite = null) {
+function calculatePotential(formData, score, elapsed, liveStats = null) {
     const [homeGoals, awayGoals] = score.split('-').map(s => parseInt(s) || 0);
     const scoreDiff = homeGoals - awayGoals;
     const totalGoals = homeGoals + awayGoals;
     const isFirstHalf = elapsed <= 45;
+
+    // Extract favorite and odds from formData (stored in cache)
+    const favorite = formData.favorite || null;
+    const homeOdds = formData.homeOdds || null;
+    const awayOdds = formData.awayOdds || null;
 
     let reason = [];
     let potentialModifier = 0;
