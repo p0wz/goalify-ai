@@ -238,8 +238,8 @@ async function scanLiveMatches() {
 
             // ============ STRICT FILTER MODE ============
             // Filter 1: Minimum Potential Check
-            // Allow if EITHER team has high potential (>= 1.2) OR total is very high
-            const minIndividualPotential = 1.2;
+            // Allow if EITHER team has high potential (>= 1.1) OR total is very high
+            const minIndividualPotential = 1.1;
             if (formResult.homeRemaining < minIndividualPotential && formResult.awayRemaining < minIndividualPotential) {
                 console.log(`[LiveBot]    ❌ STRICT: Low potential (Both teams < ${minIndividualPotential})`);
                 continue;
