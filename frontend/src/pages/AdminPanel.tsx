@@ -333,14 +333,15 @@ const AdminPanel = () => {
             handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) {
-                // Filter only Premier League matches
+                // Filter only Premier League and FA Cup matches
                 const plMatches = (data.allMatches || []).filter((m: RawMatch) =>
                     m.league.toLowerCase().includes('premier league') ||
+                    m.league.toLowerCase().includes('fa cup') ||
                     m.league.toLowerCase().includes('england') ||
                     m.league === 'Premier League'
                 );
                 setPremierLeagueMatches(plMatches);
-                toast.success(`${plMatches.length} Premier League maçı bulundu!`);
+                toast.success(`${plMatches.length} Premier League / FA Cup maçı bulundu!`);
             } else {
                 toast.error(data.error || 'Analiz hatası');
             }
