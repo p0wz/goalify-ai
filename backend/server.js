@@ -483,59 +483,68 @@ app.post('/api/live/current-matches', auth.authenticateToken, async (req, res) =
         // Fetch live matches from Flashscore API
         const liveData = await flashscore.fetchLiveMatches();
 
+        console.log(`[LiveMatches] Raw API response type: ${typeof liveData}`);
+        console.log(`[LiveMatches] Raw API response is array: ${Array.isArray(liveData)}`);
+        console.log(`[LiveMatches] Raw API response length: ${liveData?.length || 0}`);
+
         if (!liveData || liveData.length === 0) {
+            console.log('[LiveMatches] No data from API');
             return res.json({ success: true, matches: [], count: 0 });
         }
 
-        // Process matches
+        // Log first item structure for debugging
+        if (liveData[0]) {
+            console.log('[LiveMatches] First item keys:', Object.keys(liveData[0]));
+        }
+
+        // Process matches - Same structure as liveBot.js
+        const tournaments = Array.isArray(liveData) ? liveData : [];
         let matches = [];
 
-        for (const category of liveData) {
-            if (!category.DATA) continue;
+        for (const tournament of tournaments) {
+            const leagueName = tournament.name || 'Unknown League';
+            const countryName = tournament.country_name || '';
+            const fullLeague = countryName ? `${countryName}: ${leagueName}` : leagueName;
 
-            for (const tournament of category.DATA) {
-                const leagueName = tournament.NAME || 'Unknown League';
+            // League filter check
+            if (leagueFilter && ALLOWED_LEAGUES.length > 0) {
+                const isAllowed = ALLOWED_LEAGUES.some(l =>
+                    fullLeague.toUpperCase().includes(l.toUpperCase())
+                );
+                if (!isAllowed) continue;
+            }
 
-                // League filter check
-                if (leagueFilter && ALLOWED_LEAGUES.length > 0) {
-                    const normalizedLeague = leagueName.toLowerCase();
-                    const isAllowed = ALLOWED_LEAGUES.some(l =>
-                        normalizedLeague.includes(l.toLowerCase().split(':')[1]?.trim() || l.toLowerCase())
-                    );
-                    if (!isAllowed) continue;
-                }
+            const tournamentMatches = tournament.matches || [];
+            console.log(`[LiveMatches] Tournament: ${fullLeague}, Matches: ${tournamentMatches.length}`);
 
-                if (!tournament.EVENTS) continue;
+            for (const match of tournamentMatches) {
+                const homeTeam = match.home_team?.name || 'Unknown';
+                const awayTeam = match.away_team?.name || 'Unknown';
+                const homeScore = match.home_team?.score ?? '-';
+                const awayScore = match.away_team?.score ?? '-';
+                const minute = match.stage || 'Live';
+                const matchId = match.id;
 
-                for (const event of tournament.EVENTS) {
-                    const homeTeam = event.HOME_NAME || 'Unknown';
-                    const awayTeam = event.AWAY_NAME || 'Unknown';
-                    const homeScore = event.HOME_SCORE_CURRENT ?? '-';
-                    const awayScore = event.AWAY_SCORE_CURRENT ?? '-';
-                    const minute = event.STAGE || event.STAGE_TYPE || 'Live';
-                    const matchId = event.EVENT_ID;
+                // Half-time scores if available
+                const htHome = match.home_team?.score_1st_half ?? null;
+                const htAway = match.away_team?.score_1st_half ?? null;
 
-                    // Half-time scores if available
-                    const htHome = event.HOME_SCORE_PART_1 ?? null;
-                    const htAway = event.AWAY_SCORE_PART_1 ?? null;
-
-                    matches.push({
-                        matchId,
-                        homeTeam,
-                        awayTeam,
-                        league: leagueName,
-                        homeScore,
-                        awayScore,
-                        minute,
-                        htHome,
-                        htAway,
-                        status: event.STAGE_TYPE || 'LIVE'
-                    });
-                }
+                matches.push({
+                    matchId,
+                    homeTeam,
+                    awayTeam,
+                    league: fullLeague,
+                    homeScore,
+                    awayScore,
+                    minute,
+                    htHome,
+                    htAway,
+                    status: match.stage || 'LIVE'
+                });
             }
         }
 
-        console.log(`[LiveMatches] Found ${matches.length} live matches (filter: ${leagueFilter})`);
+        console.log(`[LiveMatches] Total matches found: ${matches.length} (filter: ${leagueFilter})`);
         res.json({ success: true, matches, count: matches.length });
 
     } catch (error) {
