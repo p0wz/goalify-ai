@@ -139,6 +139,10 @@ const AdminPanel = () => {
     const [marketFilter, setMarketFilter] = useState("all");
     const [oddsInputs, setOddsInputs] = useState<Record<string, string>>({});
 
+    // Live Scores State
+    const [liveScores, setLiveScores] = useState<any[]>([]);
+    const [liveScoresLoading, setLiveScoresLoading] = useState(false);
+
     // Raw Match Manual Selection State
     const [rawMarketSelections, setRawMarketSelections] = useState<Record<string, string>>({});
     const [rawOddsInputs, setRawOddsInputs] = useState<Record<string, string>>({});
@@ -353,6 +357,37 @@ const AdminPanel = () => {
 
     const copyAllPremierLeaguePrompts = () => {
         const text = premierLeagueMatches.map(m => m.detailedStats).join('\n\n---\n\n');
+        copyToClipboard(text);
+    };
+
+    // ============ LIVE SCORES FUNCTIONS ============
+
+    const fetchLiveScores = async (useLeagueFilter: boolean = false) => {
+        setLiveScoresLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/live/current-matches`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ leagueFilter: useLeagueFilter })
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                setLiveScores(data.matches || []);
+                toast.success(`${data.count || 0} canlı maç bulundu!`);
+            } else {
+                toast.error(data.error || 'Canlı maç alınamadı');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+        setLiveScoresLoading(false);
+    };
+
+    const copyAllLiveScores = () => {
+        const text = liveScores.map(m =>
+            `${m.homeTeam} ${m.homeScore} - ${m.awayScore} ${m.awayTeam} (${m.minute}) | ${m.league}`
+        ).join('\n');
         copyToClipboard(text);
     };
 
@@ -803,7 +838,7 @@ const AdminPanel = () => {
                 {/* Tabs */}
                 {/* Tabs */}
                 <Tabs defaultValue="analysis" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-10">
+                    <TabsList className="grid w-full grid-cols-11">
                         <TabsTrigger value="analysis" className="relative flex items-center gap-2">
                             <Zap className="h-4 w-4" />
                             Analiz
@@ -814,6 +849,13 @@ const AdminPanel = () => {
                         <TabsTrigger value="matches" className="flex items-center gap-2">
                             <List className="h-4 w-4" />
                             Tüm Maçlar
+                        </TabsTrigger>
+                        <TabsTrigger value="livescores" className="flex items-center gap-2">
+                            <Activity className="h-4 w-4" />
+                            Canlı Maçlar
+                            {liveScores.length > 0 && (
+                                <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1">{liveScores.length}</Badge>
+                            )}
                         </TabsTrigger>
                         <TabsTrigger value="premierleague" className="flex items-center gap-2">
                             <Shield className="h-4 w-4" />
@@ -1459,6 +1501,93 @@ const AdminPanel = () => {
                                     </Card>
                                 ))}
                             </div>
+                        )}
+                    </TabsContent>
+
+                    {/* ============ LIVE SCORES TAB ============ */}
+                    <TabsContent value="livescores" className="space-y-4">
+                        <div className="flex justify-between items-center bg-card p-4 rounded-lg border">
+                            <div className="flex items-center gap-3">
+                                <Activity className="h-6 w-6 text-green-500" />
+                                <span className="font-semibold">Canlı Maçlar ({liveScores.length})</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={() => fetchLiveScores(true)}
+                                    disabled={liveScoresLoading}
+                                    variant="outline"
+                                    className="border-green-500/50 text-green-500 hover:bg-green-500/10"
+                                >
+                                    {liveScoresLoading ? (
+                                        <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Yükleniyor...</>
+                                    ) : (
+                                        <><Play className="mr-2 h-4 w-4" />Lig Filtreli</>
+                                    )}
+                                </Button>
+                                <Button
+                                    onClick={() => fetchLiveScores(false)}
+                                    disabled={liveScoresLoading}
+                                    variant="outline"
+                                >
+                                    {liveScoresLoading ? (
+                                        <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Yükleniyor...</>
+                                    ) : (
+                                        <><Play className="mr-2 h-4 w-4" />Tüm Ligler</>
+                                    )}
+                                </Button>
+                                <Button
+                                    onClick={copyAllLiveScores}
+                                    disabled={liveScores.length === 0}
+                                    className="gradient-primary text-white"
+                                >
+                                    <Copy className="mr-2 h-4 w-4" /> Toplu Kopyala
+                                </Button>
+                            </div>
+                        </div>
+
+                        {liveScores.length === 0 ? (
+                            <Card className="glass-card">
+                                <CardContent className="flex flex-col items-center justify-center py-16">
+                                    <Activity className="h-16 w-16 text-muted-foreground mb-4" />
+                                    <h3 className="text-xl font-semibold mb-2">Henüz Canlı Maç Çekilmedi</h3>
+                                    <p className="text-muted-foreground mb-4">"Lig Filtreli" veya "Tüm Ligler" butonuna tıklayın.</p>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card className="glass-card overflow-hidden">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[80px]">Dakika</TableHead>
+                                            <TableHead>Ev Sahibi</TableHead>
+                                            <TableHead className="text-center w-[100px]">Skor</TableHead>
+                                            <TableHead>Deplasman</TableHead>
+                                            <TableHead>Lig</TableHead>
+                                            <TableHead className="w-[80px]">İY</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {liveScores.map((match, index) => (
+                                            <TableRow key={match.matchId || index}>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
+                                                        {match.minute}'
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-medium">{match.homeTeam}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <span className="text-lg font-bold">{match.homeScore} - {match.awayScore}</span>
+                                                </TableCell>
+                                                <TableCell className="font-medium">{match.awayTeam}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{match.league}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">
+                                                    {match.htHome !== null ? `${match.htHome}-${match.htAway}` : '-'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </Card>
                         )}
                     </TabsContent>
 

@@ -473,6 +473,77 @@ app.get('/api/analysis/results', auth.authenticateToken, async (req, res) => {
     }
 });
 
+// ============ LIVE MATCHES ENDPOINT ============
+
+app.post('/api/live/current-matches', auth.authenticateToken, async (req, res) => {
+    console.log('[LiveMatches] Fetching current live matches...');
+    try {
+        const { leagueFilter = false } = req.body;
+
+        // Fetch live matches from Flashscore API
+        const liveData = await flashscore.fetchLiveMatches();
+
+        if (!liveData || liveData.length === 0) {
+            return res.json({ success: true, matches: [], count: 0 });
+        }
+
+        // Process matches
+        let matches = [];
+
+        for (const category of liveData) {
+            if (!category.DATA) continue;
+
+            for (const tournament of category.DATA) {
+                const leagueName = tournament.NAME || 'Unknown League';
+
+                // League filter check
+                if (leagueFilter && ALLOWED_LEAGUES.length > 0) {
+                    const normalizedLeague = leagueName.toLowerCase();
+                    const isAllowed = ALLOWED_LEAGUES.some(l =>
+                        normalizedLeague.includes(l.toLowerCase().split(':')[1]?.trim() || l.toLowerCase())
+                    );
+                    if (!isAllowed) continue;
+                }
+
+                if (!tournament.EVENTS) continue;
+
+                for (const event of tournament.EVENTS) {
+                    const homeTeam = event.HOME_NAME || 'Unknown';
+                    const awayTeam = event.AWAY_NAME || 'Unknown';
+                    const homeScore = event.HOME_SCORE_CURRENT ?? '-';
+                    const awayScore = event.AWAY_SCORE_CURRENT ?? '-';
+                    const minute = event.STAGE || event.STAGE_TYPE || 'Live';
+                    const matchId = event.EVENT_ID;
+
+                    // Half-time scores if available
+                    const htHome = event.HOME_SCORE_PART_1 ?? null;
+                    const htAway = event.AWAY_SCORE_PART_1 ?? null;
+
+                    matches.push({
+                        matchId,
+                        homeTeam,
+                        awayTeam,
+                        league: leagueName,
+                        homeScore,
+                        awayScore,
+                        minute,
+                        htHome,
+                        htAway,
+                        status: event.STAGE_TYPE || 'LIVE'
+                    });
+                }
+            }
+        }
+
+        console.log(`[LiveMatches] Found ${matches.length} live matches (filter: ${leagueFilter})`);
+        res.json({ success: true, matches, count: matches.length });
+
+    } catch (error) {
+        console.error('[LiveMatches] Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ APPROVAL ROUTES ============
 
 app.post('/api/bets/approve', auth.authenticateToken, async (req, res) => {
