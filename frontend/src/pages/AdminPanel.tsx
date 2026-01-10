@@ -133,7 +133,9 @@ const AdminPanel = () => {
     // Analysis State
     const [results, setResults] = useState<AnalysisResult[]>([]);
     const [allMatches, setAllMatches] = useState<RawMatch[]>([]);
+    const [premierLeagueMatches, setPremierLeagueMatches] = useState<RawMatch[]>([]);
     const [analysisLoading, setAnalysisLoading] = useState(false);
+    const [plLoading, setPlLoading] = useState(false);
     const [marketFilter, setMarketFilter] = useState("all");
     const [oddsInputs, setOddsInputs] = useState<Record<string, string>>({});
 
@@ -315,6 +317,41 @@ const AdminPanel = () => {
             }
             return prompt;
         }).join('\n\n---\n\n');
+        copyToClipboard(text);
+    };
+
+    // ============ PREMIER LEAGUE ANALYSIS ============
+
+    const runPremierLeagueAnalysis = async () => {
+        setPlLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/analysis/run`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ limit: 500, leagueFilter: true, specificLeague: 'Premier League' })
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                // Filter only Premier League matches
+                const plMatches = (data.allMatches || []).filter((m: RawMatch) =>
+                    m.league.toLowerCase().includes('premier league') ||
+                    m.league.toLowerCase().includes('england') ||
+                    m.league === 'Premier League'
+                );
+                setPremierLeagueMatches(plMatches);
+                toast.success(`${plMatches.length} Premier League maçı bulundu!`);
+            } else {
+                toast.error(data.error || 'Analiz hatası');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+        setPlLoading(false);
+    };
+
+    const copyAllPremierLeaguePrompts = () => {
+        const text = premierLeagueMatches.map(m => m.detailedStats).join('\n\n---\n\n');
         copyToClipboard(text);
     };
 
@@ -765,7 +802,7 @@ const AdminPanel = () => {
                 {/* Tabs */}
                 {/* Tabs */}
                 <Tabs defaultValue="analysis" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-8">
+                    <TabsList className="grid w-full grid-cols-10">
                         <TabsTrigger value="analysis" className="relative flex items-center gap-2">
                             <Zap className="h-4 w-4" />
                             Analiz
@@ -776,6 +813,13 @@ const AdminPanel = () => {
                         <TabsTrigger value="matches" className="flex items-center gap-2">
                             <List className="h-4 w-4" />
                             Tüm Maçlar
+                        </TabsTrigger>
+                        <TabsTrigger value="premierleague" className="flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            Premier Lig
+                            {premierLeagueMatches.length > 0 && (
+                                <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1">{premierLeagueMatches.length}</Badge>
+                            )}
                         </TabsTrigger>
                         <TabsTrigger value="bets" className="flex items-center gap-2">
                             <BarChart3 className="h-4 w-4" />
@@ -835,6 +879,19 @@ const AdminPanel = () => {
                                     <><Activity className="mr-2 h-4 w-4 animate-spin" />Analiz Ediliyor...</>
                                 ) : (
                                     <><Play className="mr-2 h-4 w-4" />Analizi Başlat (Tüm Ligler)</>
+                                )}
+                            </Button>
+
+                            <Button
+                                onClick={runPremierLeagueAnalysis}
+                                disabled={plLoading}
+                                variant="outline"
+                                className="border-blue-500/50 text-blue-500 hover:bg-blue-500/10"
+                            >
+                                {plLoading ? (
+                                    <><Activity className="mr-2 h-4 w-4 animate-spin" />PL Taranıyor...</>
+                                ) : (
+                                    <><Shield className="mr-2 h-4 w-4" />Premier League Tara</>
                                 )}
                             </Button>
                             {results.length > 0 && (
@@ -1396,6 +1453,79 @@ const AdminPanel = () => {
                                                 <Button onClick={() => approveRawMatch(match)}>
                                                     <CheckCircle className="mr-2 h-4 w-4" /> Onayla
                                                 </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    {/* ============ PREMIER LEAGUE TAB ============ */}
+                    <TabsContent value="premierleague" className="space-y-4">
+                        <div className="flex justify-between items-center bg-card p-4 rounded-lg border">
+                            <div className="flex items-center gap-3">
+                                <Shield className="h-6 w-6 text-blue-500" />
+                                <span className="font-semibold">Premier League Maçları ({premierLeagueMatches.length})</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={runPremierLeagueAnalysis}
+                                    disabled={plLoading}
+                                    variant="outline"
+                                    className="border-blue-500/50 text-blue-500 hover:bg-blue-500/10"
+                                >
+                                    {plLoading ? (
+                                        <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Taranıyor...</>
+                                    ) : (
+                                        <><RefreshCw className="mr-2 h-4 w-4" />Yenile</>
+                                    )}
+                                </Button>
+                                <Button
+                                    onClick={copyAllPremierLeaguePrompts}
+                                    disabled={premierLeagueMatches.length === 0}
+                                    className="gradient-primary text-white"
+                                >
+                                    <Copy className="mr-2 h-4 w-4" /> Tüm Promptları Kopyala
+                                </Button>
+                            </div>
+                        </div>
+
+                        {premierLeagueMatches.length === 0 ? (
+                            <Card className="glass-card">
+                                <CardContent className="flex flex-col items-center justify-center py-16">
+                                    <Shield className="h-16 w-16 text-muted-foreground mb-4" />
+                                    <h3 className="text-xl font-semibold mb-2">Henüz Premier League Taranmadı</h3>
+                                    <p className="text-muted-foreground mb-4">Analiz sekmesinden "Premier League Tara" butonuna tıklayın.</p>
+                                    <Button onClick={runPremierLeagueAnalysis} disabled={plLoading} className="gradient-primary text-white">
+                                        <Play className="mr-2 h-4 w-4" /> Premier League Tara
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="grid gap-4">
+                                {premierLeagueMatches.map((match, index) => (
+                                    <Card key={match.matchId} className="glass-card card-hover" style={{ animationDelay: `${index * 30}ms` }}>
+                                        <CardContent className="p-4">
+                                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                                <div className="flex-1">
+                                                    <div className="font-semibold text-lg flex items-center gap-2">
+                                                        <Badge className="bg-blue-500 text-white">PL</Badge>
+                                                        {match.homeTeam} <span className="text-muted-foreground text-sm">vs</span> {match.awayTeam}
+                                                    </div>
+                                                    <div className="text-sm text-muted-foreground mt-1">
+                                                        {match.league} • {new Date(match.timestamp * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => copyToClipboard(match.detailedStats)}
+                                                    >
+                                                        <Copy className="mr-2 h-4 w-4" /> Prompt Kopyala
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>
