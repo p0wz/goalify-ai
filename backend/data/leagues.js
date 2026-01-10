@@ -14,6 +14,10 @@ const ALLOWED_LEAGUES = [
 
     // Tier 1
     'ENGLAND: Premier League',
+    'ENGLAND: FA Cup',
+    'ENGLAND: EFL Cup',
+    'ENGLAND: League Cup',
+    'ENGLAND: Community Shield',
     'ENGLAND: Championship',
     'ENGLAND: League One',
     'SPAIN: La Liga',
