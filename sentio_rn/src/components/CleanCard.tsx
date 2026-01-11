@@ -7,7 +7,7 @@ import {
     StyleProp,
 } from 'react-native';
 import { MotiView } from 'moti';
-import { useTheme, Colors, Radius, Spacing } from '../../theme';
+import { useTheme, Colors, Radius, Spacing } from '../theme';
 
 export type CardVariant = 'default' | 'primary' | 'success' | 'danger';
 
