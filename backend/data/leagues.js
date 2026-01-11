@@ -29,6 +29,7 @@ const ALLOWED_LEAGUES = [
     'SPAIN: LaLiga2',
     'SPAIN: Copa del Rey',
     'SPAIN: Supercopa',
+    'SPAIN: Super Cup',
 
     // Germany + Cups
     'GERMANY: Bundesliga',
