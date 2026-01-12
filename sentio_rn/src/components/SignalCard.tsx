@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { MotiView } from 'moti';
 import { TrendingUp, Clock, Target, Flag } from 'lucide-react-native';
 import { CleanCard, CardVariant } from './CleanCard';
 import { useTheme, Colors, Spacing, FontSize, FontWeight, Radius } from '../theme';

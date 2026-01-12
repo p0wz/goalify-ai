@@ -8,7 +8,6 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
 import { Radar, RefreshCw, Lock, Crown } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -50,7 +49,7 @@ export const LiveScreen: React.FC = () => {
 
                 {/* Premium Lock */}
                 <View style={styles.lockContainer}>
-                    <MotiView
+                    <View
                         from={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: 'spring', damping: 15 }}
@@ -58,9 +57,9 @@ export const LiveScreen: React.FC = () => {
                         <View style={[styles.lockIcon, { backgroundColor: Colors.primary + '15' }]}>
                             <Lock size={64} color={Colors.primary} />
                         </View>
-                    </MotiView>
+                    </View>
 
-                    <MotiView
+                    <View
                         from={{ opacity: 0, translateY: 20 }}
                         animate={{ opacity: 1, translateY: 0 }}
                         transition={{ type: 'timing', duration: 400, delay: 100 }}
@@ -69,9 +68,9 @@ export const LiveScreen: React.FC = () => {
                         <Text style={[styles.lockSubtitle, { color: colors.textSecondary }]}>
                             Canlı sinyallere erişmek ve anlık bildirimler almak için Pro plana geçin.
                         </Text>
-                    </MotiView>
+                    </View>
 
-                    <MotiView
+                    <View
                         from={{ opacity: 0, translateY: 20 }}
                         animate={{ opacity: 1, translateY: 0 }}
                         transition={{ type: 'timing', duration: 400, delay: 200 }}
@@ -84,7 +83,7 @@ export const LiveScreen: React.FC = () => {
                             <Crown size={20} color="#FFF" />
                             <Text style={styles.premiumButtonText}>Pro'ya Geç</Text>
                         </TouchableOpacity>
-                    </MotiView>
+                    </View>
                 </View>
             </SafeAreaView>
         );

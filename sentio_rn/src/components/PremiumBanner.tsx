@@ -2,8 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Crown } from 'lucide-react-native';
-import { MotiView } from 'moti';
-import { Colors, Spacing, Radius, FontSize, FontWeight } from '../../theme';
+import { Colors, Spacing, Radius, FontSize, FontWeight } from '../theme';
 
 interface PremiumBannerProps {
     onPress: () => void;
@@ -11,31 +10,25 @@ interface PremiumBannerProps {
 
 export const PremiumBanner: React.FC<PremiumBannerProps> = ({ onPress }) => {
     return (
-        <MotiView
-            from={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', damping: 15 }}
-        >
-            <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
-                <LinearGradient
-                    colors={[Colors.primary, Colors.primaryDark]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.container}
-                >
-                    <View style={styles.iconContainer}>
-                        <Crown size={24} color={Colors.warning} fill={Colors.warning} />
-                    </View>
-                    <View style={styles.textContainer}>
-                        <Text style={styles.title}>Pro'ya Geç</Text>
-                        <Text style={styles.subtitle}>Sınırsız erişim ve anlık bildirimler</Text>
-                    </View>
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>%33 İndirim</Text>
-                    </View>
-                </LinearGradient>
-            </TouchableOpacity>
-        </MotiView>
+        <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
+            <LinearGradient
+                colors={[Colors.primary, Colors.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.container}
+            >
+                <View style={styles.iconContainer}>
+                    <Crown size={24} color={Colors.warning} fill={Colors.warning} />
+                </View>
+                <View style={styles.textContainer}>
+                    <Text style={styles.title}>Pro'ya Geç</Text>
+                    <Text style={styles.subtitle}>Sınırsız erişim ve anlık bildirimler</Text>
+                </View>
+                <View style={styles.badge}>
+                    <Text style={styles.badgeText}>%33 İndirim</Text>
+                </View>
+            </LinearGradient>
+        </TouchableOpacity>
     );
 };
 

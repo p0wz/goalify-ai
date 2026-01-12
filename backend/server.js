@@ -91,7 +91,9 @@ const corsOptions = {
         'https://sentio.pages.dev',
         'https://goalify-ai.pages.dev',
         'http://localhost:5173',
-        'http://localhost:3000'
+        'http://localhost:3000',
+        'http://localhost:8081',
+        'http://localhost:19006'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

@@ -1,19 +1,8 @@
-import Purchases, {
-    PurchasesOfferings,
-    PurchasesPackage,
-    CustomerInfo,
-    LOG_LEVEL,
-} from 'react-native-purchases';
+// Mock RevenueCat Service for Expo Go compatibility
+// react-native-purchases requires native modules
+// For production, switch to development build with actual RevenueCat SDK
+
 import { Platform } from 'react-native';
-
-// RevenueCat API Keys - Replace with your actual keys
-const API_KEYS = {
-    ios: 'appl_YOUR_IOS_API_KEY',
-    android: 'goog_YOUR_ANDROID_API_KEY',
-};
-
-// Entitlement ID from RevenueCat dashboard
-const ENTITLEMENT_ID = 'pro';
 
 export enum PurchaseResult {
     SUCCESS = 'success',
@@ -21,151 +10,154 @@ export enum PurchaseResult {
     FAILED = 'failed',
 }
 
+// Mock types to replace actual RevenueCat types
+interface MockPackage {
+    identifier: string;
+    product: {
+        priceString: string;
+        title: string;
+        description: string;
+    };
+}
+
+interface MockOfferings {
+    current: {
+        monthly?: MockPackage;
+        annual?: MockPackage;
+        availablePackages: MockPackage[];
+    } | null;
+}
+
 class RevenueCatService {
     private initialized = false;
-    private customerInfo: CustomerInfo | null = null;
+    private _isPremium = false;
 
     /**
-     * Initialize RevenueCat SDK
-     * Call this once on app start
+     * Initialize RevenueCat SDK (mock for Expo Go)
      */
     async initialize(userId?: string): Promise<void> {
         if (this.initialized) return;
-
-        try {
-            // Set log level for debugging
-            Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-
-            // Get API key based on platform
-            const apiKey = Platform.OS === 'ios' ? API_KEYS.ios : API_KEYS.android;
-
-            // Configure Purchases
-            await Purchases.configure({
-                apiKey,
-                appUserID: userId,
-            });
-
-            this.initialized = true;
-
-            // Fetch initial customer info
-            await this.refreshCustomerInfo();
-
-            console.log('[RevenueCat] Initialized');
-        } catch (error) {
-            console.error('[RevenueCat] Init error:', error);
-        }
+        this.initialized = true;
+        console.log('[RevenueCat] Mock initialized for Expo Go');
+        console.log('[RevenueCat] User ID:', userId || 'anonymous');
     }
 
     /**
-     * Refresh and cache customer info
+     * Refresh customer info (mock)
      */
-    async refreshCustomerInfo(): Promise<CustomerInfo | null> {
-        try {
-            this.customerInfo = await Purchases.getCustomerInfo();
-            return this.customerInfo;
-        } catch (error) {
-            console.error('[RevenueCat] Get customer info error:', error);
-            return null;
-        }
+    async refreshCustomerInfo(): Promise<null> {
+        console.log('[RevenueCat] Mock refresh customer info');
+        return null;
     }
 
     /**
-     * Check if user has pro entitlement
+     * Check if user has pro entitlement (mock - always false in Expo Go)
      */
     get isPremium(): boolean {
-        if (!this.customerInfo) return false;
-        return typeof this.customerInfo.entitlements.active[ENTITLEMENT_ID] !== 'undefined';
+        return this._isPremium;
     }
 
     /**
-     * Get available offerings (subscription packages)
+     * Set premium status (for testing in Expo Go)
      */
-    async getOfferings(): Promise<PurchasesOfferings | null> {
-        try {
-            const offerings = await Purchases.getOfferings();
-            return offerings;
-        } catch (error) {
-            console.error('[RevenueCat] Get offerings error:', error);
-            return null;
-        }
+    setPremiumForTesting(value: boolean): void {
+        this._isPremium = value;
+        console.log('[RevenueCat] Mock premium set to:', value);
     }
 
     /**
-     * Purchase a package
+     * Get available offerings (mock data)
      */
-    async purchasePackage(pkg: PurchasesPackage): Promise<PurchaseResult> {
-        try {
-            const { customerInfo } = await Purchases.purchasePackage(pkg);
-            this.customerInfo = customerInfo;
-
-            if (this.isPremium) {
-                console.log('[RevenueCat] Purchase successful');
-                return PurchaseResult.SUCCESS;
-            }
-
-            return PurchaseResult.FAILED;
-        } catch (error: any) {
-            if (error.userCancelled) {
-                console.log('[RevenueCat] Purchase cancelled by user');
-                return PurchaseResult.CANCELLED;
-            }
-
-            console.error('[RevenueCat] Purchase error:', error);
-            return PurchaseResult.FAILED;
-        }
+    async getOfferings(): Promise<MockOfferings> {
+        console.log('[RevenueCat] Returning mock offerings');
+        return {
+            current: {
+                monthly: {
+                    identifier: 'monthly',
+                    product: {
+                        priceString: '₺99.99',
+                        title: 'SENTIO PRO Aylık',
+                        description: 'Tüm premium özelliklere aylık erişim',
+                    },
+                },
+                annual: {
+                    identifier: 'annual',
+                    product: {
+                        priceString: '₺799.99',
+                        title: 'SENTIO PRO Yıllık',
+                        description: 'Tüm premium özelliklere yıllık erişim (%33 indirim)',
+                    },
+                },
+                availablePackages: [
+                    {
+                        identifier: 'monthly',
+                        product: {
+                            priceString: '₺99.99',
+                            title: 'SENTIO PRO Aylık',
+                            description: 'Tüm premium özelliklere aylık erişim',
+                        },
+                    },
+                    {
+                        identifier: 'annual',
+                        product: {
+                            priceString: '₺799.99',
+                            title: 'SENTIO PRO Yıllık',
+                            description: 'Tüm premium özelliklere yıllık erişim (%33 indirim)',
+                        },
+                    },
+                ],
+            },
+        };
     }
 
     /**
-     * Restore previous purchases
+     * Purchase a package (mock - not available in Expo Go)
+     */
+    async purchasePackage(pkg: MockPackage): Promise<PurchaseResult> {
+        console.log('[RevenueCat] Purchase not available in Expo Go');
+        console.log('[RevenueCat] Package:', pkg.identifier);
+        console.log('[RevenueCat] Use development build for actual purchases');
+        // Simulate success for testing
+        this._isPremium = true;
+        return PurchaseResult.SUCCESS;
+    }
+
+    /**
+     * Restore previous purchases (mock)
      */
     async restorePurchases(): Promise<boolean> {
-        try {
-            this.customerInfo = await Purchases.restorePurchases();
-            return this.isPremium;
-        } catch (error) {
-            console.error('[RevenueCat] Restore error:', error);
-            return false;
-        }
+        console.log('[RevenueCat] Restore not available in Expo Go');
+        return this._isPremium;
     }
 
     /**
-     * Login user (associate purchases with user ID)
+     * Login user (mock)
      */
     async login(userId: string): Promise<void> {
-        try {
-            const { customerInfo } = await Purchases.logIn(userId);
-            this.customerInfo = customerInfo;
-            console.log('[RevenueCat] Logged in:', userId);
-        } catch (error) {
-            console.error('[RevenueCat] Login error:', error);
-        }
+        console.log('[RevenueCat] Mock login:', userId);
     }
 
     /**
-     * Logout user
+     * Logout user (mock)
      */
     async logout(): Promise<void> {
-        try {
-            this.customerInfo = await Purchases.logOut();
-            console.log('[RevenueCat] Logged out');
-        } catch (error) {
-            console.error('[RevenueCat] Logout error:', error);
-        }
+        this._isPremium = false;
+        console.log('[RevenueCat] Mock logout');
     }
 
     /**
-     * Get cached customer info
+     * Get cached customer info (mock)
      */
-    getCustomerInfo(): CustomerInfo | null {
-        return this.customerInfo;
+    getCustomerInfo(): null {
+        return null;
     }
 
     /**
-     * Listen to customer info changes
+     * Listen to customer info changes (mock)
      */
-    addCustomerInfoUpdateListener(callback: (info: CustomerInfo) => void): () => void {
-        const listener = Purchases.addCustomerInfoUpdateListener(callback);
-        return () => listener.remove();
+    addCustomerInfoUpdateListener(callback: (info: any) => void): () => void {
+        // Return noop unsubscribe
+        return () => { };
     }
 }
 

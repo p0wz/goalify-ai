@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
 import { Moon, Sun, ArrowLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 
@@ -31,7 +30,7 @@ export const SettingsScreen: React.FC = () => {
             </View>
 
             {/* Theme Toggle */}
-            <MotiView
+            <View
                 from={{ opacity: 0, translateY: 10 }}
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{ type: 'timing', duration: 400 }}
@@ -56,10 +55,10 @@ export const SettingsScreen: React.FC = () => {
                         />
                     </View>
                 </CleanCard>
-            </MotiView>
+            </View>
 
             {/* App Info */}
-            <MotiView
+            <View
                 from={{ opacity: 0, translateY: 10 }}
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{ type: 'timing', duration: 400, delay: 100 }}
@@ -72,7 +71,7 @@ export const SettingsScreen: React.FC = () => {
                         <Text style={[styles.infoValue, { color: colors.text }]}>1.0.0</Text>
                     </View>
                 </CleanCard>
-            </MotiView>
+            </View>
         </SafeAreaView>
     );
 };

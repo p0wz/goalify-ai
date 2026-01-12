@@ -8,7 +8,6 @@ import {
     RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
 import { BarChart2, ListFilter, Clock, TrendingUp } from 'lucide-react-native';
 
 import { useTheme, Colors, Spacing, FontSize, FontWeight, Radius } from '../../theme';
@@ -85,7 +84,7 @@ const PredictionsTab: React.FC = () => {
     }, []);
 
     const renderPrediction = ({ item, index }: { item: Prediction; index: number }) => (
-        <MotiView
+        <View
             from={{ opacity: 0, translateY: 10 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 300, delay: index * 50 }}
@@ -120,7 +119,7 @@ const PredictionsTab: React.FC = () => {
                     )}
                 </View>
             </CleanCard>
-        </MotiView>
+        </View>
     );
 
     const renderEmpty = () => (
@@ -173,7 +172,7 @@ const ResultsTab: React.FC = () => {
         const statusColor = isWon ? Colors.success : Colors.danger;
 
         return (
-            <MotiView
+            <View
                 from={{ opacity: 0, translateY: 10 }}
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{ type: 'timing', duration: 300, delay: index * 50 }}
@@ -205,7 +204,7 @@ const ResultsTab: React.FC = () => {
                         )}
                     </View>
                 </CleanCard>
-            </MotiView>
+            </View>
         );
     };
 

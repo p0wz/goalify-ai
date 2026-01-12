@@ -11,7 +11,6 @@ import {
     Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
 import { Mail, Lock, Eye, EyeOff, BarChart2 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -91,7 +90,7 @@ export const LoginScreen: React.FC = () => {
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Logo */}
-                    <MotiView
+                    <View
                         from={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: 'spring', damping: 15 }}
@@ -100,10 +99,10 @@ export const LoginScreen: React.FC = () => {
                         <View style={[styles.logoBox, { backgroundColor: Colors.primary }]}>
                             <BarChart2 size={48} color="#FFF" />
                         </View>
-                    </MotiView>
+                    </View>
 
                     {/* Title */}
-                    <MotiView
+                    <View
                         from={{ opacity: 0, translateY: 20 }}
                         animate={{ opacity: 1, translateY: 0 }}
                         transition={{ type: 'timing', duration: 400, delay: 100 }}
@@ -112,21 +111,21 @@ export const LoginScreen: React.FC = () => {
                         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                             Hesabına giriş yap ve kazanmaya başla
                         </Text>
-                    </MotiView>
+                    </View>
 
                     {/* Error */}
                     {error && (
-                        <MotiView
+                        <View
                             from={{ opacity: 0, translateY: -10 }}
                             animate={{ opacity: 1, translateY: 0 }}
                             style={styles.errorContainer}
                         >
                             <Text style={styles.errorText}>{error}</Text>
-                        </MotiView>
+                        </View>
                     )}
 
                     {/* Form */}
-                    <MotiView
+                    <View
                         from={{ opacity: 0, translateY: 20 }}
                         animate={{ opacity: 1, translateY: 0 }}
                         transition={{ type: 'timing', duration: 400, delay: 200 }}
@@ -201,10 +200,10 @@ export const LoginScreen: React.FC = () => {
                                 {isGoogleLoading ? 'Google ile bağlanılıyor...' : 'Google ile Giriş Yap'}
                             </Text>
                         </TouchableOpacity>
-                    </MotiView>
+                    </View>
 
                     {/* Register Link */}
-                    <MotiView
+                    <View
                         from={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ type: 'timing', duration: 400, delay: 400 }}
@@ -214,7 +213,7 @@ export const LoginScreen: React.FC = () => {
                         <TouchableOpacity onPress={() => navigation.navigate('Register')} disabled={isAnyLoading}>
                             <Text style={[styles.footerLink, { color: Colors.primary }]}>Kayıt Ol</Text>
                         </TouchableOpacity>
-                    </MotiView>
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>

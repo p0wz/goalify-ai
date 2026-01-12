@@ -7,7 +7,6 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
 import {
     User,
     Crown,
@@ -59,7 +58,7 @@ export const ProfileScreen: React.FC = () => {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <View style={styles.loginPrompt}>
-                    <MotiView
+                    <View
                         from={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: 'spring', damping: 15 }}
@@ -67,9 +66,9 @@ export const ProfileScreen: React.FC = () => {
                         <View style={[styles.avatarLarge, { backgroundColor: Colors.primary }]}>
                             <User size={48} color="#FFF" />
                         </View>
-                    </MotiView>
+                    </View>
 
-                    <MotiView
+                    <View
                         from={{ opacity: 0, translateY: 20 }}
                         animate={{ opacity: 1, translateY: 0 }}
                         transition={{ type: 'timing', duration: 400, delay: 100 }}
@@ -78,9 +77,9 @@ export const ProfileScreen: React.FC = () => {
                         <Text style={[styles.loginSubtitle, { color: colors.textSecondary }]}>
                             Profilini görmek ve özelliklerden faydalanmak için giriş yap
                         </Text>
-                    </MotiView>
+                    </View>
 
-                    <MotiView
+                    <View
                         from={{ opacity: 0, translateY: 20 }}
                         animate={{ opacity: 1, translateY: 0 }}
                         transition={{ type: 'timing', duration: 400, delay: 200 }}
@@ -97,7 +96,7 @@ export const ProfileScreen: React.FC = () => {
                                 Hesabın yok mu? Kayıt Ol
                             </Text>
                         </TouchableOpacity>
-                    </MotiView>
+                    </View>
                 </View>
             </SafeAreaView>
         );
@@ -120,7 +119,7 @@ export const ProfileScreen: React.FC = () => {
             </View>
 
             {/* User Info */}
-            <MotiView
+            <View
                 from={{ opacity: 0, translateY: 10 }}
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{ type: 'timing', duration: 400 }}
@@ -160,10 +159,10 @@ export const ProfileScreen: React.FC = () => {
                 </View>
 
                 <Text style={[styles.userEmail, { color: colors.textMuted }]}>{user?.email}</Text>
-            </MotiView>
+            </View>
 
             {/* Menu */}
-            <MotiView
+            <View
                 from={{ opacity: 0, translateY: 20 }}
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{ type: 'timing', duration: 400, delay: 100 }}
@@ -198,10 +197,10 @@ export const ProfileScreen: React.FC = () => {
                         onPress={() => Alert.alert('Yardım', 'Destek: support@sentio.app')}
                     />
                 </CleanCard>
-            </MotiView>
+            </View>
 
             {/* Logout */}
-            <MotiView
+            <View
                 from={{ opacity: 0, translateY: 20 }}
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{ type: 'timing', duration: 400, delay: 200 }}
@@ -215,7 +214,7 @@ export const ProfileScreen: React.FC = () => {
                         <Text style={[styles.logoutText, { color: colors.text }]}>Çıkış Yap</Text>
                     </View>
                 </CleanCard>
-            </MotiView>
+            </View>
         </SafeAreaView>
     );
 };

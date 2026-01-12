@@ -8,7 +8,6 @@ import {
     RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
 import {
     Bell,
     Settings,
@@ -59,13 +58,13 @@ export const DashboardScreen: React.FC = () => {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <MotiView
+                    <View
                         from={{ opacity: 0, translateX: -10 }}
                         animate={{ opacity: 1, translateX: 0 }}
                         transition={{ type: 'timing', duration: 400 }}
                     >
                         <Text style={[styles.logo, { color: Colors.primary }]}>SENTIO</Text>
-                    </MotiView>
+                    </View>
                     <View style={styles.headerActions}>
                         <TouchableOpacity
                             style={[styles.iconButton, { backgroundColor: colors.surface }]}
@@ -90,7 +89,7 @@ export const DashboardScreen: React.FC = () => {
                 )}
 
                 {/* Welcome */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 10 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 400, delay: 100 }}
@@ -103,7 +102,7 @@ export const DashboardScreen: React.FC = () => {
                     <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                         Bugünün tahminlerini keşfet
                     </Text>
-                </MotiView>
+                </View>
 
                 {/* Win Rates */}
                 <View style={styles.ratesRow}>
@@ -225,7 +224,7 @@ const MiniResultCard: React.FC<{
     const statusColor = isWin ? Colors.success : Colors.danger;
 
     return (
-        <MotiView
+        <View
             from={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'timing', duration: 300, delay }}
@@ -254,7 +253,7 @@ const MiniResultCard: React.FC<{
                     {market}
                 </Text>
             </View>
-        </MotiView>
+        </View>
     );
 };
 

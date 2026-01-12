@@ -8,7 +8,6 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     Crown,
@@ -155,7 +154,7 @@ export const PremiumScreen: React.FC = () => {
                     )}
 
                     {/* Hero */}
-                    <MotiView
+                    <View
                         from={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: 'spring', damping: 15 }}
@@ -171,12 +170,12 @@ export const PremiumScreen: React.FC = () => {
                         <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>
                             Daha fazla tahmin, daha yüksek kazanç
                         </Text>
-                    </MotiView>
+                    </View>
 
                     {/* Features */}
                     <View style={styles.featuresSection}>
                         {FEATURES.map((feature, index) => (
-                            <MotiView
+                            <View
                                 key={feature.title}
                                 from={{ opacity: 0, translateX: -20 }}
                                 animate={{ opacity: 1, translateX: 0 }}
@@ -191,7 +190,7 @@ export const PremiumScreen: React.FC = () => {
                                         <Text style={[styles.featureDesc, { color: colors.textMuted }]}>{feature.desc}</Text>
                                     </View>
                                 </CleanCard>
-                            </MotiView>
+                            </View>
                         ))}
                     </View>
 
@@ -203,7 +202,7 @@ export const PremiumScreen: React.FC = () => {
                                 const isAnnual = pkg.packageType === 'ANNUAL';
 
                                 return (
-                                    <MotiView
+                                    <View
                                         key={pkg.identifier}
                                         from={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
@@ -267,14 +266,14 @@ export const PremiumScreen: React.FC = () => {
                                                 </Text>
                                             </View>
                                         </TouchableOpacity>
-                                    </MotiView>
+                                    </View>
                                 );
                             })}
                         </View>
                     )}
 
                     {/* CTA Button */}
-                    <MotiView
+                    <View
                         from={{ opacity: 0, translateY: 20 }}
                         animate={{ opacity: 1, translateY: 0 }}
                         transition={{ type: 'timing', duration: 400, delay: 300 }}
@@ -306,7 +305,7 @@ export const PremiumScreen: React.FC = () => {
                         <Text style={[styles.termsText, { color: colors.textMuted }]}>
                             Abonelik otomatik yenilenir. İstediğin zaman iptal edebilirsin.
                         </Text>
-                    </MotiView>
+                    </View>
 
                     <View style={{ height: 50 }} />
                 </ScrollView>
