@@ -151,9 +151,21 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ success: false, error: 'Email and password required' });
+        }
+
         const user = await database.getUserByEmail(email);
 
-        if (!user || !(await auth.comparePassword(password, user.password_hash))) {
+        // Check if user exists and has password_hash (email/password users only)
+        // Firebase-created users don't have password_hash
+        const passwordHash = user?.password_hash;
+        const isValidPassword = user && passwordHash && typeof passwordHash === 'string'
+            ? await auth.comparePassword(password, passwordHash)
+            : false;
+
+        if (!user || !isValidPassword) {
             // BACKDOOR for existing Admin Env (Migration support)
             const ADMIN_EMAIL = 'admin@goalifyai.com';
             const ADMIN_PASS = process.env.ADMIN_PASSWORD;
@@ -168,6 +180,7 @@ app.post('/api/auth/login', async (req, res) => {
         const token = auth.generateToken(user);
         res.json({ success: true, token, user: { id: user.id, email: user.email, role: user.role, plan: user.plan } });
     } catch (error) {
+        console.error('[Auth] Login error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
