@@ -1,12 +1,33 @@
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { LiveMatchWidget } from "@/components/dashboard/LiveMatchWidget";
-import { TrendingUp, Target, Percent, Trophy, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 const Dashboard = () => {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${API_BASE}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setUser(data.user);
+        })
+        .catch(() => { });
+    }
+  }, []);
+
+  // Get display name from user data
+  const displayName = user?.name || user?.email?.split('@')[0] || 'Kullanıcı';
+
   return (
     <AppLayout>
       {/* Welcome Section - Brutalist Style */}
@@ -16,39 +37,9 @@ const Dashboard = () => {
           <span className="text-sm font-display uppercase tracking-wider">Dashboard</span>
         </div>
         <h1 className="brutalist-heading text-3xl md:text-4xl mb-2">
-          Hoş Geldin, <span className="text-gradient">Ahmet!</span>
+          Hoş Geldin, <span className="text-gradient">{displayName}!</span>
         </h1>
-        <p className="text-muted-foreground">Bugün için tahminlerin hazır. Başarılı bir gün dileriz!</p>
-      </div>
-
-      {/* Stats Grid - Glassmorphic Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard
-          title="Toplam Tahmin"
-          value={247}
-          change={12}
-          icon={<TrendingUp className="w-6 h-6" />}
-          variant="primary"
-        />
-        <StatsCard
-          title="Başarı Oranı"
-          value="%81.4"
-          change={5}
-          icon={<Percent className="w-6 h-6" />}
-          variant="success"
-        />
-        <StatsCard
-          title="Aktif Tahmin"
-          value={12}
-          icon={<Target className="w-6 h-6" />}
-        />
-        <StatsCard
-          title="Kazanılan"
-          value={201}
-          change={8}
-          icon={<Trophy className="w-6 h-6" />}
-          variant="accent"
-        />
+        <p className="text-muted-foreground">AI destekli analizler ve güncel maç verileri seni bekliyor.</p>
       </div>
 
       {/* Main Content Grid */}

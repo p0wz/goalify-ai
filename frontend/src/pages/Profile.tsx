@@ -70,23 +70,6 @@ const Profile = () => {
             </Badge>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            {[
-              { icon: Trophy, label: "Kazanılan", value: "124" },
-              { icon: TrendingUp, label: "Başarı", value: "%78" },
-              { icon: Target, label: "Tahmin", value: "201" },
-            ].map((stat, idx) => (
-              <div key={idx} className="glass-card rounded-xl p-4 text-center">
-                <div className="w-10 h-10 gradient-primary mx-auto flex items-center justify-center mb-2">
-                  <stat.icon className="w-5 h-5 text-white" />
-                </div>
-                <p className="text-2xl font-display-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-
           {/* Info Items */}
           <div className="space-y-4">
             <div className="glass-card rounded-xl p-4 flex items-center justify-between">

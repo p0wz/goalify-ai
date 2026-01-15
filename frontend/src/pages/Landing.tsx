@@ -1,10 +1,9 @@
 import { Link } from "react-router-dom";
 import {
   Trophy, TrendingUp, Zap, Shield, BarChart3, Users,
-  ArrowRight, CheckCircle2, Star, ChevronRight,
-  Target, Brain, Bell, Award, Flame, Sparkles
+  ArrowRight, ChevronRight,
+  Target, Brain, Bell, Award, Sparkles
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 
@@ -12,12 +11,12 @@ const features = [
   {
     icon: Brain,
     title: "AI Destekli Analiz",
-    description: "Yapay zeka algoritmalarımız binlerce veri noktasını analiz ederek en doğru tahminleri sunar."
+    description: "Yapay zeka algoritmalarımız binlerce veri noktasını analiz ederek tahminler sunar."
   },
   {
     icon: TrendingUp,
-    title: "Yüksek Başarı Oranı",
-    description: "%78 ortalama başarı oranıyla sektörün en güvenilir tahmin platformuyuz."
+    title: "Gerçek Zamanlı Veriler",
+    description: "Canlı maç istatistikleri ve anlık oran değişimleri ile her zaman güncel kalın."
   },
   {
     icon: Bell,
@@ -36,39 +35,8 @@ const features = [
   },
   {
     icon: Users,
-    title: "Uzman Topluluk",
-    description: "50.000+ aktif üyeden oluşan uzman topluluğumuza katılın."
-  },
-];
-
-const stats = [
-  { value: "50K+", label: "Aktif Kullanıcı", icon: Users },
-  { value: "%78", label: "Başarı Oranı", icon: Target },
-  { value: "1M+", label: "Tahmin", icon: Flame },
-  { value: "4.9", label: "Kullanıcı Puanı", icon: Star },
-];
-
-const testimonials = [
-  {
-    name: "Ahmet Yılmaz",
-    role: "Pro Üye - 2 Yıl",
-    avatar: "A",
-    content: "SENTIO PICKS sayesinde bahis stratejimi tamamen değiştirdim. AI destekli analizler gerçekten işe yarıyor.",
-    rating: 5,
-  },
-  {
-    name: "Mehmet Kaya",
-    role: "Elite Üye - 1 Yıl",
-    avatar: "M",
-    content: "Daha önce birçok platform denedim ama hiçbiri bu kadar doğru tahminler sunmadı. Kesinlikle tavsiye ederim.",
-    rating: 5,
-  },
-  {
-    name: "Emre Demir",
-    role: "Pro Üye - 6 Ay",
-    avatar: "E",
-    content: "Canlı maç takibi ve anlık bildirimler harika. Artık hiçbir fırsatı kaçırmıyorum.",
-    rating: 5,
+    title: "Topluluk",
+    description: "Diğer kullanıcılarla etkileşime geçin ve deneyimlerinizi paylaşın."
   },
 ];
 
@@ -87,8 +55,8 @@ const howItWorks = [
   },
   {
     step: "03",
-    title: "Kazanmaya Başla",
-    description: "Doğru tahminlerle kazanç oranınızı artırın.",
+    title: "Analiz Et",
+    description: "Kararlarınızı veriye dayalı analizlerle destekleyin.",
     icon: Award,
   },
 ];
@@ -125,8 +93,8 @@ const Landing = () => {
 
             {/* Subheading */}
             <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto animate-slide-up font-light" style={{ animationDelay: '200ms' }}>
-              Yapay zeka destekli analizler, gerçek zamanlı istatistikler ve uzman tahminleriyle
-              <span className="text-foreground font-medium"> futbol bahislerinde avantaj</span> elde edin.
+              Yapay zeka destekli analizler, gerçek zamanlı istatistikler ve detaylı maç verileriyle
+              <span className="text-foreground font-medium"> bilinçli kararlar</span> alın.
             </p>
 
             {/* CTA Buttons - Brutalist Style */}
@@ -144,23 +112,6 @@ const Landing = () => {
               </Link>
             </div>
           </div>
-
-          {/* Stats Grid - Glassmorphic Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20 animate-slide-up" style={{ animationDelay: '400ms' }}>
-            {stats.map((stat, index) => (
-              <div
-                key={stat.label}
-                className="glass-card-premium rounded-2xl p-6 text-center card-hover"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-4">
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-                <p className="text-3xl md:text-4xl font-display-bold text-foreground mb-1">{stat.value}</p>
-                <p className="text-sm text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -176,7 +127,7 @@ const Landing = () => {
               Neden <span className="text-gradient">SENTIO PICKS</span>?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              En gelişmiş teknolojiler ve uzman analizleriyle desteklenen özelliklerimiz
+              En gelişmiş teknolojiler ve detaylı analizlerle desteklenen özelliklerimiz
             </p>
           </div>
 
@@ -208,7 +159,7 @@ const Landing = () => {
               Nasıl <span className="text-gradient">Çalışır</span>?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              3 basit adımda profesyonel tahminlere ulaşın
+              3 basit adımda profesyonel analizlere ulaşın
             </p>
           </div>
 
@@ -235,48 +186,6 @@ const Landing = () => {
                     <ChevronRight className="w-8 h-8 text-primary" />
                   </div>
                 )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          TESTIMONIALS - Glassmorphic
-      ═══════════════════════════════════════════════════════════════ */}
-      <section className="py-24 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="brutalist-heading text-4xl md:text-5xl text-foreground mb-4">
-              Kullanıcılarımız <span className="text-gradient">Ne Diyor</span>?
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Binlerce memnun kullanıcımızdan bazıları
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={testimonial.name}
-                className="glass-card-premium rounded-2xl p-8 card-hover animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="flex items-center gap-1 mb-6">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-accent text-accent" />
-                  ))}
-                </div>
-                <p className="text-foreground text-lg mb-8 leading-relaxed">"{testimonial.content}"</p>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-white font-display text-lg">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <p className="font-display text-foreground">{testimonial.name}</p>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                  </div>
-                </div>
               </div>
             ))}
           </div>

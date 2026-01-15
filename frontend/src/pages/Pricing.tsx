@@ -83,7 +83,7 @@ const faqs = [
   },
   {
     question: "Tahminler ne kadar doğru?",
-    answer: "Son 12 ayda ortalama %78 başarı oranına ulaştık. Tüm tahminler AI algoritmalarımız ve uzman analizleriyle desteklenir.",
+    answer: "Tüm tahminler AI algoritmalarımız ve uzman analizleriyle desteklenir. Gerçek performans verilerini dashboard'da görüntüleyebilirsiniz.",
   },
   {
     question: "Mobil uygulama var mı?",
@@ -150,8 +150,8 @@ const Pricing = () => {
               <div
                 key={plan.id}
                 className={`relative animate-slide-up ${plan.popular
-                    ? "glass-card-premium rounded-2xl p-8 border-2 border-primary glow-primary scale-105 z-10"
-                    : "glass-card-premium rounded-2xl p-8 card-hover"
+                  ? "glass-card-premium rounded-2xl p-8 border-2 border-primary glow-primary scale-105 z-10"
+                  : "glass-card-premium rounded-2xl p-8 card-hover"
                   }`}
                 style={{ animationDelay: `${index * 100}ms` }}
               >

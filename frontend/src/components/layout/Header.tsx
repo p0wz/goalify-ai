@@ -1,14 +1,35 @@
+import { useEffect, useState } from "react";
 import { Bell, Search, User, Moon, Sun } from "lucide-react";
-import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTheme } from "@/components/ThemeProvider";
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 export const Header = () => {
-  const [isDark, setIsDark] = useState(false);
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${API_BASE}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setUser(data.user);
+        })
+        .catch(() => { });
+    }
+  }, []);
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
+
+  // Get display name from email or name
+  const displayName = user?.name || user?.email?.split('@')[0] || 'Kullanıcı';
+  const planLabel = user?.plan === 'pro' ? 'Premium Üye' : 'Ücretsiz Plan';
 
   return (
     <header className="h-16 bg-card/80 backdrop-blur-xl border-b border-border sticky top-0 z-30 px-6">
@@ -31,9 +52,9 @@ export const Header = () => {
             onClick={toggleTheme}
             className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
           >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {resolvedTheme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          
+
           <Link
             to="/notifications"
             className="p-2.5 rounded-xl hover:bg-secondary transition-colors relative"
@@ -41,7 +62,7 @@ export const Header = () => {
             <Bell className="w-5 h-5" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent rounded-full" />
           </Link>
-          
+
           <Link
             to="/profile"
             className="flex items-center gap-3 p-2 rounded-xl hover:bg-secondary transition-colors"
@@ -50,8 +71,8 @@ export const Header = () => {
               <User className="w-4 h-4 text-primary-foreground" />
             </div>
             <div className="hidden md:block">
-              <p className="text-sm font-medium">Ahmet Yılmaz</p>
-              <p className="text-xs text-muted-foreground">Premium Üye</p>
+              <p className="text-sm font-medium">{displayName}</p>
+              <p className="text-xs text-muted-foreground">{planLabel}</p>
             </div>
           </Link>
         </div>

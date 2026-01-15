@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { User, Mail, Bell, Shield, Palette, Globe, ChevronRight, Camera, Sparkles, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 const settingsSections = [
   {
@@ -23,6 +26,26 @@ const settingsSections = [
 
 const Settings = () => {
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${API_BASE}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setUser(data.user);
+        })
+        .catch(() => { });
+    }
+  }, []);
+
+  // Get display info from user data
+  const displayName = user?.name || user?.email?.split('@')[0] || 'Kullanıcı';
+  const displayEmail = user?.email || '';
+  const planLabel = user?.plan === 'pro' ? 'Premium Üye' : 'Ücretsiz Plan';
 
   return (
     <AppLayout>
@@ -49,26 +72,22 @@ const Settings = () => {
               </button>
             </div>
 
-            <h3 className="text-xl font-display mb-1">Ahmet Yılmaz</h3>
-            <p className="text-muted-foreground mb-4">ahmet@email.com</p>
+            <h3 className="text-xl font-display mb-1">{displayName}</h3>
+            <p className="text-muted-foreground mb-4">{displayEmail}</p>
 
-            <div className="inline-flex items-center gap-2 px-4 py-2 gradient-accent text-white text-sm font-display uppercase tracking-wider">
-              Premium Üye
+            <div className={`inline-flex items-center gap-2 px-4 py-2 text-white text-sm font-display uppercase tracking-wider ${user?.plan === 'pro' ? 'gradient-accent' : 'bg-muted text-muted-foreground'}`}>
+              {planLabel}
             </div>
           </div>
 
           <div className="mt-6 pt-6 border-t border-border space-y-4">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Üyelik</span>
-              <span className="font-display">Premium</span>
+              <span className="font-display">{user?.plan === 'pro' ? 'Premium' : 'Ücretsiz'}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Kayıt Tarihi</span>
-              <span className="font-display">12 Ocak 2024</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Toplam Tahmin</span>
-              <span className="font-display">247</span>
+              <span className="text-muted-foreground">Hesap Durumu</span>
+              <span className="font-display text-green-500">Aktif</span>
             </div>
           </div>
         </div>

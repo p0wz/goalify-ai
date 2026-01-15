@@ -77,24 +77,8 @@ const Login = () => {
                     <p className="text-2xl font-display tracking-[0.3em] mb-8">PICKS</p>
 
                     <p className="text-xl text-white/80 text-center max-w-md">
-                        AI destekli futbol tahmin platformu ile kazanmaya başla
+                        AI destekli futbol analiz platformu ile bilinçli kararlar alın
                     </p>
-
-                    {/* Stats */}
-                    <div className="flex gap-8 mt-12">
-                        <div className="text-center">
-                            <p className="text-3xl font-display-bold">50K+</p>
-                            <p className="text-sm text-white/60 uppercase tracking-wider">Kullanıcı</p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-3xl font-display-bold">%78</p>
-                            <p className="text-sm text-white/60 uppercase tracking-wider">Başarı</p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-3xl font-display-bold">1M+</p>
-                            <p className="text-sm text-white/60 uppercase tracking-wider">Tahmin</p>
-                        </div>
-                    </div>
                 </div>
             </div>
 
