@@ -1,8 +1,51 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 const BASE_URL = 'https://goalify-ai.onrender.com/api';
 const TOKEN_KEY = 'sentio_auth_token';
+
+// Web-compatible storage abstraction
+const storage = {
+    async getItem(key: string): Promise<string | null> {
+        if (Platform.OS === 'web') {
+            return localStorage.getItem(key);
+        }
+        // Native: use SecureStore
+        const SecureStore = require('expo-secure-store');
+        try {
+            return await SecureStore.getItemAsync(key);
+        } catch (e) {
+            console.log('[Storage] SecureStore error, falling back to null:', e);
+            return null;
+        }
+    },
+    async setItem(key: string, value: string): Promise<void> {
+        if (Platform.OS === 'web') {
+            localStorage.setItem(key, value);
+            return;
+        }
+        // Native: use SecureStore
+        const SecureStore = require('expo-secure-store');
+        try {
+            await SecureStore.setItemAsync(key, value);
+        } catch (e) {
+            console.log('[Storage] SecureStore setItem error:', e);
+        }
+    },
+    async deleteItem(key: string): Promise<void> {
+        if (Platform.OS === 'web') {
+            localStorage.removeItem(key);
+            return;
+        }
+        // Native: use SecureStore
+        const SecureStore = require('expo-secure-store');
+        try {
+            await SecureStore.deleteItemAsync(key);
+        } catch (e) {
+            console.log('[Storage] SecureStore deleteItem error:', e);
+        }
+    }
+};
 
 class ApiService {
     private client: AxiosInstance;
@@ -41,7 +84,7 @@ class ApiService {
     // Token management
     async loadToken(): Promise<string | null> {
         try {
-            this.token = await SecureStore.getItemAsync(TOKEN_KEY);
+            this.token = await storage.getItem(TOKEN_KEY);
             return this.token;
         } catch {
             return null;
@@ -50,10 +93,14 @@ class ApiService {
 
     async setToken(token: string | null): Promise<void> {
         this.token = token;
-        if (token) {
-            await SecureStore.setItemAsync(TOKEN_KEY, token);
-        } else {
-            await SecureStore.deleteItemAsync(TOKEN_KEY);
+        try {
+            if (token) {
+                await storage.setItem(TOKEN_KEY, token);
+            } else {
+                await storage.deleteItem(TOKEN_KEY);
+            }
+        } catch (e) {
+            console.log('[API] Token storage error (non-critical):', e);
         }
     }
 
@@ -96,43 +143,17 @@ class ApiService {
         await this.setToken(null);
     }
 
-    // ============ LIVE SIGNALS ============
+    // ============ LIVE ============
 
     async getLiveSignals() {
         const { data } = await this.client.get('/mobile/live-signals');
         return data;
     }
 
-    async getLiveHistory() {
-        try {
-            const { data } = await this.client.get('/mobile/live-history');
-            return data;
-        } catch (error: any) {
-            if (error.response?.status === 404) {
-                return { success: true, history: [] };
-            }
-            throw error;
-        }
-    }
-
     // ============ ANALYSIS ============
 
-    async getAnalysisResults() {
-        const { data } = await this.client.get('/analysis/results');
-        return data;
-    }
-
-    // ============ BETS ============
-
-    async getApprovedBets() {
-        const { data } = await this.client.get('/bets/approved');
-        return data;
-    }
-
-    async getMobileBets(status?: string) {
-        const { data } = await this.client.get('/mobile-bets', {
-            params: status ? { status } : undefined,
-        });
+    async getAnalysis() {
+        const { data } = await this.client.get('/analysis/latest');
         return data;
     }
 }

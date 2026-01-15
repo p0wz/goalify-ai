@@ -1,4 +1,4 @@
-import { Radio, ChevronRight, Clock, Goal } from "lucide-react";
+import { Radio, ChevronRight, Clock, Goal, Sparkles } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 const Live = () => {
@@ -73,29 +73,34 @@ const Live = () => {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-              <Radio className="w-6 h-6 text-primary-foreground" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-12 h-12 gradient-primary flex items-center justify-center shadow-glow-primary">
+                <Radio className="w-6 h-6 text-white" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-destructive flex items-center justify-center">
+                <div className="w-2 h-2 bg-white rounded-full live-pulse" />
+              </div>
             </div>
-            <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            <div>
+              <h1 className="brutalist-heading text-2xl">Canlı Maçlar</h1>
+              <p className="text-sm text-muted-foreground">{liveMatches.length} maç oynanıyor</p>
             </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Canlı Maçlar</h1>
-            <p className="text-sm text-muted-foreground">{liveMatches.length} maç oynanıyor</p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 brutalist-border bg-card shadow-brutalist-sm">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-sm font-display uppercase tracking-wider">Live</span>
           </div>
         </div>
 
         {/* Live Indicator Banner */}
-        <div className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
-              <span className="text-sm font-semibold text-foreground">CANLI</span>
+        <div className="glass-card-premium rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-destructive/20 text-destructive font-display uppercase tracking-wider text-sm">
+              <div className="w-2 h-2 bg-destructive rounded-full live-pulse" />
+              CANLI
             </div>
-            <div className="h-4 w-px bg-border" />
             <span className="text-sm text-muted-foreground">{liveMatches.length} aktif maç</span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -106,18 +111,19 @@ const Live = () => {
 
         {/* Live Matches */}
         <div className="space-y-4">
-          {liveMatches.map((match) => (
-            <div 
-              key={match.id} 
-              className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-colors cursor-pointer"
+          {liveMatches.map((match, idx) => (
+            <div
+              key={match.id}
+              className="glass-card-premium rounded-2xl overflow-hidden card-hover animate-slide-up"
+              style={{ animationDelay: `${idx * 100}ms` }}
             >
               {/* Match Header */}
-              <div className="px-4 py-3 bg-muted/50 flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">{match.league}</span>
+              <div className="px-4 py-3 bg-muted/50 flex items-center justify-between border-b border-border/50">
+                <span className="text-xs font-display uppercase tracking-wider text-muted-foreground">{match.league}</span>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-destructive/15 text-destructive">
-                    <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
-                    <span className="text-xs font-bold">{match.minute}'</span>
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-destructive/15 text-destructive">
+                    <div className="w-1.5 h-1.5 bg-destructive rounded-full live-pulse" />
+                    <span className="text-xs font-display-bold">{match.minute}'</span>
                   </div>
                   <span className="text-xs text-muted-foreground">{match.status}</span>
                 </div>
@@ -128,29 +134,29 @@ const Live = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
+                      <div className="w-10 h-10 gradient-primary flex items-center justify-center text-sm font-display-bold text-white">
                         H
                       </div>
                       <div>
-                        <p className="font-semibold text-foreground">{match.home}</p>
+                        <p className="font-display text-foreground">{match.home}</p>
                         <p className="text-xs text-muted-foreground">Ev Sahibi</p>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="px-5 py-3 rounded-2xl bg-muted">
-                    <span className="text-3xl font-bold text-foreground">
+
+                  <div className="px-6 py-3 glass-card">
+                    <span className="text-3xl font-display-bold text-foreground">
                       {match.homeScore} - {match.awayScore}
                     </span>
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-center gap-3 justify-end">
                       <div className="text-right">
-                        <p className="font-semibold text-foreground">{match.away}</p>
+                        <p className="font-display text-foreground">{match.away}</p>
                         <p className="text-xs text-muted-foreground">Deplasman</p>
                       </div>
-                      <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
+                      <div className="w-10 h-10 gradient-accent flex items-center justify-center text-sm font-display-bold text-white">
                         A
                       </div>
                     </div>
@@ -159,30 +165,30 @@ const Live = () => {
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-muted/50 rounded-xl p-3">
-                    <p className="text-xs text-muted-foreground mb-2">Topa Sahip Olma</p>
+                  <div className="glass-card rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground mb-2 font-display uppercase tracking-wider">Topa Sahip Olma</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-foreground">{match.stats.possession[0]}%</span>
-                      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full"
+                      <span className="text-sm font-display-bold text-foreground">{match.stats.possession[0]}%</span>
+                      <div className="flex-1 h-2 bg-muted overflow-hidden">
+                        <div
+                          className="h-full gradient-primary"
                           style={{ width: `${match.stats.possession[0]}%` }}
                         />
                       </div>
-                      <span className="text-sm font-bold text-foreground">{match.stats.possession[1]}%</span>
+                      <span className="text-sm font-display-bold text-foreground">{match.stats.possession[1]}%</span>
                     </div>
                   </div>
-                  <div className="bg-muted/50 rounded-xl p-3">
-                    <p className="text-xs text-muted-foreground mb-2">Şutlar</p>
+                  <div className="glass-card rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground mb-2 font-display uppercase tracking-wider">Şutlar</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-foreground">{match.stats.shots[0]}</span>
-                      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                        <div 
-                          className="h-full bg-accent rounded-full"
+                      <span className="text-sm font-display-bold text-foreground">{match.stats.shots[0]}</span>
+                      <div className="flex-1 h-2 bg-muted overflow-hidden">
+                        <div
+                          className="h-full gradient-accent"
                           style={{ width: `${(match.stats.shots[0] / (match.stats.shots[0] + match.stats.shots[1])) * 100}%` }}
                         />
                       </div>
-                      <span className="text-sm font-bold text-foreground">{match.stats.shots[1]}</span>
+                      <span className="text-sm font-display-bold text-foreground">{match.stats.shots[1]}</span>
                     </div>
                   </div>
                 </div>
@@ -191,14 +197,14 @@ const Live = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-2">
                     {match.events.slice(-2).map((event, eventIdx) => (
-                      <div key={eventIdx} className="flex items-center gap-1.5 text-xs bg-muted/50 px-2.5 py-1.5 rounded-lg">
+                      <div key={eventIdx} className="flex items-center gap-1.5 text-xs glass-card px-2.5 py-1.5">
                         <Goal className="w-3 h-3 text-green-500" />
                         <span className="text-muted-foreground">{event.time}</span>
-                        <span className="font-medium text-foreground">{event.player}</span>
+                        <span className="font-display text-foreground">{event.player}</span>
                       </div>
                     ))}
                   </div>
-                  <button className="text-primary text-sm font-semibold flex items-center gap-1">
+                  <button className="text-primary text-sm font-display flex items-center gap-1 hover:gap-2 transition-all">
                     Detay <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>

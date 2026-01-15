@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { 
-  Trophy, TrendingUp, Zap, Shield, BarChart3, Users, 
-  ArrowRight, CheckCircle2, Star, Play, ChevronRight,
-  Target, Brain, Bell, Award
+import {
+  Trophy, TrendingUp, Zap, Shield, BarChart3, Users,
+  ArrowRight, CheckCircle2, Star, ChevronRight,
+  Target, Brain, Bell, Award, Flame, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/landing/Navbar";
@@ -42,10 +42,10 @@ const features = [
 ];
 
 const stats = [
-  { value: "50K+", label: "Aktif Kullanıcı" },
-  { value: "%78", label: "Başarı Oranı" },
-  { value: "1M+", label: "Tahmin" },
-  { value: "4.9", label: "Kullanıcı Puanı" },
+  { value: "50K+", label: "Aktif Kullanıcı", icon: Users },
+  { value: "%78", label: "Başarı Oranı", icon: Target },
+  { value: "1M+", label: "Tahmin", icon: Flame },
+  { value: "4.9", label: "Kullanıcı Puanı", icon: Star },
 ];
 
 const testimonials = [
@@ -53,7 +53,7 @@ const testimonials = [
     name: "Ahmet Yılmaz",
     role: "Pro Üye - 2 Yıl",
     avatar: "A",
-    content: "ProTahmin sayesinde bahis stratejimi tamamen değiştirdim. AI destekli analizler gerçekten işe yarıyor.",
+    content: "SENTIO PICKS sayesinde bahis stratejimi tamamen değiştirdim. AI destekli analizler gerçekten işe yarıyor.",
     rating: 5,
   },
   {
@@ -97,110 +97,83 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 relative overflow-hidden">
+
+      {/* ═══════════════════════════════════════════════════════════════
+          HERO SECTION - Brutalist + Gradient Heavy
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="pt-32 pb-24 px-4 relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-accent/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-primary/15 rounded-full blur-[120px] animate-gradient" />
+          <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-accent/15 rounded-full blur-[100px] animate-gradient" style={{ animationDelay: '2s' }} />
+          <div className="absolute inset-0 bg-grid opacity-30" />
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center max-w-4xl mx-auto">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6 animate-slide-up">
-              <Zap className="w-4 h-4" />
-              <span className="text-sm font-medium">AI Destekli Futbol Tahmin Platformu</span>
+          <div className="text-center max-w-5xl mx-auto">
+            {/* Badge - Brutalist Style */}
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 brutalist-border bg-card shadow-brutalist-sm mb-8 animate-slide-up">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm font-display-bold uppercase tracking-wider">AI Destekli Futbol Tahmin Platformu</span>
             </div>
 
-            {/* Heading */}
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-display text-foreground mb-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
-              Futbol Tahminlerinde{" "}
-              <span className="text-gradient">Yeni Nesil</span>{" "}
-              Deneyim
+            {/* Hero Heading - Massive Brutalist Typography */}
+            <h1 className="text-hero text-foreground mb-8 animate-slide-up" style={{ animationDelay: '100ms' }}>
+              <span className="block">SENTIO</span>
+              <span className="block text-gradient-premium">PICKS</span>
             </h1>
 
             {/* Subheading */}
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '200ms' }}>
-              Yapay zeka destekli analizler, gerçek zamanlı istatistikler ve uzman tahminleriyle 
-              futbol bahislerinde avantaj elde edin.
+            <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto animate-slide-up font-light" style={{ animationDelay: '200ms' }}>
+              Yapay zeka destekli analizler, gerçek zamanlı istatistikler ve uzman tahminleriyle
+              <span className="text-foreground font-medium"> futbol bahislerinde avantaj</span> elde edin.
             </p>
 
-            {/* CTA Buttons */}
+            {/* CTA Buttons - Brutalist Style */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: '300ms' }}>
               <Link to="/auth">
-                <Button size="lg" className="h-14 px-8 rounded-xl gradient-primary text-primary-foreground text-lg shadow-glow-primary">
+                <button className="btn-brutalist h-14 px-10 text-lg rounded-none">
                   Ücretsiz Başla
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                  <ArrowRight className="w-5 h-5 ml-3 inline-block" />
+                </button>
               </Link>
-              <Button size="lg" variant="outline" className="h-14 px-8 rounded-xl text-lg">
-                <Play className="w-5 h-5 mr-2" />
-                Nasıl Çalışır?
-              </Button>
-            </div>
-
-            {/* Trust Badges */}
-            <div className="flex items-center justify-center gap-8 mt-12 animate-slide-up" style={{ animationDelay: '400ms' }}>
-              {stats.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <p className="text-2xl md:text-3xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
-              ))}
+              <Link to="/pricing">
+                <button className="btn-brutalist-outline h-14 px-10 text-lg rounded-none">
+                  Planları Gör
+                </button>
+              </Link>
             </div>
           </div>
 
-          {/* Hero Image/Preview */}
-          <div className="mt-16 relative animate-slide-up" style={{ animationDelay: '500ms' }}>
-            <div className="bg-card border border-border rounded-3xl p-4 shadow-2xl max-w-5xl mx-auto">
-              <div className="bg-muted rounded-2xl aspect-video flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4">
-                    <Trophy className="w-10 h-10 text-primary-foreground" />
-                  </div>
-                  <p className="text-muted-foreground">Dashboard Preview</p>
+          {/* Stats Grid - Glassmorphic Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20 animate-slide-up" style={{ animationDelay: '400ms' }}>
+            {stats.map((stat, index) => (
+              <div
+                key={stat.label}
+                className="glass-card-premium rounded-2xl p-6 text-center card-hover"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-4">
+                  <stat.icon className="w-6 h-6 text-white" />
                 </div>
+                <p className="text-3xl md:text-4xl font-display-bold text-foreground mb-1">{stat.value}</p>
+                <p className="text-sm text-muted-foreground uppercase tracking-wider">{stat.label}</p>
               </div>
-            </div>
-            {/* Floating Cards */}
-            <div className="absolute -left-8 top-1/4 hidden lg:block animate-float">
-              <div className="bg-card border border-border rounded-2xl p-4 shadow-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Tahmin Kazandı!</p>
-                    <p className="text-xs text-muted-foreground">+2.4x kazanç</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="absolute -right-8 bottom-1/4 hidden lg:block animate-float" style={{ animationDelay: '1s' }}>
-              <div className="bg-card border border-border rounded-2xl p-4 shadow-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">%78 Başarı</p>
-                    <p className="text-xs text-muted-foreground">Son 30 gün</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
+      {/* ═══════════════════════════════════════════════════════════════
+          FEATURES SECTION - Glassmorphic Cards
+      ═══════════════════════════════════════════════════════════════ */}
+      <section id="features" className="py-24 px-4 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display text-foreground mb-4">
-              Neden <span className="text-gradient">ProTahmin</span>?
+            <h2 className="brutalist-heading text-4xl md:text-5xl text-foreground mb-4">
+              Neden <span className="text-gradient">SENTIO PICKS</span>?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               En gelişmiş teknolojiler ve uzman analizleriyle desteklenen özelliklerimiz
@@ -209,26 +182,29 @@ const Landing = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
-              <div 
+              <div
                 key={feature.title}
-                className="bg-card border border-border rounded-2xl p-6 hover:border-primary/50 transition-all hover:shadow-lg group"
+                className="glass-card-premium rounded-2xl p-8 card-hover group animate-slide-up"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-6 h-6 text-primary-foreground" />
+                <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-glow-primary">
+                  <feature.icon className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <h3 className="text-xl font-display text-foreground mb-3">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 px-4">
+      {/* ═══════════════════════════════════════════════════════════════
+          HOW IT WORKS - Brutalist Steps
+      ═══════════════════════════════════════════════════════════════ */}
+      <section id="how-it-works" className="py-24 px-4 bg-muted/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display text-foreground mb-4">
+            <h2 className="brutalist-heading text-4xl md:text-5xl text-foreground mb-4">
               Nasıl <span className="text-gradient">Çalışır</span>?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -239,17 +215,24 @@ const Landing = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {howItWorks.map((step, index) => (
               <div key={step.step} className="relative">
-                <div className="bg-card border border-border rounded-2xl p-8 text-center hover:border-primary/50 transition-colors">
-                  <div className="text-5xl font-display text-primary/20 mb-4">{step.step}</div>
-                  <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4">
-                    <step.icon className="w-8 h-8 text-primary-foreground" />
+                <div className="glass-card-premium rounded-2xl p-10 text-center card-hover">
+                  {/* Step Number - Brutalist */}
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <span className="brutalist-border bg-primary text-white px-4 py-2 font-display-bold text-lg shadow-brutalist-sm">
+                      {step.step}
+                    </span>
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">{step.title}</h3>
+
+                  <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center mx-auto mt-4 mb-6 shadow-glow-primary">
+                    <step.icon className="w-10 h-10 text-white" />
+                  </div>
+                  <h3 className="text-xl font-display text-foreground mb-3">{step.title}</h3>
                   <p className="text-muted-foreground">{step.description}</p>
                 </div>
+
                 {index < howItWorks.length - 1 && (
-                  <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                    <ChevronRight className="w-8 h-8 text-muted-foreground/30" />
+                  <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
+                    <ChevronRight className="w-8 h-8 text-primary" />
                   </div>
                 )}
               </div>
@@ -258,11 +241,13 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 px-4 bg-muted/30">
+      {/* ═══════════════════════════════════════════════════════════════
+          TESTIMONIALS - Glassmorphic
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="py-24 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display text-foreground mb-4">
+            <h2 className="brutalist-heading text-4xl md:text-5xl text-foreground mb-4">
               Kullanıcılarımız <span className="text-gradient">Ne Diyor</span>?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -271,20 +256,24 @@ const Landing = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.name} className="bg-card border border-border rounded-2xl p-6">
-                <div className="flex items-center gap-1 mb-4">
+            {testimonials.map((testimonial, index) => (
+              <div
+                key={testimonial.name}
+                className="glass-card-premium rounded-2xl p-8 card-hover animate-slide-up"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-center gap-1 mb-6">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-accent text-accent" />
+                    <Star key={i} className="w-5 h-5 fill-accent text-accent" />
                   ))}
                 </div>
-                <p className="text-foreground mb-6">"{testimonial.content}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
+                <p className="text-foreground text-lg mb-8 leading-relaxed">"{testimonial.content}"</p>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-white font-display text-lg">
                     {testimonial.avatar}
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{testimonial.name}</p>
+                    <p className="font-display text-foreground">{testimonial.name}</p>
                     <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                   </div>
                 </div>
@@ -294,24 +283,30 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="gradient-premium rounded-3xl p-12 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+      {/* ═══════════════════════════════════════════════════════════════
+          CTA SECTION - Gradient Heavy + Brutalist
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="py-24 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="gradient-premium rounded-3xl p-16 text-center relative overflow-hidden shadow-2xl">
+            {/* Decorative Elements */}
+            <div className="absolute top-0 left-0 w-full h-full bg-grid opacity-10" />
+            <div className="absolute top-10 right-10 w-32 h-32 border-4 border-white/20 rounded-full" />
+            <div className="absolute bottom-10 left-10 w-24 h-24 border-4 border-white/20" />
+
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-display text-white mb-4">
-                Hemen Başlayın
+              <h2 className="text-4xl md:text-5xl font-display-bold text-white mb-6 uppercase">
+                Hemen Başla
               </h2>
-              <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto">
-                7 gün ücretsiz deneme ile tüm premium özelliklere erişin. 
+              <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
+                7 gün ücretsiz deneme ile tüm premium özelliklere erişin.
                 Kredi kartı gerekmez.
               </p>
               <Link to="/auth">
-                <Button size="lg" className="h-14 px-8 rounded-xl bg-white text-primary hover:bg-white/90 text-lg font-semibold">
+                <button className="h-16 px-12 bg-white text-primary font-display-bold uppercase tracking-wider text-lg border-4 border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all">
                   Ücretsiz Deneyin
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                  <ArrowRight className="w-6 h-6 ml-3 inline-block" />
+                </button>
               </Link>
             </div>
           </div>

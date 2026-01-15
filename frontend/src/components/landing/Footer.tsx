@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Trophy, Twitter, Instagram, Youtube, Mail } from "lucide-react";
+import { Trophy, Twitter, Instagram, Youtube, Mail, ArrowUpRight } from "lucide-react";
 
 const footerLinks = {
   product: [
@@ -28,44 +28,55 @@ const footerLinks = {
 
 export const Footer = () => {
   return (
-    <footer className="bg-card border-t border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <footer className="bg-card/50 backdrop-blur-xl border-t border-border relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-primary-foreground" />
+            <Link to="/" className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 gradient-primary flex items-center justify-center shadow-brutalist-sm">
+                <Trophy className="w-6 h-6 text-white" />
               </div>
-              <span className="font-display text-xl text-gradient">SENTIO</span>
+              <div className="flex flex-col">
+                <span className="font-display-bold text-xl text-gradient">SENTIO</span>
+                <span className="text-xs font-display uppercase tracking-[0.3em] text-muted-foreground">PICKS</span>
+              </div>
             </Link>
-            <p className="text-muted-foreground text-sm mb-6 max-w-xs">
+            <p className="text-muted-foreground text-sm mb-6 max-w-xs leading-relaxed">
               AI destekli futbol tahmin platformu. Daha akıllı tahminler, daha yüksek kazançlar.
             </p>
-            <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
-                <Youtube className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
-                <Mail className="w-5 h-5" />
-              </a>
+
+            {/* Social Links - Brutalist Style */}
+            <div className="flex gap-3">
+              {[
+                { icon: Twitter, href: "#" },
+                { icon: Instagram, href: "#" },
+                { icon: Youtube, href: "#" },
+                { icon: Mail, href: "#" },
+              ].map((social, idx) => (
+                <a
+                  key={idx}
+                  href={social.href}
+                  className="w-10 h-10 brutalist-border bg-card flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all shadow-brutalist-sm hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5"
+                >
+                  <social.icon className="w-4 h-4" />
+                </a>
+              ))}
             </div>
           </div>
 
           {/* Links */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Ürün</h4>
+            <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">Ürün</h4>
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
-                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 group">
                     {link.label}
+                    <ArrowUpRight className="w-3 h-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all" />
                   </Link>
                 </li>
               ))}
@@ -73,12 +84,13 @@ export const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Şirket</h4>
+            <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">Şirket</h4>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
-                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 group">
                     {link.label}
+                    <ArrowUpRight className="w-3 h-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all" />
                   </Link>
                 </li>
               ))}
@@ -86,12 +98,13 @@ export const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Destek</h4>
+            <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">Destek</h4>
             <ul className="space-y-3">
               {footerLinks.support.map((link) => (
                 <li key={link.label}>
-                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 group">
                     {link.label}
+                    <ArrowUpRight className="w-3 h-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all" />
                   </Link>
                 </li>
               ))}
@@ -99,9 +112,10 @@ export const Footer = () => {
           </div>
         </div>
 
+        {/* Bottom Bar */}
         <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2024 SENTIO. Tüm hakları saklıdır.
+            © 2024 <span className="font-display">SENTIO PICKS</span>. Tüm hakları saklıdır.
           </p>
           <div className="flex gap-6">
             {footerLinks.legal.map((link) => (

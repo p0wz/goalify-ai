@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import Landing from "./pages/Landing";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
@@ -26,48 +27,50 @@ import RequireAuth from "@/components/auth/RequireAuth";
 const queryClient = new QueryClient();
 
 const App = () => (
-    <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-            <Toaster />
-            <BrowserRouter>
-                <Routes>
-                    {/* Public Pages */}
-                    <Route path="/" element={<Landing />} />
-                    <Route path="/pricing" element={<Pricing />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/login" element={<Login />} />
+    <ThemeProvider defaultTheme="dark" storageKey="sentio-picks-theme">
+        <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+                <Toaster />
+                <BrowserRouter>
+                    <Routes>
+                        {/* Public Pages */}
+                        <Route path="/" element={<Landing />} />
+                        <Route path="/pricing" element={<Pricing />} />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/contact" element={<Contact />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/login" element={<Login />} />
 
-                    {/* App Pages */}
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/live" element={<Live />} />
-                    <Route path="/predictions" element={<Predictions />} />
-                    <Route path="/leagues" element={<Leagues />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/notifications" element={<Notifications />} />
-                    <Route path="/premium" element={<Premium />} />
-
-                    {/* Goalify AI Pages */}
-                    <Route path="/analysis" element={<Analysis />} />
-                    <Route path="/approved" element={<ApprovedBets />} />
-                    <Route path="/training" element={<TrainingPool />} />
-
-                    {/* Protected Routes */}
-                    <Route element={<RequireAuth />}>
-                        <Route path="/admin" element={<AdminPanel />} />
+                        {/* App Pages */}
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/live" element={<Live />} />
+                        <Route path="/predictions" element={<Predictions />} />
+                        <Route path="/leagues" element={<Leagues />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/notifications" element={<Notifications />} />
+                        <Route path="/premium" element={<Premium />} />
+
+                        {/* Goalify AI Pages */}
                         <Route path="/analysis" element={<Analysis />} />
                         <Route path="/approved" element={<ApprovedBets />} />
                         <Route path="/training" element={<TrainingPool />} />
-                    </Route>
 
-                    <Route path="*" element={<NotFound />} />
-                </Routes>
-            </BrowserRouter>
-        </TooltipProvider>
-    </QueryClientProvider>
+                        {/* Protected Routes */}
+                        <Route element={<RequireAuth />}>
+                            <Route path="/admin" element={<AdminPanel />} />
+                            <Route path="/profile" element={<Profile />} />
+                            <Route path="/analysis" element={<Analysis />} />
+                            <Route path="/approved" element={<ApprovedBets />} />
+                            <Route path="/training" element={<TrainingPool />} />
+                        </Route>
+
+                        <Route path="*" element={<NotFound />} />
+                    </Routes>
+                </BrowserRouter>
+            </TooltipProvider>
+        </QueryClientProvider>
+    </ThemeProvider>
 );
 
 export default App;

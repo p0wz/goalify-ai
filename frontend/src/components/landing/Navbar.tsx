@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
-import { Trophy, Menu, X } from "lucide-react";
+import { Trophy, Menu, X, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/ThemeProvider";
 
 const navLinks = [
   { label: "Özellikler", href: "/#features" },
@@ -15,17 +16,25 @@ const navLinks = [
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 glass-navbar">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-primary-foreground" />
+          <Link to="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 gradient-primary flex items-center justify-center shadow-brutalist-sm">
+              <Trophy className="w-5 h-5 text-white" />
             </div>
-            <span className="font-display text-xl text-gradient">SENTIO</span>
+            <div className="flex flex-col">
+              <span className="font-display-bold text-lg leading-none text-gradient">SENTIO</span>
+              <span className="text-xs font-display uppercase tracking-widest text-muted-foreground">PICKS</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
@@ -35,63 +44,92 @@ export const Navbar = () => {
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary",
-                  location.pathname === link.href ? "text-primary" : "text-muted-foreground"
+                  "text-sm font-medium transition-colors hover:text-primary relative",
+                  location.pathname === link.href
+                    ? "text-primary"
+                    : "text-muted-foreground"
                 )}
               >
                 {link.label}
+                {location.pathname === link.href && (
+                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 gradient-primary" />
+                )}
               </Link>
             ))}
           </div>
 
-          {/* CTA Buttons */}
+          {/* Theme Toggle + CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/auth">
-              <Button variant="ghost" className="rounded-xl">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+              ) : (
+                <Moon className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+              )}
+            </button>
+            <Link to="/login">
+              <Button variant="ghost" className="font-display">
                 Giriş Yap
               </Button>
             </Link>
             <Link to="/auth">
-              <Button className="rounded-xl gradient-primary text-primary-foreground">
+              <button className="btn-brutalist h-10 px-6 text-sm">
                 Ücretsiz Başla
-              </Button>
+              </button>
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 rounded-xl hover:bg-muted transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile: Theme Toggle + Menu Button */}
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <Moon className="w-5 h-5 text-muted-foreground" />
+              )}
+            </button>
+            <button
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-background border-b border-border">
+        <div className="md:hidden glass-card border-t border-border">
           <div className="px-4 py-4 space-y-3">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}
-                className="block py-2 text-muted-foreground hover:text-primary transition-colors"
+                className="block py-2 text-muted-foreground hover:text-primary transition-colors font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
               </Link>
             ))}
-            <div className="pt-4 space-y-2">
-              <Link to="/auth" className="block">
-                <Button variant="outline" className="w-full rounded-xl">
+            <div className="pt-4 space-y-3 border-t border-border">
+              <Link to="/login" className="block">
+                <Button variant="outline" className="w-full font-display">
                   Giriş Yap
                 </Button>
               </Link>
               <Link to="/auth" className="block">
-                <Button className="w-full rounded-xl gradient-primary text-primary-foreground">
+                <button className="btn-brutalist w-full h-12">
                   Ücretsiz Başla
-                </Button>
+                </button>
               </Link>
             </div>
           </div>
