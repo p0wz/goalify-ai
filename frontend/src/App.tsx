@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Landing from "./pages/Landing";
 import Pricing from "./pages/Pricing";
@@ -9,18 +9,13 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
 import Live from "./pages/Live";
 import Predictions from "./pages/Predictions";
-import Leagues from "./pages/Leagues";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Premium from "./pages/Premium";
 import NotFound from "./pages/NotFound";
-import Analysis from "./pages/Analysis";
-import ApprovedBets from "./pages/ApprovedBets";
-import TrainingPool from "./pages/TrainingPool";
 import AdminPanel from "./pages/AdminPanel";
 import RequireAuth from "@/components/auth/RequireAuth";
 
@@ -42,27 +37,20 @@ const App = () => (
                         <Route path="/login" element={<Login />} />
 
                         {/* App Pages */}
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/live" element={<Live />} />
                         <Route path="/predictions" element={<Predictions />} />
-                        <Route path="/leagues" element={<Leagues />} />
+                        <Route path="/live" element={<Live />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/notifications" element={<Notifications />} />
                         <Route path="/premium" element={<Premium />} />
 
-                        {/* Goalify AI Pages */}
-                        <Route path="/analysis" element={<Analysis />} />
-                        <Route path="/approved" element={<ApprovedBets />} />
-                        <Route path="/training" element={<TrainingPool />} />
+                        {/* Redirects */}
+                        <Route path="/dashboard" element={<Navigate to="/predictions" replace />} />
+                        <Route path="/leagues" element={<Navigate to="/predictions" replace />} />
 
                         {/* Protected Routes */}
                         <Route element={<RequireAuth />}>
                             <Route path="/admin" element={<AdminPanel />} />
-                            <Route path="/profile" element={<Profile />} />
-                            <Route path="/analysis" element={<Analysis />} />
-                            <Route path="/approved" element={<ApprovedBets />} />
-                            <Route path="/training" element={<TrainingPool />} />
                         </Route>
 
                         <Route path="*" element={<NotFound />} />

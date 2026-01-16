@@ -1,108 +1,54 @@
 import { useState } from "react";
-import { Check, Crown, Zap, Star, Shield, Sparkles, ArrowRight } from "lucide-react";
+import { Check, Crown, Shield, Zap, ArrowRight, TrendingUp, Target, Bell, BarChart3, Clock, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 
-interface PlanFeature {
-  text: string;
-  included: boolean;
-}
-
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  period: string;
-  description: string;
-  icon: React.ReactNode;
-  popular: boolean;
-  features: PlanFeature[];
-}
-
-const plans: Plan[] = [
-  {
-    id: "basic",
-    name: "Starter",
-    price: 49,
-    period: "/ay",
-    description: "Başlangıç için ideal",
-    icon: <Zap className="w-6 h-6" />,
-    popular: false,
-    features: [
-      { text: "Günlük 5 tahmin", included: true },
-      { text: "Temel istatistikler", included: true },
-      { text: "Maç bildirimleri", included: true },
-      { text: "VIP tahminler", included: false },
-      { text: "Canlı destek", included: false },
-      { text: "API erişimi", included: false },
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 99,
-    period: "/ay",
-    description: "En popüler seçim",
-    icon: <Crown className="w-6 h-6" />,
-    popular: true,
-    features: [
-      { text: "Sınırsız tahmin", included: true },
-      { text: "Gelişmiş istatistikler", included: true },
-      { text: "Anlık bildirimler", included: true },
-      { text: "VIP tahminler", included: true },
-      { text: "7/24 canlı destek", included: true },
-      { text: "API erişimi", included: false },
-    ],
-  },
-  {
-    id: "elite",
-    name: "Elite",
-    price: 199,
-    period: "/ay",
-    description: "Profesyoneller için",
-    icon: <Star className="w-6 h-6" />,
-    popular: false,
-    features: [
-      { text: "Sınırsız tahmin", included: true },
-      { text: "AI destekli analiz", included: true },
-      { text: "Özel bildirimler", included: true },
-      { text: "VIP+ tahminler", included: true },
-      { text: "Öncelikli destek", included: true },
-      { text: "API erişimi", included: true },
-    ],
-  },
+const features = [
+  { icon: TrendingUp, text: "Günün Yüksek Güven Tercihleri", desc: "AI modelimizin en güvendiği günlük seçimler" },
+  { icon: Target, text: "Günün Değer Tercihleri", desc: "Yüksek oran/değer oranına sahip fırsatlar" },
+  { icon: BarChart3, text: "Detaylı Maç Analizleri", desc: "Takım formları, kafa kafaya istatistikler" },
+  { icon: Bell, text: "Anlık Bildirimler", desc: "Maç başlamadan ve oran değişimlerinde uyarı" },
+  { icon: Clock, text: "Erken Oran Değişim Uyarıları", desc: "Piyasa hareketlerini ilk sen gör" },
+  { icon: Shield, text: "AI Destekli Tahmin Modeli", desc: "Sürekli öğrenen ve gelişen algoritmalar" },
 ];
 
 const Premium = () => {
-  const [selectedPlan, setSelectedPlan] = useState<string>("pro");
   const [isYearly, setIsYearly] = useState(false);
 
+  // Prices
+  const monthlyTRY = 199;
+  const monthlyUSD = 9.90;
+  const yearlyDiscount = 0.15; // 15% discount
+
+  const yearlyTRY = Math.round(monthlyTRY * 12 * (1 - yearlyDiscount));
+  const yearlyUSD = (monthlyUSD * 12 * (1 - yearlyDiscount)).toFixed(2);
+
   const handlePurchase = () => {
-    const plan = plans.find(p => p.id === selectedPlan);
+    const price = isYearly ? `₺${yearlyTRY}/yıl` : `₺${monthlyTRY}/ay`;
     toast({
       title: "Ödeme Sayfasına Yönlendiriliyorsunuz",
-      description: `${plan?.name} planı seçildi - ₺${isYearly ? (plan?.price || 0) * 10 : plan?.price}${isYearly ? "/yıl" : "/ay"}`,
+      description: `Premium ${isYearly ? 'Yıllık' : 'Aylık'} Plan - ${price}`,
     });
   };
 
   return (
     <AppLayout>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         {/* Hero */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 brutalist-border bg-card shadow-brutalist-sm mb-6">
             <Sparkles className="w-4 h-4 text-accent" />
-            <span className="text-sm font-display-bold uppercase tracking-wider">%20 İndirim - Sınırlı Süre</span>
+            <span className="text-sm font-display-bold uppercase tracking-wider">Premium Üyelik</span>
           </div>
           <h2 className="brutalist-heading text-3xl md:text-4xl text-foreground mb-2">
-            Premium'a <span className="text-gradient">Yükselt</span>
+            SENTIO <span className="text-gradient">PICKS</span> Premium
           </h2>
           <p className="text-muted-foreground">
-            Daha fazla tahmin, daha yüksek kazanç
+            Tüm premium özelliklere sınırsız erişim
           </p>
         </div>
 
-        {/* Billing Toggle - Brutalist */}
+        {/* Billing Toggle */}
         <div className="flex items-center justify-center mb-10">
           <div className="flex brutalist-border shadow-brutalist-sm">
             <button
@@ -118,108 +64,71 @@ const Premium = () => {
                 }`}
             >
               Yıllık
-              <span className="text-xs px-2 py-0.5 bg-accent text-white font-bold">-20%</span>
+              <span className="text-xs px-2 py-0.5 bg-accent text-white font-bold">-%15</span>
             </button>
           </div>
         </div>
 
-        {/* Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-          {plans.map((plan, idx) => (
-            <button
-              key={plan.id}
-              onClick={() => setSelectedPlan(plan.id)}
-              className={`text-left animate-slide-up ${selectedPlan === plan.id
-                  ? plan.popular
-                    ? "glass-card-premium rounded-2xl p-6 border-2 border-accent glow-accent"
-                    : "glass-card-premium rounded-2xl p-6 border-2 border-primary glow-primary"
-                  : "glass-card-premium rounded-2xl p-6 card-hover"
-                }`}
-              style={{ animationDelay: `${idx * 100}ms` }}
-            >
-              {/* Popular Badge */}
-              {plan.popular && (
-                <div className="inline-flex items-center gap-1 px-3 py-1.5 brutalist-border bg-accent text-white text-xs font-display-bold uppercase tracking-wider shadow-brutalist-sm mb-4">
-                  <Crown className="w-3 h-3" />
-                  En Popüler
+        {/* Main Card */}
+        <div className="glass-card-premium rounded-2xl p-8 border-2 border-accent glow-accent mb-10">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 gradient-accent flex items-center justify-center shadow-glow-primary">
+                <Crown className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-display text-foreground">Premium</h3>
+                <p className="text-sm text-muted-foreground">Tam erişim</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="flex items-baseline gap-1 justify-end">
+                <span className="text-4xl font-display-bold text-foreground">
+                  ₺{isYearly ? yearlyTRY : monthlyTRY}
+                </span>
+                <span className="text-muted-foreground">/{isYearly ? "yıl" : "ay"}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                veya ${isYearly ? yearlyUSD : monthlyUSD}/{isYearly ? "yıl" : "ay"}
+              </p>
+            </div>
+          </div>
+
+          {isYearly && (
+            <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 text-center">
+              <p className="text-green-500 font-display">
+                %15 tasarruf! Yıllık ₺{monthlyTRY * 12 - yearlyTRY} indirim
+              </p>
+            </div>
+          )}
+
+          {/* Features */}
+          <div className="space-y-4 mb-8">
+            {features.map((feature, idx) => (
+              <div key={idx} className="flex items-start gap-4 p-3 glass-card rounded-xl animate-slide-up" style={{ animationDelay: `${idx * 50}ms` }}>
+                <div className="w-10 h-10 bg-accent/20 flex items-center justify-center shrink-0">
+                  <feature.icon className="w-5 h-5 text-accent" />
                 </div>
-              )}
-
-              <div className="mb-4">
-                <div className={`w-12 h-12 flex items-center justify-center mb-3 ${plan.popular ? "gradient-accent" : "gradient-primary"
-                  } shadow-glow-primary`}>
-                  {plan.icon}
+                <div>
+                  <p className="font-display text-foreground">{feature.text}</p>
+                  <p className="text-sm text-muted-foreground">{feature.desc}</p>
                 </div>
-                <h3 className="text-xl font-display text-foreground">{plan.name}</h3>
-                <p className="text-sm text-muted-foreground">{plan.description}</p>
+                <Check className="w-5 h-5 text-green-500 shrink-0 ml-auto" />
               </div>
+            ))}
+          </div>
 
-              {/* Price */}
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-4xl font-display-bold text-foreground">
-                    ₺{isYearly ? plan.price * 10 : plan.price}
-                  </span>
-                  <span className="text-muted-foreground ml-1">
-                    {isYearly ? "/yıl" : plan.period}
-                  </span>
-                </div>
-              </div>
-
-              {/* Features */}
-              <div className="space-y-3">
-                {plan.features.map((feature, fidx) => (
-                  <div
-                    key={fidx}
-                    className={`flex items-center gap-2 text-sm ${feature.included ? "text-foreground" : "text-muted-foreground/40"
-                      }`}
-                  >
-                    {feature.included ? (
-                      <div className="w-5 h-5 bg-green-500/20 flex items-center justify-center">
-                        <Check className="w-3 h-3 text-green-500" />
-                      </div>
-                    ) : (
-                      <div className="w-5 h-5 border border-muted-foreground/30" />
-                    )}
-                    <span className={!feature.included ? "line-through" : ""}>
-                      {feature.text}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Selection indicator */}
-              <div className={`mt-6 flex items-center justify-center gap-2 py-3 transition-colors ${selectedPlan === plan.id
-                  ? plan.popular
-                    ? "bg-accent/20 text-accent"
-                    : "bg-primary/20 text-primary"
-                  : "bg-muted text-muted-foreground"
-                }`}>
-                {selectedPlan === plan.id ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    <span className="text-sm font-display">Seçildi</span>
-                  </>
-                ) : (
-                  <span className="text-sm">Seçmek için tıkla</span>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div className="max-w-md mx-auto text-center">
-          <button
-            onClick={handlePurchase}
-            className="btn-brutalist w-full h-14 text-lg"
-          >
-            Şimdi Başla
+          {/* CTA */}
+          <button onClick={handlePurchase} className="btn-brutalist w-full h-14 text-lg">
+            Premium'a Geç
             <ArrowRight className="w-5 h-5 ml-2 inline-block" />
           </button>
+        </div>
 
-          {/* Trust badges */}
-          <div className="flex items-center justify-center gap-8 mt-8">
+        {/* Trust & Info */}
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-8 mb-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <Shield className="w-4 h-4" />
               <span>Güvenli Ödeme</span>
@@ -229,9 +138,8 @@ const Premium = () => {
               <span>Anında Aktivasyon</span>
             </div>
           </div>
-
-          <p className="text-muted-foreground text-xs mt-4">
-            İstediğiniz zaman iptal edebilirsiniz. İlk 7 gün ücretsiz deneme.
+          <p className="text-muted-foreground text-sm">
+            İstediğiniz zaman iptal edebilirsiniz.
           </p>
         </div>
       </div>

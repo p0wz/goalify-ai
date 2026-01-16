@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
   TrendingUp,
   Radio,
   Trophy,
@@ -15,10 +14,8 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 const mainNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: TrendingUp, label: "Tahminler", path: "/predictions" },
   { icon: Radio, label: "Canlı Maçlar", path: "/live" },
-  { icon: Trophy, label: "Lig Tabloları", path: "/leagues" },
 ];
 
 const bottomNavItems = [
@@ -40,7 +37,7 @@ export const Sidebar = () => {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border">
         {!collapsed && (
-          <Link to="/dashboard" className="flex items-center gap-2">
+          <Link to="/predictions" className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
               <Trophy className="w-5 h-5 text-primary-foreground" />
             </div>
