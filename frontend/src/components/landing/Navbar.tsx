@@ -6,8 +6,6 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 
 const navLinks = [
-  { label: "Özellikler", href: "/#features" },
-  { label: "Nasıl Çalışır", href: "/#how-it-works" },
   { label: "Fiyatlandırma", href: "/pricing" },
   { label: "Hakkımızda", href: "/about" },
   { label: "İletişim", href: "/contact" },
@@ -78,7 +76,7 @@ export const Navbar = () => {
             </Link>
             <Link to="/auth">
               <button className="btn-brutalist h-10 px-6 text-sm">
-                Ücretsiz Başla
+                Kayıt Ol
               </button>
             </Link>
           </div>
@@ -128,7 +126,7 @@ export const Navbar = () => {
               </Link>
               <Link to="/auth" className="block">
                 <button className="btn-brutalist w-full h-12">
-                  Ücretsiz Başla
+                  Kayıt Ol
                 </button>
               </Link>
             </div>

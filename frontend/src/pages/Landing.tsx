@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import {
-  Trophy, TrendingUp, Zap, Shield, BarChart3, Users,
+  TrendingUp, Shield, BarChart3, Users,
   ArrowRight, ChevronRight,
-  Target, Brain, Bell, Award, Sparkles
+  Target, Brain, Bell, Award
 } from "lucide-react";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
@@ -43,8 +43,8 @@ const features = [
 const howItWorks = [
   {
     step: "01",
-    title: "Ücretsiz Kayıt Ol",
-    description: "Hemen ücretsiz hesabınızı oluşturun ve platforma erişin.",
+    title: "Kayıt Ol",
+    description: "Hesabınızı oluşturun ve platforma erişin.",
     icon: Users,
   },
   {
@@ -79,29 +79,23 @@ const Landing = () => {
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center max-w-5xl mx-auto">
-            {/* Badge - Brutalist Style */}
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 brutalist-border bg-card shadow-brutalist-sm mb-8 animate-slide-up">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-display-bold uppercase tracking-wider">AI Destekli Futbol Tahmin Platformu</span>
-            </div>
-
             {/* Hero Heading - Massive Brutalist Typography */}
-            <h1 className="text-hero text-foreground mb-8 animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <h1 className="text-hero text-foreground mb-8 animate-slide-up">
               <span className="block">SENTIO</span>
               <span className="block text-gradient-premium">PICKS</span>
             </h1>
 
             {/* Subheading */}
-            <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto animate-slide-up font-light" style={{ animationDelay: '200ms' }}>
+            <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto animate-slide-up font-light" style={{ animationDelay: '100ms' }}>
               Yapay zeka destekli analizler, gerçek zamanlı istatistikler ve detaylı maç verileriyle
               <span className="text-foreground font-medium"> bilinçli kararlar</span> alın.
             </p>
 
             {/* CTA Buttons - Brutalist Style */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: '300ms' }}>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: '200ms' }}>
               <Link to="/auth">
                 <button className="btn-brutalist h-14 px-10 text-lg rounded-none">
-                  Ücretsiz Başla
+                  Kayıt Ol
                   <ArrowRight className="w-5 h-5 ml-3 inline-block" />
                 </button>
               </Link>
@@ -188,36 +182,6 @@ const Landing = () => {
                 )}
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          CTA SECTION - Gradient Heavy + Brutalist
-      ═══════════════════════════════════════════════════════════════ */}
-      <section className="py-24 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="gradient-premium rounded-3xl p-16 text-center relative overflow-hidden shadow-2xl">
-            {/* Decorative Elements */}
-            <div className="absolute top-0 left-0 w-full h-full bg-grid opacity-10" />
-            <div className="absolute top-10 right-10 w-32 h-32 border-4 border-white/20 rounded-full" />
-            <div className="absolute bottom-10 left-10 w-24 h-24 border-4 border-white/20" />
-
-            <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-display-bold text-white mb-6 uppercase">
-                Hemen Başla
-              </h2>
-              <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
-                7 gün ücretsiz deneme ile tüm premium özelliklere erişin.
-                Kredi kartı gerekmez.
-              </p>
-              <Link to="/auth">
-                <button className="h-16 px-12 bg-white text-primary font-display-bold uppercase tracking-wider text-lg border-4 border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all">
-                  Ücretsiz Deneyin
-                  <ArrowRight className="w-6 h-6 ml-3 inline-block" />
-                </button>
-              </Link>
-            </div>
           </div>
         </div>
       </section>

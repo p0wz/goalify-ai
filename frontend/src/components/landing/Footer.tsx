@@ -1,28 +1,17 @@
 import { Link } from "react-router-dom";
-import { Trophy, Twitter, Instagram, Youtube, Mail, ArrowUpRight } from "lucide-react";
+import { Trophy, Twitter, Instagram, Mail, ArrowUpRight } from "lucide-react";
 
 const footerLinks = {
   product: [
-    { label: "Özellikler", href: "/#features" },
     { label: "Fiyatlandırma", href: "/pricing" },
-    { label: "API", href: "#" },
-    { label: "Entegrasyonlar", href: "#" },
   ],
   company: [
     { label: "Hakkımızda", href: "/about" },
-    { label: "Blog", href: "#" },
-    { label: "Kariyer", href: "#" },
     { label: "İletişim", href: "/contact" },
   ],
   legal: [
     { label: "Gizlilik Politikası", href: "#" },
     { label: "Kullanım Şartları", href: "#" },
-    { label: "Çerez Politikası", href: "#" },
-  ],
-  support: [
-    { label: "Yardım Merkezi", href: "#" },
-    { label: "SSS", href: "#" },
-    { label: "Topluluk", href: "#" },
   ],
 };
 
@@ -33,7 +22,7 @@ export const Footer = () => {
       <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-2">
             <Link to="/" className="flex items-center gap-3 mb-6">
@@ -46,7 +35,7 @@ export const Footer = () => {
               </div>
             </Link>
             <p className="text-muted-foreground text-sm mb-6 max-w-xs leading-relaxed">
-              AI destekli futbol tahmin platformu. Daha akıllı tahminler, daha yüksek kazançlar.
+              AI destekli futbol analiz platformu. Daha akıllı tahminler için daha akıllı analizler.
             </p>
 
             {/* Social Links - Brutalist Style */}
@@ -54,8 +43,7 @@ export const Footer = () => {
               {[
                 { icon: Twitter, href: "#" },
                 { icon: Instagram, href: "#" },
-                { icon: Youtube, href: "#" },
-                { icon: Mail, href: "#" },
+                { icon: Mail, href: "/contact" },
               ].map((social, idx) => (
                 <a
                   key={idx}
@@ -87,20 +75,6 @@ export const Footer = () => {
             <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">Şirket</h4>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
-                <li key={link.label}>
-                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 group">
-                    {link.label}
-                    <ArrowUpRight className="w-3 h-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">Destek</h4>
-            <ul className="space-y-3">
-              {footerLinks.support.map((link) => (
                 <li key={link.label}>
                   <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 group">
                     {link.label}
