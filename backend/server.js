@@ -1192,25 +1192,39 @@ async function start() {
             const { planType } = req.body; // 'monthly' or 'yearly'
             const user = req.user;
 
+            console.log(`[Payment] Request from user ${user.id} (${user.email}), plan: ${planType}`);
+
             if (!planType || !['monthly', 'yearly'].includes(planType)) {
                 return res.status(400).json({ success: false, error: 'Invalid plan type' });
             }
 
             const productId = creem.getProductId(planType);
+            console.log(`[Payment] Product ID: ${productId}`);
+
             const baseUrl = 'https://sentiopicks.com';
 
             const checkout = await creem.createCheckout({
                 productId,
                 userId: user.id,
                 email: user.email,
-                successUrl: `${baseUrl}/premium?success=true`,
-                cancelUrl: `${baseUrl}/premium?canceled=true`
+                successUrl: `${baseUrl}/premium?success=true`
             });
 
-            console.log(`[Payment] Checkout created for user ${user.id}: ${planType}`);
-            res.json({ success: true, checkoutUrl: checkout.checkout_url });
+            console.log('[Payment] Full checkout response:', JSON.stringify(checkout, null, 2));
+            console.log('[Payment] checkout_url:', checkout.checkout_url);
+
+            // Return the Creem checkout URL
+            const checkoutUrl = checkout.checkout_url;
+            if (!checkoutUrl) {
+                console.error('[Payment] No checkout_url in response!');
+                return res.status(500).json({ success: false, error: 'No checkout URL returned from Creem' });
+            }
+
+            console.log(`[Payment] Checkout created for user ${user.id}: ${planType}, URL: ${checkoutUrl}`);
+            res.json({ success: true, checkoutUrl: checkoutUrl });
         } catch (error) {
             console.error('[Payment] Checkout error:', error.message);
+            console.error('[Payment] Full error:', error);
             res.status(500).json({ success: false, error: error.message });
         }
     });
