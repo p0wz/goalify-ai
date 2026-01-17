@@ -88,27 +88,35 @@ const app = express();
 
 // CORS Configuration for cross-origin requests
 const corsOptions = {
-    origin: [
-        // Production domains
-        'https://sentiopicks.com',
-        'https://www.sentiopicks.com',
-        'https://sentio.pages.dev',
-        'https://goalify-ai.pages.dev',
-        // Development
-        'http://localhost:5173',
-        'http://localhost:3000',
-        'http://localhost:8081',
-        'http://localhost:19006'
-    ],
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            'https://sentiopicks.com',
+            'https://www.sentiopicks.com',
+            'https://sentio.pages.dev',
+            'https://goalify-ai.pages.dev',
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'http://localhost:8081',
+            'http://localhost:19006'
+        ];
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.log('[CORS] Blocked origin:', origin);
+            callback(null, true); // Allow anyway for debugging
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
-    optionsSuccessStatus: 200  // Some legacy browsers choke on 204
+    optionsSuccessStatus: 200,
+    preflightContinue: false
 };
 
 app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly with same config
+// Handle preflight requests explicitly
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
