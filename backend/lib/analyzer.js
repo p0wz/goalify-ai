@@ -4,7 +4,7 @@
  */
 
 const flashscore = require('./flashscore');
-const ALLOWED_LEAGUES = require('../data/leagues');
+const { ALLOWED_LEAGUES, ALLOWED_LEAGUES_NO_CUPS } = require('../data/leagues');
 
 /**
  * Calculate advanced stats from match history

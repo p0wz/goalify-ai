@@ -254,20 +254,21 @@ const AdminPanel = () => {
         }
     };
 
-    const runAnalysis = async (limit: number = 500, leagueFilter: boolean = true) => {
+    const runAnalysis = async (limit: number = 500, leagueFilter: boolean = true, noCupFilter: boolean = false) => {
         setAnalysisLoading(true);
         try {
             const res = await fetch(`${API_BASE}/analysis/run`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                body: JSON.stringify({ limit, leagueFilter })
+                body: JSON.stringify({ limit, leagueFilter, noCupFilter })
             });
             handleAuthError(res);
-            const data = await safeJson(res); // Removed duplicate declaration
+            const data = await safeJson(res);
             if (data.success) {
                 setResults(data.results);
                 setAllMatches(data.allMatches || []);
-                toast.success(`${data.count} aday bulundu! (${data.totalMatches || 0} toplam maç)`);
+                const noCupLabel = noCupFilter ? ' (kupassız)' : '';
+                toast.success(`${data.count} aday bulundu! (${data.totalMatches || 0} toplam maç${noCupLabel})`);
             } else {
                 toast.error(data.error || 'Analiz hatası');
             }
@@ -935,6 +936,19 @@ const AdminPanel = () => {
                                     <><Activity className="mr-2 h-4 w-4 animate-spin" />PL Taranıyor...</>
                                 ) : (
                                     <><Shield className="mr-2 h-4 w-4" />Premier League Tara</>
+                                )}
+                            </Button>
+
+                            <Button
+                                onClick={() => runAnalysis(500, true, true)}
+                                disabled={analysisLoading}
+                                variant="outline"
+                                className="border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
+                            >
+                                {analysisLoading ? (
+                                    <><Activity className="mr-2 h-4 w-4 animate-spin" />Analiz Ediliyor...</>
+                                ) : (
+                                    <><Target className="mr-2 h-4 w-4" />Kupassız Analiz</>
                                 )}
                             </Button>
                             {results.length > 0 && (

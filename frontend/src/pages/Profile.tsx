@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
-import { User, Shield, Calendar, CreditCard, Sparkles, ArrowRight, Trophy, TrendingUp, Target } from "lucide-react";
+import { User, Shield, Calendar, CreditCard, Sparkles, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, Link } from "react-router-dom";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,16 +33,35 @@ const Profile = () => {
       if (data.success) {
         setUser(data.user);
       } else {
-        toast.error("Profil yüklenemedi");
+        toast.error(language === 'tr' ? "Profil yüklenemedi" : "Could not load profile");
         if (res.status === 401) navigate('/login');
       }
     } catch (err) {
-      toast.error("Bağlantı hatası");
+      toast.error(language === 'tr' ? "Bağlantı hatası" : "Connection error");
     }
     setLoading(false);
   };
 
   if (loading) return null;
+
+  const t = {
+    profile: language === 'tr' ? 'Profil' : 'Profile',
+    admin: language === 'tr' ? 'Yönetici' : 'Admin',
+    user: language === 'tr' ? 'Kullanıcı' : 'User',
+    membershipType: language === 'tr' ? 'Üyelik Tipi' : 'Membership Type',
+    proMember: language === 'tr' ? 'PRO Üyelik' : 'PRO Membership',
+    freePlan: language === 'tr' ? 'Ücretsiz Plan' : 'Free Plan',
+    active: language === 'tr' ? 'Aktif' : 'Active',
+    status: language === 'tr' ? 'Durum' : 'Status',
+    unlimitedAccess: language === 'tr' ? 'Sınırsız Erişim' : 'Unlimited Access',
+    limitedAccess: language === 'tr' ? 'Kısıtlı Erişim' : 'Limited Access',
+    joinDate: language === 'tr' ? 'Katılım Tarihi' : 'Join Date',
+    upgradeToPro: language === 'tr' ? "PRO'ya Geçin" : 'Upgrade to PRO',
+    upgradeDesc: language === 'tr'
+      ? 'Tüm analizlere sınırsız erişim ve özel AI promptları için Pro üyeliğe yükseltin.'
+      : 'Upgrade to Pro for unlimited access to all analyses and exclusive AI prompts.',
+    upgrade: language === 'tr' ? 'Yükselt' : 'Upgrade',
+  };
 
   return (
     <AppLayout>
@@ -48,7 +69,7 @@ const Profile = () => {
         {/* Header Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 brutalist-border bg-card shadow-brutalist-sm">
           <Sparkles className="w-4 h-4 text-primary" />
-          <span className="text-sm font-display uppercase tracking-wider">Profil</span>
+          <span className="text-sm font-display uppercase tracking-wider">{t.profile}</span>
         </div>
 
         {/* Profile Card */}
@@ -66,7 +87,7 @@ const Profile = () => {
                 : 'bg-primary/10 text-primary border-primary/20'
                 } font-display uppercase tracking-wider`}
             >
-              {user?.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
+              {user?.role === 'admin' ? t.admin : t.user}
             </Badge>
           </div>
 
@@ -78,12 +99,12 @@ const Profile = () => {
                   <Shield className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Üyelik Tipi</p>
-                  <p className="font-display text-foreground">{user?.plan === 'pro' ? 'PRO Üyelik' : 'Ücretsiz Plan'}</p>
+                  <p className="text-sm text-muted-foreground">{t.membershipType}</p>
+                  <p className="font-display text-foreground">{user?.plan === 'pro' ? t.proMember : t.freePlan}</p>
                 </div>
               </div>
               {user?.plan === 'pro' && (
-                <Badge className="gradient-accent text-white font-display uppercase">Aktif</Badge>
+                <Badge className="gradient-accent text-white font-display uppercase">{t.active}</Badge>
               )}
             </div>
 
@@ -93,9 +114,9 @@ const Profile = () => {
                   <CreditCard className="w-5 h-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Durum</p>
+                  <p className="text-sm text-muted-foreground">{t.status}</p>
                   <p className="font-display text-foreground">
-                    {user?.plan === 'pro' ? 'Sınırsız Erişim' : 'Kısıtlı Erişim'}
+                    {user?.plan === 'pro' ? t.unlimitedAccess : t.limitedAccess}
                   </p>
                 </div>
               </div>
@@ -107,7 +128,7 @@ const Profile = () => {
                   <Calendar className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Katılım Tarihi</p>
+                  <p className="text-sm text-muted-foreground">{t.joinDate}</p>
                   <p className="font-display text-foreground">2024</p>
                 </div>
               </div>
@@ -117,13 +138,13 @@ const Profile = () => {
           {/* Upgrade CTA for Free users */}
           {user?.plan !== 'pro' && (
             <div className="mt-8 gradient-premium rounded-2xl p-6 text-center">
-              <h3 className="font-display-bold text-xl text-white mb-2 uppercase">PRO'ya Geçin</h3>
+              <h3 className="font-display-bold text-xl text-white mb-2 uppercase">{t.upgradeToPro}</h3>
               <p className="text-white/80 text-sm mb-4">
-                Tüm analizlere sınırsız erişim ve özel AI promptları için Pro üyeliğe yükseltin.
+                {t.upgradeDesc}
               </p>
               <Link to="/premium">
                 <button className="h-12 px-8 bg-white text-primary font-display-bold uppercase tracking-wider border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-all">
-                  Yükselt
+                  {t.upgrade}
                   <ArrowRight className="w-4 h-4 ml-2 inline-block" />
                 </button>
               </Link>

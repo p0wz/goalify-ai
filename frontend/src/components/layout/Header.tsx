@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Bell, User, Moon, Sun } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTheme } from "@/components/ThemeProvider";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 export const Header = () => {
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const { language } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [hasUnread, setHasUnread] = useState(false);
 
@@ -36,8 +38,8 @@ export const Header = () => {
   };
 
   // Get display name from email or name
-  const displayName = user?.name || user?.email?.split('@')[0] || 'Kullanıcı';
-  const planLabel = user?.plan === 'pro' ? 'Premium' : 'Free';
+  const displayName = user?.name || user?.email?.split('@')[0] || (language === 'tr' ? 'Kullanıcı' : 'User');
+  const planLabel = user?.plan === 'pro' ? 'Premium' : (language === 'tr' ? 'Ücretsiz' : 'Free');
 
   return (
     <header className="h-16 bg-card/80 backdrop-blur-xl border-b border-border sticky top-0 z-30 px-6">

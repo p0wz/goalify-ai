@@ -8,7 +8,7 @@ const flashscore = require('./flashscore');
 const database = require('./database');
 const formAnalysis = require('./liveFormAnalysis');
 const telegram = require('./telegram');
-const ALLOWED_LEAGUES = require('../data/leagues');
+const { ALLOWED_LEAGUES, ALLOWED_LEAGUES_NO_CUPS } = require('../data/leagues');
 
 // Bot state
 let isRunning = false;

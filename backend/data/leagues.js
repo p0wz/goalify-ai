@@ -175,4 +175,21 @@ const ALLOWED_LEAGUES = [
     'CHINA: FA Cup'
 ];
 
-module.exports = ALLOWED_LEAGUES;
+// Cup keywords to filter out
+const CUP_KEYWORDS = [
+    'cup', 'copa', 'coppa', 'coupe', 'pokal', 'beker', 'taca', 'kupa', 'kupasi',
+    'shield', 'supercup', 'super cup', 'supercopa', 'supercoppa', 'trophee',
+    'schaal', 'supertaca', 'super kupa', 'friendly'
+];
+
+// Leagues without cup competitions
+const ALLOWED_LEAGUES_NO_CUPS = ALLOWED_LEAGUES.filter(league => {
+    const lowerLeague = league.toLowerCase();
+    return !CUP_KEYWORDS.some(keyword => lowerLeague.includes(keyword));
+});
+
+module.exports = {
+    ALLOWED_LEAGUES,
+    ALLOWED_LEAGUES_NO_CUPS,
+    CUP_KEYWORDS
+};

@@ -2,32 +2,39 @@ import { useState } from "react";
 import { Check, Crown, Shield, Zap, ArrowRight, TrendingUp, Target, Bell, BarChart3, Clock, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
-
-const features = [
-  { icon: TrendingUp, text: "Günün Yüksek Güven Tercihleri", desc: "AI modelimizin en güvendiği günlük seçimler" },
-  { icon: Target, text: "Günün Değer Tercihleri", desc: "Yüksek oran/değer oranına sahip fırsatlar" },
-  { icon: BarChart3, text: "Detaylı Maç Analizleri", desc: "Takım formları, kafa kafaya istatistikler" },
-  { icon: Bell, text: "Anlık Bildirimler", desc: "Maç başlamadan ve oran değişimlerinde uyarı" },
-  { icon: Clock, text: "Erken Oran Değişim Uyarıları", desc: "Piyasa hareketlerini ilk sen gör" },
-  { icon: Shield, text: "AI Destekli Tahmin Modeli", desc: "Sürekli öğrenen ve gelişen algoritmalar" },
-];
+import { useLanguage } from "@/components/LanguageProvider";
 
 const Premium = () => {
   const [isYearly, setIsYearly] = useState(false);
+  const { t, language } = useLanguage();
+
+  const features = [
+    { icon: TrendingUp, text: t.premium.highConfidence, desc: t.premium.highConfidenceDesc },
+    { icon: Target, text: t.premium.valuePicks, desc: t.premium.valuePicksDesc },
+    { icon: BarChart3, text: t.premium.matchAnalysis, desc: t.premium.matchAnalysisDesc },
+    { icon: Bell, text: t.premium.instantNotifs, desc: t.premium.instantNotifsDesc },
+    { icon: Clock, text: t.premium.earlyOdds, desc: t.premium.earlyOddsDesc },
+    { icon: Shield, text: t.premium.aiModel, desc: t.premium.aiModelDesc },
+  ];
 
   // Prices
   const monthlyTRY = 199;
   const monthlyUSD = 9.90;
-  const yearlyDiscount = 0.15; // 15% discount
+  const yearlyDiscount = 0.15;
 
   const yearlyTRY = Math.round(monthlyTRY * 12 * (1 - yearlyDiscount));
   const yearlyUSD = (monthlyUSD * 12 * (1 - yearlyDiscount)).toFixed(2);
 
   const handlePurchase = () => {
-    const price = isYearly ? `₺${yearlyTRY}/yıl` : `₺${monthlyTRY}/ay`;
+    const price = isYearly
+      ? (language === 'tr' ? `₺${yearlyTRY}/yıl` : `$${yearlyUSD}/year`)
+      : (language === 'tr' ? `₺${monthlyTRY}/ay` : `$${monthlyUSD}/month`);
     toast({
-      title: "Ödeme Sayfasına Yönlendiriliyorsunuz",
-      description: `Premium ${isYearly ? 'Yıllık' : 'Aylık'} Plan - ${price}`,
+      title: language === 'tr' ? "Ödeme Sayfasına Yönlendiriliyorsunuz" : "Redirecting to Payment",
+      description: `Premium ${isYearly
+        ? (language === 'tr' ? 'Yıllık' : 'Yearly')
+        : (language === 'tr' ? 'Aylık' : 'Monthly')
+        } Plan - ${price}`,
     });
   };
 
@@ -38,13 +45,15 @@ const Premium = () => {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 brutalist-border bg-card shadow-brutalist-sm mb-6">
             <Sparkles className="w-4 h-4 text-accent" />
-            <span className="text-sm font-display-bold uppercase tracking-wider">Premium Üyelik</span>
+            <span className="text-sm font-display-bold uppercase tracking-wider">
+              {language === 'tr' ? 'Premium Üyelik' : 'Premium Membership'}
+            </span>
           </div>
           <h2 className="brutalist-heading text-3xl md:text-4xl text-foreground mb-2">
             SENTIO <span className="text-gradient">PICKS</span> Premium
           </h2>
           <p className="text-muted-foreground">
-            Tüm premium özelliklere sınırsız erişim
+            {t.premium.subtitle}
           </p>
         </div>
 
@@ -56,15 +65,15 @@ const Premium = () => {
               className={`px-6 py-3 font-display uppercase tracking-wider transition-colors ${!isYearly ? "bg-primary text-white" : "bg-card hover:bg-muted"
                 }`}
             >
-              Aylık
+              {t.premium.monthly}
             </button>
             <button
               onClick={() => setIsYearly(true)}
               className={`px-6 py-3 font-display uppercase tracking-wider transition-colors flex items-center gap-2 ${isYearly ? "bg-primary text-white" : "bg-card hover:bg-muted"
                 }`}
             >
-              Yıllık
-              <span className="text-xs px-2 py-0.5 bg-accent text-white font-bold">-%15</span>
+              {t.premium.yearly}
+              <span className="text-xs px-2 py-0.5 bg-accent text-white font-bold">{t.premium.discount}</span>
             </button>
           </div>
         </div>
@@ -79,26 +88,35 @@ const Premium = () => {
               </div>
               <div>
                 <h3 className="text-2xl font-display text-foreground">Premium</h3>
-                <p className="text-sm text-muted-foreground">Tam erişim</p>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'tr' ? 'Tam erişim' : 'Full access'}
+                </p>
               </div>
             </div>
             <div className="text-right">
               <div className="flex items-baseline gap-1 justify-end">
                 <span className="text-4xl font-display-bold text-foreground">
-                  ₺{isYearly ? yearlyTRY : monthlyTRY}
+                  {language === 'tr' ? `₺${isYearly ? yearlyTRY : monthlyTRY}` : `$${isYearly ? yearlyUSD : monthlyUSD}`}
                 </span>
-                <span className="text-muted-foreground">/{isYearly ? "yıl" : "ay"}</span>
+                <span className="text-muted-foreground">
+                  /{isYearly ? (language === 'tr' ? "yıl" : "year") : (language === 'tr' ? "ay" : "month")}
+                </span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                veya ${isYearly ? yearlyUSD : monthlyUSD}/{isYearly ? "yıl" : "ay"}
-              </p>
+              {language === 'tr' && (
+                <p className="text-xs text-muted-foreground">
+                  veya ${isYearly ? yearlyUSD : monthlyUSD}/{isYearly ? "yıl" : "ay"}
+                </p>
+              )}
             </div>
           </div>
 
           {isYearly && (
             <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 text-center">
               <p className="text-green-500 font-display">
-                %15 tasarruf! Yıllık ₺{monthlyTRY * 12 - yearlyTRY} indirim
+                {language === 'tr'
+                  ? `%15 tasarruf! Yıllık ₺${monthlyTRY * 12 - yearlyTRY} indirim`
+                  : `15% savings! $${(monthlyUSD * 12 - parseFloat(yearlyUSD)).toFixed(2)} yearly discount`
+                }
               </p>
             </div>
           )}
@@ -121,7 +139,7 @@ const Premium = () => {
 
           {/* CTA */}
           <button onClick={handlePurchase} className="btn-brutalist w-full h-14 text-lg">
-            Premium'a Geç
+            {t.premium.upgradeNow}
             <ArrowRight className="w-5 h-5 ml-2 inline-block" />
           </button>
         </div>
@@ -131,15 +149,15 @@ const Premium = () => {
           <div className="flex items-center justify-center gap-8 mb-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <Shield className="w-4 h-4" />
-              <span>Güvenli Ödeme</span>
+              <span>{t.premium.securePayment}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <Zap className="w-4 h-4" />
-              <span>Anında Aktivasyon</span>
+              <span>{t.premium.instantActivation}</span>
             </div>
           </div>
           <p className="text-muted-foreground text-sm">
-            İstediğiniz zaman iptal edebilirsiniz.
+            {t.premium.cancelAnytime}
           </p>
         </div>
       </div>

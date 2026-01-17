@@ -18,7 +18,7 @@ const liveBot = require('./lib/liveBot');
 const liveDeadBot = require('./lib/liveDeadBot');
 const liveSettlement = require('./lib/liveSettlement');
 const firebaseAdmin = require('./lib/firebase');
-const ALLOWED_LEAGUES = require('./data/leagues');
+const { ALLOWED_LEAGUES, ALLOWED_LEAGUES_NO_CUPS } = require('./data/leagues');
 
 // ============ SETTLEMENT JOB ============
 
@@ -312,13 +312,17 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
             });
         }
 
-        const { limit = 50, leagueFilter = true } = req.body;
+        const { limit = 50, leagueFilter = true, noCupFilter = false } = req.body;
 
-        console.log(`[Analysis] Params: limit=${limit}, leagueFilter=${leagueFilter}`);
+        console.log(`[Analysis] Params: limit=${limit}, leagueFilter=${leagueFilter}, noCupFilter=${noCupFilter}`);
         await redis.incrementStat('analysisRuns');
 
-        const leagues = leagueFilter ? ALLOWED_LEAGUES : [];
-        console.log(`[Analysis] Allowed leagues count: ${leagues.length}`);
+        // Choose league list: noCupFilter uses leagues without cups, leagueFilter uses all leagues
+        let leagues = [];
+        if (leagueFilter) {
+            leagues = noCupFilter ? ALLOWED_LEAGUES_NO_CUPS : ALLOWED_LEAGUES;
+        }
+        console.log(`[Analysis] Allowed leagues count: ${leagues.length}${noCupFilter ? ' (no cups)' : ''}`);
 
         console.log('[Analysis] Fetching matches from Flashscore...');
         const matches = await flashscore.fetchDayMatches(1, leagues);

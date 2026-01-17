@@ -1,7 +1,10 @@
 import { Radio, Clock, Sparkles, Construction } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const Live = () => {
+  const { t } = useLanguage();
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -14,8 +17,8 @@ const Live = () => {
               </div>
             </div>
             <div>
-              <h1 className="brutalist-heading text-2xl">Canlı Maçlar</h1>
-              <p className="text-sm text-muted-foreground">Gerçek zamanlı maç takibi</p>
+              <h1 className="brutalist-heading text-2xl">{t.live.title}</h1>
+              <p className="text-sm text-muted-foreground">{t.live.subtitle}</p>
             </div>
           </div>
         </div>
@@ -27,24 +30,23 @@ const Live = () => {
           </div>
 
           <h2 className="brutalist-heading text-3xl md:text-4xl mb-4">
-            <span className="text-gradient">Çok Yakında</span>
+            <span className="text-gradient">{t.live.comingSoon}</span>
           </h2>
 
           <p className="text-lg text-muted-foreground max-w-md mx-auto mb-8">
-            Canlı maç takibi ve anlık istatistikler özelliği üzerinde çalışıyoruz.
-            Çok yakında sizlerle olacak!
+            {t.live.comingSoonDesc}
           </p>
 
           <div className="flex items-center justify-center gap-6">
             <div className="glass-card rounded-xl p-4 text-center">
               <Clock className="w-6 h-6 text-primary mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Gerçek Zamanlı</p>
-              <p className="font-display text-foreground">Anlık Skor</p>
+              <p className="text-sm text-muted-foreground">{t.live.realTime}</p>
+              <p className="font-display text-foreground">{t.live.liveScore}</p>
             </div>
             <div className="glass-card rounded-xl p-4 text-center">
               <Sparkles className="w-6 h-6 text-accent mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">AI Destekli</p>
-              <p className="font-display text-foreground">Canlı Analiz</p>
+              <p className="text-sm text-muted-foreground">{t.live.aiSupported}</p>
+              <p className="font-display text-foreground">{t.live.liveAnalysis}</p>
             </div>
           </div>
         </div>

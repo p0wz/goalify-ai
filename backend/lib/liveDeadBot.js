@@ -10,7 +10,7 @@ const antiMomentum = require('./liveAntiMomentum');
 const deadStrategies = require('./liveDeadStrategies');
 const telegram = require('./telegram');
 const h2h = require('./liveH2H');
-const ALLOWED_LEAGUES = require('../data/leagues');
+const { ALLOWED_LEAGUES, ALLOWED_LEAGUES_NO_CUPS } = require('../data/leagues');
 
 // Bot state (separate from momentum bot)
 let isRunning = false;

@@ -12,20 +12,22 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-
-const mainNavItems = [
-  { icon: TrendingUp, label: "Tahminler", path: "/predictions" },
-  { icon: Radio, label: "Canlı Maçlar", path: "/live" },
-];
-
-const bottomNavItems = [
-  { icon: Bell, label: "Bildirimler", path: "/notifications" },
-  { icon: Settings, label: "Ayarlar", path: "/settings" },
-];
+import { useLanguage } from "@/components/LanguageProvider";
 
 export const Sidebar = () => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const { t } = useLanguage();
+
+  const mainNavItems = [
+    { icon: TrendingUp, label: t.nav.predictions, path: "/predictions" },
+    { icon: Radio, label: t.nav.live, path: "/live" },
+  ];
+
+  const bottomNavItems = [
+    { icon: Bell, label: t.nav.notifications, path: "/notifications" },
+    { icon: Settings, label: t.nav.settings, path: "/settings" },
+  ];
 
   return (
     <aside
@@ -95,7 +97,7 @@ export const Sidebar = () => {
           )}
         >
           <Crown className={cn("w-5 h-5 flex-shrink-0", collapsed && "mx-auto")} />
-          {!collapsed && <span className="font-semibold">Premium</span>}
+          {!collapsed && <span className="font-semibold">{t.nav.premium}</span>}
         </Link>
       </nav>
 
@@ -132,7 +134,7 @@ export const Sidebar = () => {
           )}
         >
           <LogOut className={cn("w-5 h-5 flex-shrink-0", collapsed && "mx-auto")} />
-          {!collapsed && <span className="font-medium">Çıkış Yap</span>}
+          {!collapsed && <span className="font-medium">{t.nav.logout}</span>}
         </button>
       </div>
     </aside>

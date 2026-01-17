@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -22,7 +24,6 @@ const Auth = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Verify token is valid
       fetch(`${API_BASE}/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -33,7 +34,6 @@ const Auth = () => {
           }
         })
         .catch(() => {
-          // Token invalid, remove it
           localStorage.removeItem('token');
         });
     }
@@ -44,12 +44,12 @@ const Auth = () => {
     setError("");
 
     if (!email || !password) {
-      toast.error("Lütfen tüm alanları doldurun");
+      toast.error(language === 'tr' ? "Lütfen tüm alanları doldurun" : "Please fill in all fields");
       return;
     }
 
     if (!isLogin && !name) {
-      toast.error("Lütfen adınızı girin");
+      toast.error(language === 'tr' ? "Lütfen adınızı girin" : "Please enter your name");
       return;
     }
 
@@ -71,15 +71,24 @@ const Auth = () => {
 
       if (data.success && data.token) {
         localStorage.setItem("token", data.token);
-        toast.success(isLogin ? "Giriş başarılı!" : "Kayıt başarılı!");
+        toast.success(isLogin
+          ? (language === 'tr' ? "Giriş başarılı!" : "Login successful!")
+          : (language === 'tr' ? "Kayıt başarılı!" : "Registration successful!")
+        );
         navigate("/predictions");
       } else {
-        setError(data.error || (isLogin ? "Giriş başarısız" : "Kayıt başarısız"));
-        toast.error(data.error || (isLogin ? "Giriş başarısız" : "Kayıt başarısız"));
+        setError(data.error || (isLogin
+          ? (language === 'tr' ? "Giriş başarısız" : "Login failed")
+          : (language === 'tr' ? "Kayıt başarısız" : "Registration failed")
+        ));
+        toast.error(data.error || (isLogin
+          ? (language === 'tr' ? "Giriş başarısız" : "Login failed")
+          : (language === 'tr' ? "Kayıt başarısız" : "Registration failed")
+        ));
       }
     } catch (err: any) {
-      setError("Sunucu ile bağlantı kurulamadı");
-      toast.error("Sunucu ile bağlantı kurulamadı");
+      setError(language === 'tr' ? "Sunucu ile bağlantı kurulamadı" : "Could not connect to server");
+      toast.error(language === 'tr' ? "Sunucu ile bağlantı kurulamadı" : "Could not connect to server");
     } finally {
       setLoading(false);
     }
@@ -102,7 +111,9 @@ const Auth = () => {
             </div>
             <h1 className="text-3xl font-bold text-foreground">SENTIO PICKS</h1>
           </Link>
-          <p className="text-muted-foreground mt-2">AI Destekli Futbol Tahmin Platformu</p>
+          <p className="text-muted-foreground mt-2">
+            {language === 'tr' ? 'AI Destekli Futbol Tahmin Platformu' : 'AI-Powered Football Prediction Platform'}
+          </p>
         </div>
 
         {/* Auth Card */}
@@ -116,7 +127,7 @@ const Auth = () => {
                 : "text-muted-foreground hover:text-foreground"
                 }`}
             >
-              Giriş Yap
+              {t.auth.login}
             </button>
             <button
               onClick={() => { setIsLogin(false); setError(""); }}
@@ -125,7 +136,7 @@ const Auth = () => {
                 : "text-muted-foreground hover:text-foreground"
                 }`}
             >
-              Kayıt Ol
+              {t.auth.register}
             </button>
           </div>
 
@@ -135,7 +146,7 @@ const Auth = () => {
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Ad Soyad"
+                  placeholder={t.auth.name}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="pl-12 h-14 bg-secondary/50 border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground"
@@ -147,7 +158,7 @@ const Auth = () => {
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type="email"
-                placeholder="E-posta adresi"
+                placeholder={t.auth.email}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-12 h-14 bg-secondary/50 border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground"
@@ -158,7 +169,7 @@ const Auth = () => {
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type={showPassword ? "text" : "password"}
-                placeholder="Şifre"
+                placeholder={t.auth.password}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-12 pr-12 h-14 bg-secondary/50 border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground"
@@ -187,11 +198,11 @@ const Auth = () => {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  İşleniyor...
+                  {language === 'tr' ? 'İşleniyor...' : 'Processing...'}
                 </span>
               ) : (
                 <>
-                  {isLogin ? "Giriş Yap" : "Kayıt Ol"}
+                  {isLogin ? t.auth.login : t.auth.register}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </>
               )}
@@ -201,18 +212,22 @@ const Auth = () => {
           {/* Back to Home */}
           <div className="mt-6 text-center">
             <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              ← Ana Sayfaya Dön
+              ← {language === 'tr' ? 'Ana Sayfaya Dön' : 'Back to Home'}
             </Link>
           </div>
         </div>
 
         {/* Footer */}
         <p className="text-center text-muted-foreground text-sm mt-6">
-          Devam ederek{" "}
-          <Link to="/terms" className="text-primary hover:underline">Kullanım Şartları</Link>
-          {" "}ve{" "}
-          <Link to="/privacy" className="text-primary hover:underline">Gizlilik Politikası</Link>
-          'nı kabul etmiş olursunuz.
+          {language === 'tr' ? 'Devam ederek' : 'By continuing, you agree to our'}{" "}
+          <Link to="/terms" className="text-primary hover:underline">
+            {language === 'tr' ? 'Kullanım Şartları' : 'Terms of Service'}
+          </Link>
+          {" "}{language === 'tr' ? 've' : 'and'}{" "}
+          <Link to="/privacy" className="text-primary hover:underline">
+            {language === 'tr' ? 'Gizlilik Politikası' : 'Privacy Policy'}
+          </Link>
+          {language === 'tr' ? "'nı kabul etmiş olursunuz." : '.'}
         </p>
       </div>
     </div>
