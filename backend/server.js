@@ -1252,18 +1252,19 @@ async function start() {
 
                 if (userId) {
                     // Upgrade user to premium by ID
-                    await database.query(
-                        'UPDATE users SET plan = $1, is_premium = $2 WHERE id = $3',
-                        ['pro', 1, userId]
-                    );
+                    await database.updateUserPlan(userId, 'pro');
+                    await database.updateUserPremium(userId, true);
                     console.log(`[Webhook] User ${userId} upgraded to PRO`);
                 } else if (email) {
                     // Find user by email and upgrade
-                    await database.query(
-                        'UPDATE users SET plan = $1, is_premium = $2 WHERE email = $3',
-                        ['pro', 1, email]
-                    );
-                    console.log(`[Webhook] User ${email} upgraded to PRO`);
+                    const user = await database.getUserByEmail(email);
+                    if (user) {
+                        await database.updateUserPlan(user.id, 'pro');
+                        await database.updateUserPremium(user.id, true);
+                        console.log(`[Webhook] User ${email} (ID: ${user.id}) upgraded to PRO`);
+                    } else {
+                        console.log(`[Webhook] User with email ${email} not found in database`);
+                    }
                 } else {
                     console.log('[Webhook] No user_id or email found in webhook');
                 }
@@ -1279,17 +1280,16 @@ async function start() {
                 console.log(`[Webhook] Subscription expired for user: ${userId || email}`);
 
                 if (userId) {
-                    await database.query(
-                        'UPDATE users SET plan = $1, is_premium = $2 WHERE id = $3',
-                        ['free', 0, userId]
-                    );
+                    await database.updateUserPlan(userId, 'free');
+                    await database.updateUserPremium(userId, false);
                     console.log(`[Webhook] User ${userId} downgraded to FREE`);
                 } else if (email) {
-                    await database.query(
-                        'UPDATE users SET plan = $1, is_premium = $2 WHERE email = $3',
-                        ['free', 0, email]
-                    );
-                    console.log(`[Webhook] User ${email} downgraded to FREE`);
+                    const user = await database.getUserByEmail(email);
+                    if (user) {
+                        await database.updateUserPlan(user.id, 'free');
+                        await database.updateUserPremium(user.id, false);
+                        console.log(`[Webhook] User ${email} (ID: ${user.id}) downgraded to FREE`);
+                    }
                 }
             }
 
