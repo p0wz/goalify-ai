@@ -1269,6 +1269,28 @@ async function start() {
                 }
             }
 
+            // Handle subscription cancellation or expiration
+            if (parsed.eventType === 'subscription.canceled' || parsed.eventType === 'subscription.expired') {
+                const email = parsed.customerEmail || parsed.metadata?.email;
+                const userId = parsed.metadata?.user_id;
+
+                console.log(`[Webhook] Subscription ${parsed.eventType} for user: ${userId || email}`);
+
+                if (userId) {
+                    await database.query(
+                        'UPDATE users SET plan = $1, is_premium = $2 WHERE id = $3',
+                        ['free', 0, userId]
+                    );
+                    console.log(`[Webhook] User ${userId} downgraded to FREE`);
+                } else if (email) {
+                    await database.query(
+                        'UPDATE users SET plan = $1, is_premium = $2 WHERE email = $3',
+                        ['free', 0, email]
+                    );
+                    console.log(`[Webhook] User ${email} downgraded to FREE`);
+                }
+            }
+
             res.json({ received: true });
         } catch (error) {
             console.error('[Webhook] Error:', error.message);

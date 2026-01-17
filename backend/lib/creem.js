@@ -23,11 +23,19 @@ const CREEM_API_URL = isTestMode
 
 console.log(`[Creem] Mode: ${isTestMode ? 'TEST' : 'PRODUCTION'}, API URL: ${CREEM_API_URL}`);
 
-// Product IDs from Creem dashboard
-const PRODUCTS = {
+// Product IDs from Creem dashboard (separate for test and live)
+const PRODUCTS_LIVE = {
     monthly: 'prod_1k9SeBnQF1PGFE9GOD4rmZ',
     yearly: 'prod_7NvE42XjRyjARYQHhxAqRE'
 };
+
+const PRODUCTS_TEST = {
+    monthly: 'prod_4N9WiXL9M9dWSeJjKlHv2H',
+    yearly: 'prod_4N9WiXL9M9dWSeJjKlHv2H' // Same test product for now
+};
+
+// Select products based on mode
+const PRODUCTS = isTestMode ? PRODUCTS_TEST : PRODUCTS_LIVE;
 
 /**
  * Create a checkout session for a user
