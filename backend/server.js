@@ -1269,12 +1269,14 @@ async function start() {
                 }
             }
 
-            // Handle subscription cancellation or expiration
-            if (parsed.eventType === 'subscription.canceled' || parsed.eventType === 'subscription.expired') {
+            // Handle subscription expiration (user keeps access until period ends if canceled)
+            // subscription.canceled = user requested cancel, but still has access until period ends
+            // subscription.expired = period ended, now downgrade to free
+            if (parsed.eventType === 'subscription.expired') {
                 const email = parsed.customerEmail || parsed.metadata?.email;
                 const userId = parsed.metadata?.user_id;
 
-                console.log(`[Webhook] Subscription ${parsed.eventType} for user: ${userId || email}`);
+                console.log(`[Webhook] Subscription expired for user: ${userId || email}`);
 
                 if (userId) {
                     await database.query(
@@ -1289,6 +1291,11 @@ async function start() {
                     );
                     console.log(`[Webhook] User ${email} downgraded to FREE`);
                 }
+            }
+
+            // Log canceled events for tracking (but don't downgrade yet)
+            if (parsed.eventType === 'subscription.canceled') {
+                console.log(`[Webhook] Subscription canceled (user keeps access until period ends): ${parsed.metadata?.user_id || parsed.customerEmail}`);
             }
 
             res.json({ received: true });
