@@ -25,7 +25,7 @@ const Notifications = () => {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${API_BASE}/approved-bets`, { headers });
+      const res = await fetch(`${API_BASE}/bets/approved`, { headers });
       const data = await res.json();
 
       if (data.success && data.bets) {

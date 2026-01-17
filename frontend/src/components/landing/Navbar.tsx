@@ -1,23 +1,29 @@
 import { Link, useLocation } from "react-router-dom";
-import { Trophy, Menu, X, Sun, Moon } from "lucide-react";
+import { Trophy, Menu, X, Sun, Moon, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
-
-const navLinks = [
-  { label: "Fiyatlandırma", href: "/pricing" },
-  { label: "Hakkımızda", href: "/about" },
-  { label: "İletişim", href: "/contact" },
-];
+import { useLanguage } from "@/components/LanguageProvider";
 
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
+
+  const navLinks = [
+    { label: t.nav.pricing, href: "/pricing" },
+    { label: t.nav.about, href: "/about" },
+    { label: t.nav.contact, href: "/contact" },
+  ];
 
   const toggleTheme = () => {
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'tr' ? 'en' : 'tr');
   };
 
   return (
@@ -56,8 +62,16 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Theme Toggle + CTA Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* Theme Toggle + Language + CTA Buttons */}
+          <div className="hidden md:flex items-center gap-2">
+            <button
+              onClick={toggleLanguage}
+              className="p-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5"
+              aria-label="Toggle language"
+            >
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase">{language}</span>
+            </button>
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-muted transition-colors"
@@ -71,18 +85,25 @@ export const Navbar = () => {
             </button>
             <Link to="/login">
               <Button variant="ghost" className="font-display">
-                Giriş Yap
+                {t.nav.login}
               </Button>
             </Link>
             <Link to="/auth">
               <button className="btn-brutalist h-10 px-6 text-sm">
-                Kayıt Ol
+                {t.nav.register}
               </button>
             </Link>
           </div>
 
           {/* Mobile: Theme Toggle + Menu Button */}
           <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={toggleLanguage}
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              aria-label="Toggle language"
+            >
+              <Globe className="w-5 h-5 text-muted-foreground" />
+            </button>
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-muted transition-colors"
@@ -121,12 +142,12 @@ export const Navbar = () => {
             <div className="pt-4 space-y-3 border-t border-border">
               <Link to="/login" className="block">
                 <Button variant="outline" className="w-full font-display">
-                  Giriş Yap
+                  {t.nav.login}
                 </Button>
               </Link>
               <Link to="/auth" className="block">
                 <button className="btn-brutalist w-full h-12">
-                  Kayıt Ol
+                  {t.nav.register}
                 </button>
               </Link>
             </div>

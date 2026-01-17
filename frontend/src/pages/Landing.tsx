@@ -6,69 +6,70 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
-
-const features = [
-  {
-    icon: Brain,
-    title: "AI Destekli Analiz",
-    description: "Yapay zeka algoritmalarımız binlerce veri noktasını analiz ederek tahminler sunar."
-  },
-  {
-    icon: TrendingUp,
-    title: "Gerçek Zamanlı Veriler",
-    description: "Canlı maç istatistikleri ve anlık oran değişimleri ile her zaman güncel kalın."
-  },
-  {
-    icon: Bell,
-    title: "Anlık Bildirimler",
-    description: "Önemli maçlar ve tahminler için anlık mobil ve web bildirimleri alın."
-  },
-  {
-    icon: Shield,
-    title: "Güvenli Platform",
-    description: "256-bit SSL şifreleme ve GDPR uyumlu veri koruma ile güvendesiniz."
-  },
-  {
-    icon: BarChart3,
-    title: "Detaylı İstatistikler",
-    description: "Takım performansları, kafa kafaya istatistikler ve form analizleri."
-  },
-  {
-    icon: Users,
-    title: "Topluluk",
-    description: "Diğer kullanıcılarla etkileşime geçin ve deneyimlerinizi paylaşın."
-  },
-];
-
-const howItWorks = [
-  {
-    step: "01",
-    title: "Kayıt Ol",
-    description: "Hesabınızı oluşturun ve platforma erişin.",
-    icon: Users,
-  },
-  {
-    step: "02",
-    title: "Tahminleri İncele",
-    description: "AI destekli tahminlerimizi ve detaylı analizleri inceleyin.",
-    icon: Target,
-  },
-  {
-    step: "03",
-    title: "Analiz Et",
-    description: "Kararlarınızı veriye dayalı analizlerle destekleyin.",
-    icon: Award,
-  },
-];
+import { useLanguage } from "@/components/LanguageProvider";
 
 const Landing = () => {
+  const { t } = useLanguage();
+
+  const features = [
+    {
+      icon: Brain,
+      title: t.features.aiAnalysis,
+      description: t.features.aiAnalysisDesc
+    },
+    {
+      icon: TrendingUp,
+      title: t.features.realTime,
+      description: t.features.realTimeDesc
+    },
+    {
+      icon: Bell,
+      title: t.features.notifications,
+      description: t.features.notificationsDesc
+    },
+    {
+      icon: Shield,
+      title: t.features.secure,
+      description: t.features.secureDesc
+    },
+    {
+      icon: BarChart3,
+      title: t.features.stats,
+      description: t.features.statsDesc
+    },
+    {
+      icon: Users,
+      title: t.features.community,
+      description: t.features.communityDesc
+    },
+  ];
+
+  const howItWorks = [
+    {
+      step: "01",
+      title: t.howItWorks.step1,
+      description: t.howItWorks.step1Desc,
+      icon: Users,
+    },
+    {
+      step: "02",
+      title: t.howItWorks.step2,
+      description: t.howItWorks.step2Desc,
+      icon: Target,
+    },
+    {
+      step: "03",
+      title: t.howItWorks.step3,
+      description: t.howItWorks.step3Desc,
+      icon: Award,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* ═══════════════════════════════════════════════════════════════
-          HERO SECTION - Brutalist + Gradient Heavy
-      ═══════════════════════════════════════════════════════════════ */}
+      {/* HERO SECTION */}
       <section className="pt-32 pb-24 px-4 relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -79,29 +80,29 @@ const Landing = () => {
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center max-w-5xl mx-auto">
-            {/* Hero Heading - Massive Brutalist Typography */}
+            {/* Hero Heading */}
             <h1 className="text-hero text-foreground mb-8 animate-slide-up">
-              <span className="block">SENTIO</span>
-              <span className="block text-gradient-premium">PICKS</span>
+              <span className="block">{t.landing.heroTitle}</span>
+              <span className="block text-gradient-premium">{t.landing.heroSubtitle}</span>
             </h1>
 
             {/* Subheading */}
             <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto animate-slide-up font-light" style={{ animationDelay: '100ms' }}>
-              Yapay zeka destekli analizler, gerçek zamanlı istatistikler ve detaylı maç verileriyle
-              <span className="text-foreground font-medium"> bilinçli kararlar</span> alın.
+              {t.landing.heroDescription}
+              <span className="text-foreground font-medium"> {t.landing.heroHighlight}</span>{t.landing.heroDescriptionEnd}
             </p>
 
-            {/* CTA Buttons - Brutalist Style */}
+            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: '200ms' }}>
               <Link to="/auth">
                 <button className="btn-brutalist h-14 px-10 text-lg rounded-none">
-                  Kayıt Ol
+                  {t.landing.cta}
                   <ArrowRight className="w-5 h-5 ml-3 inline-block" />
                 </button>
               </Link>
               <Link to="/pricing">
                 <button className="btn-brutalist-outline h-14 px-10 text-lg rounded-none">
-                  Planları Gör
+                  {t.landing.viewPlans}
                 </button>
               </Link>
             </div>
@@ -109,19 +110,17 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          FEATURES SECTION - Glassmorphic Cards
-      ═══════════════════════════════════════════════════════════════ */}
+      {/* FEATURES SECTION */}
       <section id="features" className="py-24 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" />
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
             <h2 className="brutalist-heading text-4xl md:text-5xl text-foreground mb-4">
-              Neden <span className="text-gradient">SENTIO PICKS</span>?
+              {t.landing.whyUs} <span className="text-gradient">SENTIO PICKS</span>?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              En gelişmiş teknolojiler ve detaylı analizlerle desteklenen özelliklerimiz
+              {t.landing.featuresDesc}
             </p>
           </div>
 
@@ -143,17 +142,15 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          HOW IT WORKS - Brutalist Steps
-      ═══════════════════════════════════════════════════════════════ */}
+      {/* HOW IT WORKS SECTION */}
       <section id="how-it-works" className="py-24 px-4 bg-muted/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="brutalist-heading text-4xl md:text-5xl text-foreground mb-4">
-              Nasıl <span className="text-gradient">Çalışır</span>?
+              {t.landing.howItWorks} <span className="text-gradient">{t.landing.howItWorksHighlight}</span>?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              3 basit adımda profesyonel analizlere ulaşın
+              {t.landing.howItWorksDesc}
             </p>
           </div>
 

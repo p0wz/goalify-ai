@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { LanguageProvider } from "@/components/LanguageProvider";
 import Landing from "./pages/Landing";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
@@ -23,41 +24,43 @@ const queryClient = new QueryClient();
 
 const App = () => (
     <ThemeProvider defaultTheme="dark" storageKey="sentio-picks-theme">
-        <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-                <Toaster />
-                <BrowserRouter>
-                    <Routes>
-                        {/* Public Pages */}
-                        <Route path="/" element={<Landing />} />
-                        <Route path="/pricing" element={<Pricing />} />
-                        <Route path="/about" element={<About />} />
-                        <Route path="/contact" element={<Contact />} />
-                        <Route path="/auth" element={<Auth />} />
-                        <Route path="/login" element={<Login />} />
+        <LanguageProvider defaultLanguage="tr" storageKey="sentio-picks-language">
+            <QueryClientProvider client={queryClient}>
+                <TooltipProvider>
+                    <Toaster />
+                    <BrowserRouter>
+                        <Routes>
+                            {/* Public Pages */}
+                            <Route path="/" element={<Landing />} />
+                            <Route path="/pricing" element={<Pricing />} />
+                            <Route path="/about" element={<About />} />
+                            <Route path="/contact" element={<Contact />} />
+                            <Route path="/auth" element={<Auth />} />
+                            <Route path="/login" element={<Login />} />
 
-                        {/* App Pages */}
-                        <Route path="/predictions" element={<Predictions />} />
-                        <Route path="/live" element={<Live />} />
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/notifications" element={<Notifications />} />
-                        <Route path="/premium" element={<Premium />} />
+                            {/* App Pages */}
+                            <Route path="/predictions" element={<Predictions />} />
+                            <Route path="/live" element={<Live />} />
+                            <Route path="/profile" element={<Profile />} />
+                            <Route path="/settings" element={<Settings />} />
+                            <Route path="/notifications" element={<Notifications />} />
+                            <Route path="/premium" element={<Premium />} />
 
-                        {/* Redirects */}
-                        <Route path="/dashboard" element={<Navigate to="/predictions" replace />} />
-                        <Route path="/leagues" element={<Navigate to="/predictions" replace />} />
+                            {/* Redirects */}
+                            <Route path="/dashboard" element={<Navigate to="/predictions" replace />} />
+                            <Route path="/leagues" element={<Navigate to="/predictions" replace />} />
 
-                        {/* Protected Routes */}
-                        <Route element={<RequireAuth />}>
-                            <Route path="/admin" element={<AdminPanel />} />
-                        </Route>
+                            {/* Protected Routes */}
+                            <Route element={<RequireAuth />}>
+                                <Route path="/admin" element={<AdminPanel />} />
+                            </Route>
 
-                        <Route path="*" element={<NotFound />} />
-                    </Routes>
-                </BrowserRouter>
-            </TooltipProvider>
-        </QueryClientProvider>
+                            <Route path="*" element={<NotFound />} />
+                        </Routes>
+                    </BrowserRouter>
+                </TooltipProvider>
+            </QueryClientProvider>
+        </LanguageProvider>
     </ThemeProvider>
 );
 

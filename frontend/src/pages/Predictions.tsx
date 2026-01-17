@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, Check, X, Clock, Trophy, Target, Zap, ChevronRight, Loader2, RefreshCw, Lock, ChevronDown, Crown } from "lucide-react";
+import { TrendingUp, Check, X, Clock, Trophy, Target, Zap, Loader2, RefreshCw, Lock, ChevronDown, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
@@ -31,6 +32,7 @@ interface GroupedBets {
 }
 
 const Predictions = () => {
+  const { t } = useLanguage();
   const [filter, setFilter] = useState<FilterType>("all");
   const [bets, setBets] = useState<ApprovedBet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,15 +58,15 @@ const Predictions = () => {
       }
 
       // Fetch bets
-      const res = await fetch(`${API_BASE}/approved-bets`, { headers });
+      const res = await fetch(`${API_BASE}/bets/approved`, { headers });
       const data = await res.json();
       if (data.success) {
         setBets(data.bets || []);
       } else {
-        setError('Veriler yüklenemedi');
+        setError(t.predictions.connectionError);
       }
     } catch (err) {
-      setError('Bağlantı hatası');
+      setError(t.predictions.connectionError);
     } finally {
       setLoading(false);
     }
@@ -95,9 +97,9 @@ const Predictions = () => {
         const diffDays = Math.floor((today.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
 
         let label = '';
-        if (diffDays === 0) label = 'Bugün';
-        else if (diffDays === 1) label = 'Dün';
-        else if (diffDays < 7) label = `${diffDays} gün önce`;
+        if (diffDays === 0) label = t.predictions.today;
+        else if (diffDays === 1) label = t.predictions.yesterday;
+        else if (diffDays < 7) label = `${diffDays} ${t.predictions.daysAgo}`;
         else label = dateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
         groups.set(dateStr, { date: dateStr, label, bets: [], isToday });
@@ -109,7 +111,7 @@ const Predictions = () => {
     const sorted = Array.from(groups.values()).sort((a, b) => b.date.localeCompare(a.date));
 
     return sorted;
-  }, [bets, filter]);
+  }, [bets, filter, t]);
 
   // Auto-expand today
   useEffect(() => {
@@ -151,7 +153,7 @@ const Predictions = () => {
           badge: "bg-green-500/15 text-green-500 border border-green-500/20",
           glow: "shadow-[0_4px_20px_-4px_rgba(34,197,94,0.3)]",
           icon: Check,
-          label: "Kazandı"
+          label: t.predictions.won
         };
       case "LOST":
         return {
@@ -161,7 +163,7 @@ const Predictions = () => {
           badge: "bg-red-500/10 text-red-500 border border-red-500/15",
           glow: "",
           icon: X,
-          label: "Kaybetti"
+          label: t.predictions.lost
         };
       case "REFUND":
         return {
@@ -171,7 +173,7 @@ const Predictions = () => {
           badge: "bg-yellow-500/10 text-yellow-500 border border-yellow-500/15",
           glow: "",
           icon: RefreshCw,
-          label: "İade"
+          label: t.predictions.refund
         };
       default:
         return {
@@ -181,16 +183,16 @@ const Predictions = () => {
           badge: "bg-accent/10 text-accent border border-accent/20",
           glow: "",
           icon: Clock,
-          label: "Bekliyor"
+          label: t.predictions.pending
         };
     }
   };
 
   const filterTabs = [
-    { key: "all" as FilterType, label: "Tümü", count: stats.total },
-    { key: "WON" as FilterType, label: "Kazandı", count: stats.won },
-    { key: "LOST" as FilterType, label: "Kaybetti", count: stats.lost },
-    { key: "PENDING" as FilterType, label: "Bekleyen", count: stats.pending },
+    { key: "all" as FilterType, label: t.common.all, count: stats.total },
+    { key: "WON" as FilterType, label: t.predictions.won, count: stats.won },
+    { key: "LOST" as FilterType, label: t.predictions.lost, count: stats.lost },
+    { key: "PENDING" as FilterType, label: t.predictions.pending, count: stats.pending },
   ];
 
   const renderBetCard = (bet: ApprovedBet, isLocked: boolean) => {
@@ -206,9 +208,9 @@ const Predictions = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-muted/50 to-muted/30 backdrop-blur-sm z-10 flex items-center justify-center">
             <div className="text-center">
               <Lock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground font-medium">Premium Üyelik Gerekli</p>
+              <p className="text-sm text-muted-foreground font-medium">{t.predictions.premiumRequired}</p>
               <Link to="/premium" className="text-xs text-primary hover:underline mt-1 inline-block">
-                Premium'a Geç →
+                {t.predictions.upgradeToPremium} →
               </Link>
             </div>
           </div>
@@ -218,13 +220,13 @@ const Predictions = () => {
                 <Clock className="w-4 h-4 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Lig Adı</p>
-                <p className="text-xs font-medium">Tarih</p>
+                <p className="text-xs text-muted-foreground">League</p>
+                <p className="text-xs font-medium">Date</p>
               </div>
             </div>
             <div className="space-y-1">
-              <p className="font-semibold text-muted-foreground">Ev Sahibi Takım</p>
-              <p className="font-semibold text-muted-foreground">Deplasman Takımı</p>
+              <p className="font-semibold text-muted-foreground">Home Team</p>
+              <p className="font-semibold text-muted-foreground">Away Team</p>
             </div>
           </div>
         </div>
@@ -271,7 +273,7 @@ const Predictions = () => {
             {bet.finalScore && (
               <div className="text-center">
                 <p className="text-lg font-display-bold text-foreground">{bet.finalScore}</p>
-                <p className="text-xs text-muted-foreground">Skor</p>
+                <p className="text-xs text-muted-foreground">{t.predictions.score}</p>
               </div>
             )}
           </div>
@@ -296,8 +298,8 @@ const Predictions = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="brutalist-heading text-2xl">Tahminler</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Günlük tahminler ve sonuçlar</p>
+            <h1 className="brutalist-heading text-2xl">{t.predictions.title}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{t.predictions.subtitle}</p>
           </div>
           <button
             onClick={fetchBets}
@@ -316,7 +318,7 @@ const Predictions = () => {
                 <Trophy className="w-5 h-5 text-white" />
               </div>
               <p className="text-2xl font-display-bold text-foreground">{stats.won}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Kazanılan</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t.predictions.won}</p>
             </div>
 
             <div className="glass-card-premium rounded-2xl p-4">
@@ -324,7 +326,7 @@ const Predictions = () => {
                 <X className="w-5 h-5 text-red-500" />
               </div>
               <p className="text-2xl font-display-bold text-foreground">{stats.lost}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Kaybedilen</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t.predictions.lost}</p>
             </div>
 
             <div className="glass-card-premium rounded-2xl p-4">
@@ -332,7 +334,7 @@ const Predictions = () => {
                 <Clock className="w-5 h-5 text-accent" />
               </div>
               <p className="text-2xl font-display-bold text-foreground">{stats.pending}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Bekleyen</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t.predictions.pending}</p>
             </div>
 
             <div className="glass-card-premium rounded-2xl p-4">
@@ -340,7 +342,7 @@ const Predictions = () => {
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
               <p className="text-2xl font-display-bold text-foreground">%{winRate}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Başarı Oranı</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t.predictions.winRate}</p>
             </div>
           </div>
         )}
@@ -353,11 +355,11 @@ const Predictions = () => {
                 <Crown className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1">
-                <p className="font-display text-foreground">Premium ile Tüm Tahminlere Erişim</p>
-                <p className="text-sm text-muted-foreground">Bekleyen tahminleri görmek için Premium üye olun</p>
+                <p className="font-display text-foreground">{t.predictions.premiumBanner}</p>
+                <p className="text-sm text-muted-foreground">{t.predictions.premiumBannerDesc}</p>
               </div>
               <Link to="/premium" className="btn-brutalist h-10 px-6 text-sm shrink-0">
-                Premium'a Geç
+                {t.predictions.upgradeToPremium}
               </Link>
             </div>
           </div>
@@ -387,7 +389,7 @@ const Predictions = () => {
         {loading && (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Yükleniyor...</p>
+            <p className="text-muted-foreground">{t.common.loading}</p>
           </div>
         )}
 
@@ -396,7 +398,7 @@ const Predictions = () => {
           <div className="glass-card rounded-2xl p-8 text-center">
             <p className="text-muted-foreground mb-4">{error}</p>
             <button onClick={fetchBets} className="btn-brutalist-outline">
-              Tekrar Dene
+              {t.common.retry}
             </button>
           </div>
         )}
@@ -405,8 +407,8 @@ const Predictions = () => {
         {!loading && !error && bets.length === 0 && (
           <div className="glass-card-premium rounded-2xl p-12 text-center">
             <Target className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-display text-foreground mb-2">Henüz Tahmin Yok</h3>
-            <p className="text-muted-foreground">Onaylanan tahminler burada görünecek.</p>
+            <h3 className="text-xl font-display text-foreground mb-2">{t.predictions.noPredictions}</h3>
+            <p className="text-muted-foreground">{t.predictions.noPredictionsDesc}</p>
           </div>
         )}
 
@@ -431,7 +433,7 @@ const Predictions = () => {
                       </div>
                       <div className="text-left">
                         <p className="font-display text-foreground">{group.label}</p>
-                        <p className="text-xs text-muted-foreground">{group.bets.length} tahmin</p>
+                        <p className="text-xs text-muted-foreground">{group.bets.length} {t.predictions.predictions}</p>
                       </div>
                     </div>
                     <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />

@@ -1,21 +1,24 @@
 import { Link } from "react-router-dom";
 import { Trophy, Twitter, Instagram, Mail, ArrowUpRight } from "lucide-react";
-
-const footerLinks = {
-  product: [
-    { label: "Fiyatlandırma", href: "/pricing" },
-  ],
-  company: [
-    { label: "Hakkımızda", href: "/about" },
-    { label: "İletişim", href: "/contact" },
-  ],
-  legal: [
-    { label: "Gizlilik Politikası", href: "#" },
-    { label: "Kullanım Şartları", href: "#" },
-  ],
-};
+import { useLanguage } from "@/components/LanguageProvider";
 
 export const Footer = () => {
+  const { t } = useLanguage();
+
+  const footerLinks = {
+    product: [
+      { label: t.nav.pricing, href: "/pricing" },
+    ],
+    company: [
+      { label: t.nav.about, href: "/about" },
+      { label: t.nav.contact, href: "/contact" },
+    ],
+    legal: [
+      { label: t.footer.privacyPolicy, href: "#" },
+      { label: t.footer.terms, href: "#" },
+    ],
+  };
+
   return (
     <footer className="bg-card/50 backdrop-blur-xl border-t border-border relative overflow-hidden">
       {/* Background Pattern */}
@@ -35,7 +38,7 @@ export const Footer = () => {
               </div>
             </Link>
             <p className="text-muted-foreground text-sm mb-6 max-w-xs leading-relaxed">
-              AI destekli futbol analiz platformu. Daha akıllı tahminler için daha akıllı analizler.
+              {t.footer.description}
             </p>
 
             {/* Social Links - Brutalist Style */}
@@ -58,7 +61,7 @@ export const Footer = () => {
 
           {/* Links */}
           <div>
-            <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">Ürün</h4>
+            <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">{t.footer.product}</h4>
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
@@ -72,7 +75,7 @@ export const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">Şirket</h4>
+            <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">{t.footer.company}</h4>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
@@ -89,7 +92,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2024 <span className="font-display">SENTIO PICKS</span>. Tüm hakları saklıdır.
+            © 2024 <span className="font-display">SENTIO PICKS</span>. {t.footer.allRightsReserved}
           </p>
           <div className="flex gap-6">
             {footerLinks.legal.map((link) => (

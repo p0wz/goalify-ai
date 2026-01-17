@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { User, Bell, Shield, Palette, Globe, Moon, Sun, Crown, LogOut } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { useLanguage } from "@/components/LanguageProvider";
 import { Link } from "react-router-dom";
+import { languageNames, Language } from "@/i18n";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
 const Settings = () => {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [language, setLanguage] = useState('tr');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -28,9 +30,6 @@ const Settings = () => {
     // Load saved preferences
     const savedNotifs = localStorage.getItem('notificationsEnabled');
     if (savedNotifs !== null) setNotificationsEnabled(savedNotifs === 'true');
-
-    const savedLang = localStorage.getItem('language');
-    if (savedLang) setLanguage(savedLang);
   }, []);
 
   const toggleNotifications = () => {
@@ -39,18 +38,13 @@ const Settings = () => {
     localStorage.setItem('notificationsEnabled', String(newValue));
   };
 
-  const changeLanguage = (lang: string) => {
-    setLanguage(lang);
-    localStorage.setItem('language', lang);
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     window.location.href = '/login';
   };
 
   // Get display info from user data
-  const displayName = user?.name || user?.email?.split('@')[0] || 'Kullanıcı';
+  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
   const displayEmail = user?.email || '';
   const isPremium = user?.plan === 'pro';
 
@@ -58,8 +52,8 @@ const Settings = () => {
     <AppLayout>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="brutalist-heading text-2xl">Ayarlar</h1>
-        <p className="text-sm text-muted-foreground mt-1">Hesap ve uygulama tercihlerinizi yönetin</p>
+        <h1 className="brutalist-heading text-2xl">{t.settings.title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.settings.subtitle}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -75,13 +69,13 @@ const Settings = () => {
 
             <div className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-display uppercase tracking-wider ${isPremium ? 'gradient-accent text-white' : 'bg-muted text-muted-foreground'}`}>
               <Crown className="w-4 h-4" />
-              {isPremium ? 'Premium' : 'Free'}
+              {isPremium ? 'Premium' : t.settings.free}
             </div>
 
             {!isPremium && (
               <Link to="/premium" className="block mt-4">
                 <button className="btn-brutalist w-full h-10 text-sm">
-                  Premium'a Geç
+                  {t.premium.upgradeNow}
                 </button>
               </Link>
             )}
@@ -89,12 +83,12 @@ const Settings = () => {
 
           <div className="mt-6 pt-6 border-t border-border space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Hesap Durumu</span>
-              <span className="font-display text-green-500">Aktif</span>
+              <span className="text-muted-foreground">{t.settings.accountStatus}</span>
+              <span className="font-display text-green-500">{t.settings.active}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Üyelik</span>
-              <span className="font-display">{isPremium ? 'Premium' : 'Ücretsiz'}</span>
+              <span className="text-muted-foreground">{t.settings.membership}</span>
+              <span className="font-display">{isPremium ? 'Premium' : t.settings.free}</span>
             </div>
           </div>
         </div>
@@ -104,7 +98,7 @@ const Settings = () => {
           {/* Theme */}
           <div className="glass-card-premium rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-border">
-              <h3 className="font-display uppercase tracking-wider text-sm">Görünüm</h3>
+              <h3 className="font-display uppercase tracking-wider text-sm">{t.settings.appearance}</h3>
             </div>
             <div className="p-4">
               <div className="flex items-center justify-between">
@@ -113,8 +107,8 @@ const Settings = () => {
                     <Palette className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-display">Tema</p>
-                    <p className="text-sm text-muted-foreground">Açık veya koyu tema</p>
+                    <p className="font-display">{t.settings.theme}</p>
+                    <p className="text-sm text-muted-foreground">{t.settings.themeDesc}</p>
                   </div>
                 </div>
                 <div className="flex brutalist-border shadow-brutalist-sm">
@@ -123,15 +117,46 @@ const Settings = () => {
                     className={`px-4 py-2 flex items-center gap-2 transition-colors ${resolvedTheme === 'light' ? 'bg-primary text-white' : 'bg-card hover:bg-muted'}`}
                   >
                     <Sun className="w-4 h-4" />
-                    <span className="text-sm font-display">Açık</span>
+                    <span className="text-sm font-display">{t.settings.light}</span>
                   </button>
                   <button
                     onClick={() => setTheme('dark')}
                     className={`px-4 py-2 flex items-center gap-2 transition-colors ${resolvedTheme === 'dark' ? 'bg-primary text-white' : 'bg-card hover:bg-muted'}`}
                   >
                     <Moon className="w-4 h-4" />
-                    <span className="text-sm font-display">Koyu</span>
+                    <span className="text-sm font-display">{t.settings.dark}</span>
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Language */}
+          <div className="glass-card-premium rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-border">
+              <h3 className="font-display uppercase tracking-wider text-sm">{t.settings.language}</h3>
+            </div>
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-secondary flex items-center justify-center">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-display">{t.settings.languageTitle}</p>
+                    <p className="text-sm text-muted-foreground">{t.settings.languageDesc}</p>
+                  </div>
+                </div>
+                <div className="flex brutalist-border shadow-brutalist-sm">
+                  {(['tr', 'en'] as Language[]).map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => setLanguage(lang)}
+                      className={`px-4 py-2 transition-colors ${language === lang ? 'bg-primary text-white' : 'bg-card hover:bg-muted'}`}
+                    >
+                      <span className="text-sm font-display">{languageNames[lang]}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -140,7 +165,7 @@ const Settings = () => {
           {/* Notifications */}
           <div className="glass-card-premium rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-border">
-              <h3 className="font-display uppercase tracking-wider text-sm">Bildirimler</h3>
+              <h3 className="font-display uppercase tracking-wider text-sm">{t.settings.notificationsTitle}</h3>
             </div>
             <div className="p-4">
               <div className="flex items-center justify-between">
@@ -149,8 +174,8 @@ const Settings = () => {
                     <Bell className="w-5 h-5 text-accent" />
                   </div>
                   <div>
-                    <p className="font-display">Push Bildirimleri</p>
-                    <p className="text-sm text-muted-foreground">Tahmin sonuçları ve güncellemeler</p>
+                    <p className="font-display">{t.settings.pushNotifications}</p>
+                    <p className="text-sm text-muted-foreground">{t.settings.pushNotificationsDesc}</p>
                   </div>
                 </div>
                 <button
@@ -163,38 +188,10 @@ const Settings = () => {
             </div>
           </div>
 
-          {/* Language */}
-          <div className="glass-card-premium rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <h3 className="font-display uppercase tracking-wider text-sm">Dil</h3>
-            </div>
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-secondary flex items-center justify-center">
-                    <Globe className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-display">Uygulama Dili</p>
-                    <p className="text-sm text-muted-foreground">Arayüz dili</p>
-                  </div>
-                </div>
-                <select
-                  value={language}
-                  onChange={(e) => changeLanguage(e.target.value)}
-                  className="px-4 py-2 bg-card brutalist-border shadow-brutalist-sm font-display text-sm focus:outline-none"
-                >
-                  <option value="tr">Türkçe</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
           {/* Security / Logout */}
           <div className="glass-card-premium rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-border">
-              <h3 className="font-display uppercase tracking-wider text-sm">Güvenlik</h3>
+              <h3 className="font-display uppercase tracking-wider text-sm">{t.settings.security}</h3>
             </div>
             <div className="divide-y divide-border">
               <div className="p-4 flex items-center gap-4">
@@ -202,8 +199,8 @@ const Settings = () => {
                   <Shield className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-display">Şifre</p>
-                  <p className="text-sm text-muted-foreground">Son değişiklik: Bilinmiyor</p>
+                  <p className="font-display">{t.settings.password}</p>
+                  <p className="text-sm text-muted-foreground">{t.settings.lastChange}: {t.settings.unknown}</p>
                 </div>
               </div>
               <button
@@ -214,8 +211,8 @@ const Settings = () => {
                   <LogOut className="w-5 h-5 text-destructive" />
                 </div>
                 <div>
-                  <p className="font-display text-destructive">Çıkış Yap</p>
-                  <p className="text-sm text-muted-foreground">Hesabınızdan çıkış yapın</p>
+                  <p className="font-display text-destructive">{t.settings.logout}</p>
+                  <p className="text-sm text-muted-foreground">{t.settings.logoutDesc}</p>
                 </div>
               </button>
             </div>
