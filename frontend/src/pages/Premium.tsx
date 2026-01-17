@@ -24,18 +24,52 @@ const Premium = () => {
 
   const yearlyTRY = Math.round(monthlyTRY * 12 * (1 - yearlyDiscount));
   const yearlyUSD = (monthlyUSD * 12 * (1 - yearlyDiscount)).toFixed(2);
+  const [loading, setLoading] = useState(false);
 
-  const handlePurchase = () => {
-    const price = isYearly
-      ? (language === 'tr' ? `₺${yearlyTRY}/yıl` : `$${yearlyUSD}/year`)
-      : (language === 'tr' ? `₺${monthlyTRY}/ay` : `$${monthlyUSD}/month`);
-    toast({
-      title: language === 'tr' ? "Ödeme Sayfasına Yönlendiriliyorsunuz" : "Redirecting to Payment",
-      description: `Premium ${isYearly
-        ? (language === 'tr' ? 'Yıllık' : 'Yearly')
-        : (language === 'tr' ? 'Aylık' : 'Monthly')
-        } Plan - ${price}`,
-    });
+  const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
+
+  const handlePurchase = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast({
+        title: language === 'tr' ? "Giriş Yapın" : "Please Log In",
+        description: language === 'tr' ? "Premium satın almak için önce giriş yapmalısınız." : "You must log in to purchase Premium.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const planType = isYearly ? 'yearly' : 'monthly';
+      const res = await fetch(`${API_BASE}/payments/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ planType })
+      });
+
+      const data = await res.json();
+      if (data.success && data.checkoutUrl) {
+        // Redirect to Creem checkout
+        window.location.href = data.checkoutUrl;
+      } else {
+        toast({
+          title: language === 'tr' ? "Hata" : "Error",
+          description: data.error || (language === 'tr' ? "Ödeme sayfası oluşturulamadı" : "Could not create payment session"),
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: language === 'tr' ? "Bağlantı Hatası" : "Connection Error",
+        description: language === 'tr' ? "Sunucuya bağlanılamadı" : "Could not connect to server",
+        variant: "destructive"
+      });
+    }
+    setLoading(false);
   };
 
   return (
@@ -138,9 +172,12 @@ const Premium = () => {
           </div>
 
           {/* CTA */}
-          <button onClick={handlePurchase} className="btn-brutalist w-full h-14 text-lg">
-            {t.premium.upgradeNow}
-            <ArrowRight className="w-5 h-5 ml-2 inline-block" />
+          <button onClick={handlePurchase} disabled={loading} className="btn-brutalist w-full h-14 text-lg disabled:opacity-50 disabled:cursor-wait">
+            {loading
+              ? (language === 'tr' ? 'Yönlendiriliyor...' : 'Redirecting...')
+              : t.premium.upgradeNow
+            }
+            {!loading && <ArrowRight className="w-5 h-5 ml-2 inline-block" />}
           </button>
         </div>
 

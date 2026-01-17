@@ -18,6 +18,7 @@ const liveBot = require('./lib/liveBot');
 const liveDeadBot = require('./lib/liveDeadBot');
 const liveSettlement = require('./lib/liveSettlement');
 const firebaseAdmin = require('./lib/firebase');
+const creem = require('./lib/creem');
 const { ALLOWED_LEAGUES, ALLOWED_LEAGUES_NO_CUPS } = require('./data/leagues');
 
 // ============ SETTLEMENT JOB ============
@@ -1181,6 +1182,73 @@ async function start() {
     cron.schedule('*/10 * * * *', async () => {
         console.log('[Cron] Running live settlement check...');
         await liveSettlement.runLiveSettlement();
+    });
+
+    // ============ CREEM.IO PAYMENT ROUTES ============
+
+    // Create checkout session
+    app.post('/api/payments/checkout', auth.requireAuth, async (req, res) => {
+        try {
+            const { planType } = req.body; // 'monthly' or 'yearly'
+            const user = req.user;
+
+            if (!planType || !['monthly', 'yearly'].includes(planType)) {
+                return res.status(400).json({ success: false, error: 'Invalid plan type' });
+            }
+
+            const productId = creem.getProductId(planType);
+            const baseUrl = 'https://sentiopicks.com';
+
+            const checkout = await creem.createCheckout({
+                productId,
+                userId: user.id,
+                email: user.email,
+                successUrl: `${baseUrl}/premium?success=true`,
+                cancelUrl: `${baseUrl}/premium?canceled=true`
+            });
+
+            console.log(`[Payment] Checkout created for user ${user.id}: ${planType}`);
+            res.json({ success: true, checkoutUrl: checkout.checkout_url });
+        } catch (error) {
+            console.error('[Payment] Checkout error:', error.message);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // Creem webhook handler
+    app.post('/api/webhooks/creem', express.raw({ type: 'application/json' }), async (req, res) => {
+        try {
+            const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+            console.log('[Webhook] Creem event received:', event.type || 'unknown');
+
+            // Handle checkout completion
+            if (event.type === 'checkout.completed' || event.object === 'checkout') {
+                const metadata = event.metadata || {};
+                const userId = metadata.user_id;
+                const email = metadata.email;
+
+                if (userId) {
+                    // Upgrade user to premium
+                    await database.query(
+                        'UPDATE users SET plan = $1, is_premium = $2 WHERE id = $3',
+                        ['pro', 1, userId]
+                    );
+                    console.log(`[Webhook] User ${userId} upgraded to PRO`);
+                } else if (email) {
+                    // Find user by email and upgrade
+                    await database.query(
+                        'UPDATE users SET plan = $1, is_premium = $2 WHERE email = $3',
+                        ['pro', 1, email]
+                    );
+                    console.log(`[Webhook] User ${email} upgraded to PRO`);
+                }
+            }
+
+            res.json({ received: true });
+        } catch (error) {
+            console.error('[Webhook] Error:', error.message);
+            res.status(400).json({ error: error.message });
+        }
     });
 
     // NOTE: Both bots do NOT auto-start. Use Admin Panel to start/stop manually.
