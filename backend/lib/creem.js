@@ -11,11 +11,17 @@
 
 const CREEM_API_KEY = process.env.CREEM_API_KEY;
 
-// Use test API if key starts with test_ or creem_test, otherwise production
-const isTestMode = CREEM_API_KEY?.includes('test') || false;
+// Force test mode until account is verified for live payments
+// Change to false when ready for production
+const FORCE_TEST_MODE = true;
+
+// Use test API if forced or if key contains 'test'
+const isTestMode = FORCE_TEST_MODE || CREEM_API_KEY?.includes('test') || false;
 const CREEM_API_URL = isTestMode
     ? 'https://test-api.creem.io/v1'
     : 'https://api.creem.io/v1';
+
+console.log(`[Creem] Mode: ${isTestMode ? 'TEST' : 'PRODUCTION'}, API URL: ${CREEM_API_URL}`);
 
 // Product IDs from Creem dashboard
 const PRODUCTS = {
