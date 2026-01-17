@@ -1,16 +1,51 @@
-import { Link, useLocation } from "react-router-dom";
-import { Trophy, Menu, X, Sun, Moon, Globe } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Trophy, Menu, X, Sun, Moon, Globe, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 
+const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
+
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
   const { setTheme, resolvedTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+
+  // Check if user is logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${API_BASE}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setUser(data.user);
+          } else {
+            localStorage.removeItem('token');
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('token');
+        })
+        .finally(() => setCheckingAuth(false));
+    } else {
+      setCheckingAuth(false);
+    }
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    navigate('/');
+  };
 
   const navLinks = [
     { label: t.nav.pricing, href: "/pricing" },
@@ -62,7 +97,7 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Theme Toggle + Language + CTA Buttons */}
+          {/* Theme Toggle + Language + Auth Buttons */}
           <div className="hidden md:flex items-center gap-2">
             <button
               onClick={toggleLanguage}
@@ -83,16 +118,44 @@ export const Navbar = () => {
                 <Moon className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
               )}
             </button>
-            <Link to="/login">
-              <Button variant="ghost" className="font-display">
-                {t.nav.login}
-              </Button>
-            </Link>
-            <Link to="/auth">
-              <button className="btn-brutalist h-10 px-6 text-sm">
-                {t.nav.register}
-              </button>
-            </Link>
+
+            {/* Check auth state */}
+            {!checkingAuth && (
+              <>
+                {user ? (
+                  // Logged in - show dashboard link and logout
+                  <>
+                    <Link to="/predictions">
+                      <Button variant="ghost" className="font-display flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        {t.nav.predictions}
+                      </Button>
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="btn-brutalist-outline h-10 px-4 text-sm flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      {t.nav.logout}
+                    </button>
+                  </>
+                ) : (
+                  // Not logged in - show login and register
+                  <>
+                    <Link to="/login">
+                      <Button variant="ghost" className="font-display">
+                        {t.nav.login}
+                      </Button>
+                    </Link>
+                    <Link to="/auth">
+                      <button className="btn-brutalist h-10 px-6 text-sm">
+                        {t.nav.register}
+                      </button>
+                    </Link>
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           {/* Mobile: Theme Toggle + Menu Button */}
@@ -140,16 +203,35 @@ export const Navbar = () => {
               </Link>
             ))}
             <div className="pt-4 space-y-3 border-t border-border">
-              <Link to="/login" className="block">
-                <Button variant="outline" className="w-full font-display">
-                  {t.nav.login}
-                </Button>
-              </Link>
-              <Link to="/auth" className="block">
-                <button className="btn-brutalist w-full h-12">
-                  {t.nav.register}
-                </button>
-              </Link>
+              {user ? (
+                <>
+                  <Link to="/predictions" className="block" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full font-display">
+                      {t.nav.predictions}
+                    </Button>
+                  </Link>
+                  <button
+                    onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                    className="btn-brutalist-outline w-full h-12 flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    {t.nav.logout}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="block" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full font-display">
+                      {t.nav.login}
+                    </Button>
+                  </Link>
+                  <Link to="/auth" className="block" onClick={() => setMobileMenuOpen(false)}>
+                    <button className="btn-brutalist w-full h-12">
+                      {t.nav.register}
+                    </button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

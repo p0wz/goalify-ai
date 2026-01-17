@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Lock, Mail, ArrowRight, Trophy, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
@@ -17,6 +16,30 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
+    // Check if already logged in
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`${API_BASE}/auth/me`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Redirect based on role
+                        if (data.user.role === 'admin') {
+                            navigate('/admin');
+                        } else {
+                            navigate('/predictions');
+                        }
+                    }
+                })
+                .catch(() => {
+                    localStorage.removeItem('token');
+                });
+        }
+    }, [navigate]);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,7 +65,13 @@ const Login = () => {
             if (data.success && data.token) {
                 localStorage.setItem("token", data.token);
                 toast.success(isRegistering ? "Kayıt başarılı!" : "Giriş başarılı!");
-                navigate("/admin");
+
+                // Redirect based on role
+                if (data.user?.role === 'admin') {
+                    navigate("/admin");
+                } else {
+                    navigate("/predictions");
+                }
             } else {
                 setError(data.error || (isRegistering ? "Kayıt başarısız" : "Giriş başarısız"));
                 toast.error(data.error || (isRegistering ? "Kayıt başarısız" : "Giriş başarısız"));
@@ -90,10 +119,12 @@ const Login = () => {
                 <div className="w-full max-w-md relative z-10 animate-slide-up">
                     {/* Mobile Logo */}
                     <div className="lg:hidden text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 gradient-primary shadow-brutalist-sm mb-4">
-                            <Trophy className="w-8 h-8 text-white" />
-                        </div>
-                        <h1 className="text-2xl font-display-bold text-gradient">SENTIO PICKS</h1>
+                        <Link to="/">
+                            <div className="inline-flex items-center justify-center w-16 h-16 gradient-primary shadow-brutalist-sm mb-4">
+                                <Trophy className="w-8 h-8 text-white" />
+                            </div>
+                            <h1 className="text-2xl font-display-bold text-gradient">SENTIO PICKS</h1>
+                        </Link>
                     </div>
 
                     {/* Form Card */}
@@ -176,7 +207,7 @@ const Login = () => {
                         <div className="mt-6 text-center">
                             <button
                                 type="button"
-                                onClick={() => setIsRegistering(!isRegistering)}
+                                onClick={() => { setIsRegistering(!isRegistering); setError(""); }}
                                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
                             >
                                 {isRegistering ? (
