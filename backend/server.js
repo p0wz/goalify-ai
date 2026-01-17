@@ -88,14 +88,18 @@ const app = express();
 // CORS Configuration for cross-origin requests
 const corsOptions = {
     origin: [
+        // Production domains
+        'https://sentiopicks.com',
+        'https://www.sentiopicks.com',
         'https://sentio.pages.dev',
         'https://goalify-ai.pages.dev',
+        // Development
         'http://localhost:5173',
         'http://localhost:3000',
         'http://localhost:8081',
         'http://localhost:19006'
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     optionsSuccessStatus: 200  // Some legacy browsers choke on 204
