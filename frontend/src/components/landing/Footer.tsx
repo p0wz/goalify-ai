@@ -1,21 +1,24 @@
 import { Link } from "react-router-dom";
-import { Trophy, Twitter, Instagram, Mail, ArrowUpRight } from "lucide-react";
+import { Trophy, Twitter, Instagram, Mail, ArrowUpRight, Shield, Lock, Clock } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export const Footer = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const footerLinks = {
     product: [
+      { label: t.nav.predictions, href: "/predictions" },
       { label: t.nav.pricing, href: "/pricing" },
+      { label: t.nav.premium, href: "/premium" },
     ],
     company: [
       { label: t.nav.about, href: "/about" },
       { label: t.nav.contact, href: "/contact" },
     ],
     legal: [
-      { label: t.footer.privacyPolicy, href: "#" },
-      { label: t.footer.terms, href: "#" },
+      { label: language === 'tr' ? 'Kullanım Koşulları' : 'Terms of Use', href: "/terms" },
+      { label: t.footer.privacyPolicy, href: "/privacy" },
+      { label: language === 'tr' ? 'Çerez Politikası' : 'Cookie Policy', href: "/cookies" },
     ],
   };
 
@@ -25,7 +28,7 @@ export const Footer = () => {
       <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2">
             <Link to="/" className="flex items-center gap-3 mb-6">
@@ -42,7 +45,7 @@ export const Footer = () => {
             </p>
 
             {/* Social Links - Brutalist Style */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 mb-6">
               {[
                 { icon: Twitter, href: "#" },
                 { icon: Instagram, href: "#" },
@@ -57,9 +60,25 @@ export const Footer = () => {
                 </a>
               ))}
             </div>
+
+            {/* Trust Badges */}
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Shield className="w-3.5 h-3.5 text-primary" />
+                <span>SSL</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Lock className="w-3.5 h-3.5 text-primary" />
+                <span>GDPR</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="w-3.5 h-3.5 text-primary" />
+                <span>24/7</span>
+              </div>
+            </div>
           </div>
 
-          {/* Links */}
+          {/* Product Links */}
           <div>
             <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">{t.footer.product}</h4>
             <ul className="space-y-3">
@@ -74,10 +93,26 @@ export const Footer = () => {
             </ul>
           </div>
 
+          {/* Company Links */}
           <div>
             <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">{t.footer.company}</h4>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
+                <li key={link.label}>
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 group">
+                    {link.label}
+                    <ArrowUpRight className="w-3 h-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Legal Links */}
+          <div>
+            <h4 className="font-display text-foreground mb-4 uppercase tracking-wider text-sm">{language === 'tr' ? 'Yasal' : 'Legal'}</h4>
+            <ul className="space-y-3">
+              {footerLinks.legal.map((link) => (
                 <li key={link.label}>
                   <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 group">
                     {link.label}
@@ -95,7 +130,7 @@ export const Footer = () => {
             © 2024 <span className="font-display">SENTIO PICKS</span>. {t.footer.allRightsReserved}
           </p>
           <div className="flex gap-6">
-            {footerLinks.legal.map((link) => (
+            {footerLinks.legal.slice(0, 2).map((link) => (
               <Link key={link.label} to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 {link.label}
               </Link>

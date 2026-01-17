@@ -19,6 +19,9 @@ import Premium from "./pages/Premium";
 import NotFound from "./pages/NotFound";
 import AdminPanel from "./pages/AdminPanel";
 import RequireAuth from "@/components/auth/RequireAuth";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Cookies from "./pages/Cookies";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +40,11 @@ const App = () => (
                             <Route path="/contact" element={<Contact />} />
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/login" element={<Login />} />
+
+                            {/* Legal Pages */}
+                            <Route path="/terms" element={<Terms />} />
+                            <Route path="/privacy" element={<Privacy />} />
+                            <Route path="/cookies" element={<Cookies />} />
 
                             {/* App Pages */}
                             <Route path="/predictions" element={<Predictions />} />

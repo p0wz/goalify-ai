@@ -1,15 +1,15 @@
 import { Link } from "react-router-dom";
 import {
   TrendingUp, Shield, BarChart3, Users,
-  ArrowRight, ChevronRight,
-  Target, Brain, Bell, Award
+  ArrowRight, ChevronRight, Crown,
+  Target, Brain, Bell, Award, Zap, Clock, Lock, Check
 } from "lucide-react";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { useLanguage } from "@/components/LanguageProvider";
 
 const Landing = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const features = [
     {
@@ -62,6 +62,39 @@ const Landing = () => {
       title: t.howItWorks.step3,
       description: t.howItWorks.step3Desc,
       icon: Award,
+    },
+  ];
+
+  const premiumFeatures = [
+    {
+      icon: Target,
+      title: t.premium.highConfidence,
+      description: t.premium.highConfidenceDesc,
+    },
+    {
+      icon: Zap,
+      title: t.premium.valuePicks,
+      description: t.premium.valuePicksDesc,
+    },
+    {
+      icon: BarChart3,
+      title: t.premium.matchAnalysis,
+      description: t.premium.matchAnalysisDesc,
+    },
+    {
+      icon: Bell,
+      title: t.premium.instantNotifs,
+      description: t.premium.instantNotifsDesc,
+    },
+    {
+      icon: Clock,
+      title: t.premium.earlyOdds,
+      description: t.premium.earlyOddsDesc,
+    },
+    {
+      icon: Brain,
+      title: t.premium.aiModel,
+      description: t.premium.aiModelDesc,
     },
   ];
 
@@ -142,6 +175,76 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* PREMIUM FEATURES SECTION */}
+      <section className="py-24 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-primary/5 to-accent/5 pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 gradient-accent text-white mb-6 shadow-brutalist-sm">
+              <Crown className="w-5 h-5" />
+              <span className="text-sm font-display-bold uppercase tracking-wider">Premium</span>
+            </div>
+            <h2 className="brutalist-heading text-4xl md:text-5xl text-foreground mb-4">
+              {language === 'tr' ? 'Premium' : 'Premium'} <span className="text-gradient">{language === 'tr' ? 'Avantajları' : 'Benefits'}</span>
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {t.premium.subtitle}
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            {premiumFeatures.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="glass-card-premium rounded-2xl p-6 card-hover group animate-slide-up border border-accent/20"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl gradient-accent flex items-center justify-center flex-shrink-0">
+                    <feature.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-foreground mb-2">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pricing Preview */}
+          <div className="max-w-lg mx-auto">
+            <div className="gradient-premium rounded-2xl p-8 text-center shadow-2xl">
+              <div className="mb-6">
+                <span className="text-5xl font-display-bold text-white">
+                  {language === 'tr' ? '₺199' : '$9.90'}
+                </span>
+                <span className="text-white/60 ml-2">{t.premium.perMonth}</span>
+              </div>
+              <div className="flex flex-wrap justify-center gap-4 mb-6">
+                {[
+                  t.premium.securePayment,
+                  t.premium.instantActivation,
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-white" />
+                    <span className="text-sm text-white/80">{item}</span>
+                  </div>
+                ))}
+              </div>
+              <Link to="/premium">
+                <button className="h-14 px-10 bg-white text-primary font-display-bold uppercase tracking-wider border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-all">
+                  {t.premium.upgradeNow}
+                  <ArrowRight className="w-5 h-5 ml-3 inline-block" />
+                </button>
+              </Link>
+              <p className="text-sm text-white/50 mt-4">{t.premium.cancelAnytime}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* HOW IT WORKS SECTION */}
       <section id="how-it-works" className="py-24 px-4 bg-muted/30">
         <div className="max-w-7xl mx-auto">
@@ -179,6 +282,30 @@ const Landing = () => {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TRUST INDICATORS */}
+      <section className="py-16 px-4 border-t border-border">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              <span className="text-sm text-muted-foreground font-display">SSL {language === 'tr' ? 'Korumalı' : 'Protected'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" />
+              <span className="text-sm text-muted-foreground font-display">GDPR {language === 'tr' ? 'Uyumlu' : 'Compliant'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary" />
+              <span className="text-sm text-muted-foreground font-display">24/7 {language === 'tr' ? 'Erişim' : 'Access'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              <span className="text-sm text-muted-foreground font-display">{language === 'tr' ? 'Anında Aktivasyon' : 'Instant Activation'}</span>
+            </div>
           </div>
         </div>
       </section>
