@@ -1216,19 +1216,20 @@ async function start() {
     });
 
     // Creem webhook handler
-    app.post('/api/webhooks/creem', express.raw({ type: 'application/json' }), async (req, res) => {
+    // Handles checkout.completed events to upgrade users to PRO
+    app.post('/api/webhooks/creem', express.json(), async (req, res) => {
         try {
-            const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-            console.log('[Webhook] Creem event received:', event.type || 'unknown');
+            const parsed = creem.parseWebhookEvent(req.body);
+            console.log('[Webhook] Creem event received:', parsed.eventType || 'unknown');
+            console.log('[Webhook] Metadata:', JSON.stringify(parsed.metadata));
 
             // Handle checkout completion
-            if (event.type === 'checkout.completed' || event.object === 'checkout') {
-                const metadata = event.metadata || {};
-                const userId = metadata.user_id;
-                const email = metadata.email;
+            if (parsed.eventType === 'checkout.completed') {
+                const userId = parsed.metadata?.user_id;
+                const email = parsed.metadata?.email || parsed.customerEmail;
 
                 if (userId) {
-                    // Upgrade user to premium
+                    // Upgrade user to premium by ID
                     await database.query(
                         'UPDATE users SET plan = $1, is_premium = $2 WHERE id = $3',
                         ['pro', 1, userId]
@@ -1241,6 +1242,8 @@ async function start() {
                         ['pro', 1, email]
                     );
                     console.log(`[Webhook] User ${email} upgraded to PRO`);
+                } else {
+                    console.log('[Webhook] No user_id or email found in webhook');
                 }
             }
 

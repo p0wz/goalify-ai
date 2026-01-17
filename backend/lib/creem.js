@@ -1,6 +1,6 @@
 /**
  * Creem.io Payment Integration
- * Handles checkout sessions and webhook events
+ * Based on Creem.io docs: https://docs.creem.io/
  */
 
 const CREEM_API_KEY = process.env.CREEM_API_KEY;
@@ -31,12 +31,11 @@ async function createCheckout({ productId, userId, email, successUrl, cancelUrl 
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${CREEM_API_KEY}`
+            'x-api-key': CREEM_API_KEY
         },
         body: JSON.stringify({
             product_id: productId,
             success_url: successUrl,
-            cancel_url: cancelUrl,
             request_id: `user_${userId}_${Date.now()}`,
             metadata: {
                 user_id: userId,
@@ -48,21 +47,38 @@ async function createCheckout({ productId, userId, email, successUrl, cancelUrl 
     if (!response.ok) {
         const error = await response.text();
         console.error('[Creem] Checkout creation failed:', error);
-        throw new Error('Failed to create checkout session');
+        throw new Error(`Failed to create checkout session: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('[Creem] Checkout created:', data.id);
+    console.log('[Creem] Checkout created:', data.id || data.checkout_url);
     return data;
 }
 
 /**
- * Verify webhook signature (if Creem provides one)
- * For now, we'll just parse the event
+ * Parse webhook event from Creem
+ * Based on Creem webhook format:
+ * {
+ *   "id": "evt_xxx",
+ *   "eventType": "checkout.completed",
+ *   "object": {
+ *     "customer": { "email": "..." },
+ *     "metadata": { "user_id": "...", "email": "..." }
+ *   }
+ * }
  */
-function parseWebhookEvent(body, signature) {
-    // TODO: Add signature verification when Creem provides it
-    return body;
+function parseWebhookEvent(body) {
+    const event = typeof body === 'string' ? JSON.parse(body) : body;
+
+    return {
+        eventType: event.eventType,
+        checkoutId: event.object?.id,
+        customerId: event.object?.customer?.id,
+        customerEmail: event.object?.customer?.email,
+        metadata: event.object?.metadata || {},
+        subscription: event.object?.subscription,
+        raw: event
+    };
 }
 
 /**
