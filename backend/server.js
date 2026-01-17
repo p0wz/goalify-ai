@@ -1195,7 +1195,7 @@ async function start() {
     // ============ CREEM.IO PAYMENT ROUTES ============
 
     // Create checkout session
-    app.post('/api/payments/checkout', auth.requireAuth, async (req, res) => {
+    app.post('/api/payments/checkout', auth.authenticateToken, async (req, res) => {
         try {
             const { planType } = req.body; // 'monthly' or 'yearly'
             const user = req.user;
