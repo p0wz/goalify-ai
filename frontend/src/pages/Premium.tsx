@@ -29,8 +29,12 @@ const Premium = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
 
   const handlePurchase = async () => {
+    console.log('[Premium] handlePurchase called');
     const token = localStorage.getItem('token');
+    console.log('[Premium] Token:', token ? 'exists' : 'missing');
+
     if (!token) {
+      console.log('[Premium] No token, showing toast');
       toast({
         title: language === 'tr' ? "Giriş Yapın" : "Please Log In",
         description: language === 'tr' ? "Premium satın almak için önce giriş yapmalısınız." : "You must log in to purchase Premium.",
@@ -40,8 +44,12 @@ const Premium = () => {
     }
 
     setLoading(true);
+    console.log('[Premium] Making API request to:', `${API_BASE}/payments/checkout`);
+
     try {
       const planType = isYearly ? 'yearly' : 'monthly';
+      console.log('[Premium] Plan type:', planType);
+
       const res = await fetch(`${API_BASE}/payments/checkout`, {
         method: 'POST',
         headers: {
@@ -51,7 +59,9 @@ const Premium = () => {
         body: JSON.stringify({ planType })
       });
 
+      console.log('[Premium] Response status:', res.status);
       const data = await res.json();
+      console.log('[Premium] Response data:', data);
       if (data.success && data.checkoutUrl) {
         // Redirect to Creem checkout
         window.location.href = data.checkoutUrl;
