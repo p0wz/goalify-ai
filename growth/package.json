@@ -1,0 +1,11 @@
+{
+  "name": "sentio-picks-growth",
+  "version": "1.0.0",
+  "description": "Growth hacking tools for Sentio Picks",
+  "scripts": {
+    "twitter": "node twitter-sniper.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  }
+}
