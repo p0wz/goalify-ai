@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentio Picks Access</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 10mm auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 800;
+            color: #7c3aed;
+            /* Purple brand color */
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #6b7280;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .hero h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .hero p {
+            margin: 0 0 30px 0;
+            opacity: 0.9;
+        }
+
+        .btn {
+            background: white;
+            color: #4f46e5;
+            padding: 15px 30px;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 18px;
+        }
+
+        .steps {
+            margin-bottom: 40px;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .number {
+            background: #e5e7eb;
+            color: #374151;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .content h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+
+        .content p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            color: #9ca3af;
+            font-size: 12px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .support {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .page {
+                margin: 0;
+                box-shadow: none;
+                border: none;
+            }
+
+            /* Hide print instructions if any */
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Print Instruction (Visible only on screen) -->
+    <div style="text-align:center; padding: 20px;" class="no-print">
+        <button onclick="window.print()" style="padding:10px 20px; font-size:16px; cursor:pointer;">🖨️ Click to Save as
+            PDF</button>
+    </div>
+
+    <div class="page">
+        <div class="header">
+            <div class="logo">⚡ SENTIO PICKS</div>
+            <div class="subtitle">AI-Powered Football Statistics & Analysis</div>
+        </div>
+
+        <div class="hero">
+            <h1>Thank You for Your Order!</h1>
+            <p>Your Daily Auto-Updating Statistics Dashboard is ready.</p>
+
+            <!-- BURAYA GOOGLE SHEET LINKINI EKLE -->
+            <a href="YOUR_GOOGLE_SHEET_LINK_HERE" class="btn">🚀 ACCESS STATS DASHBOARD</a>
+        </div>
+
+        <!-- SPECIAL OFFER SECTION -->
+        <div
+            style="background: #fff beb; color: #92400e; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 2px dashed #f59e0b; text-align: center;">
+            <h3 style="margin: 0 0 10px 0;">🎁 EXCLUSIVE BONUS: %20 OFF VIP</h3>
+            <p style="margin: 0 0 10px 0;">Unlock full AI Predictions & Live Bot access at
+                <strong>sentiopicks.com</strong></p>
+            <div
+                style="background: white; padding: 10px 20px; border-radius: 5px; font-weight: bold; font-family: monospace; font-size: 24px; display: inline-block; border: 1px solid #f59e0b;">
+                ETSYVIP20
+            </div>
+            <p style="font-size: 12px; margin-top: 10px;">Use this code on checkout.</p>
+        </div>
+
+        <div class="steps">
+            <h2>Quick Setup Guide</h2>
+
+            <div class="step">
+                <div class="number">1</div>
+                <div class="content">
+                    <h3>Access the File</h3>
+                    <p>Click the button above to open the Master Statistics Sheet.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="number">2</div>
+                <div class="content">
+                    <h3>Make Your Copy</h3>
+                    <p>Go to <strong>File > Make a copy</strong> to save it to your own Google Drive.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="number">3</div>
+                <div class="content">
+                    <h3>Daily Updates</h3>
+                    <p>Use the "Sentio Picks" menu to fetch fresh match stats daily.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="support">
+            <h3>Need Help?</h3>
+            <p>If you have any questions, contact us via Etsy messages.</p>
+        </div>
+
+        <div class="footer">
+            &copy; 2026 Sentio Picks. All rights reserved. For personal use only.
+        </div>
+    </div>
+
+</body>
+
+</html>
