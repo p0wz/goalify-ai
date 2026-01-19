@@ -1349,9 +1349,16 @@ async function start() {
         }
     });
 
-    // Public endpoint for Google Sheets (NO AUTH REQUIRED)
+    // Public endpoint for Google Sheets (PROTECTED BY QUERY KEY)
     app.get('/api/public/stats', async (req, res) => {
         try {
+            // Simple security check
+            // Müşterilerin script içinde bu key'i görebilir ama rastgele internet ziyaretçilerini engeller.
+            const accessKey = req.query.key;
+            if (accessKey !== 'sentio_secure_etsy_2026_x99') {
+                return res.status(403).json({ success: false, error: 'Unauthorized access' });
+            }
+
             const data = await redis.get('public:etsy:stats');
             if (!data) {
                 return res.json({

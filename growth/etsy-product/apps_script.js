@@ -10,7 +10,7 @@
  * 3. Save and Run 'onOpen'
  */
 
-const API_URL = "https://goalify-ai.onrender.com/api/public/stats";
+const API_URL = "https://goalify-ai.onrender.com/api/public/stats?key=sentio_secure_etsy_2026_x99";
 
 function onOpen() {
     const ui = SpreadsheetApp.getUi();
