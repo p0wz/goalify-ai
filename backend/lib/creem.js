@@ -11,9 +11,9 @@
 
 const CREEM_API_KEY = process.env.CREEM_API_KEY;
 
-// Test mode enabled - waiting for account verification
-// Set to false when account is verified for live payments
-const FORCE_TEST_MODE = true;
+// Production mode - account verified for live payments
+// Set to true only for testing
+const FORCE_TEST_MODE = false;
 
 // Use test API if forced or if key contains 'test'
 const isTestMode = FORCE_TEST_MODE || CREEM_API_KEY?.includes('test') || false;
