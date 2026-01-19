@@ -38,7 +38,8 @@ import {
     List,
     Smartphone,
     Radio,
-    History
+    History,
+    UploadCloud
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
@@ -221,6 +222,10 @@ const AdminPanel = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // Etsy Publish State
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [lastPublished, setLastPublished] = useState<string | null>(null);
+
     // ============ ANALYSIS FUNCTIONS ============
 
     const getAuthHeaders = () => {
@@ -252,6 +257,28 @@ const AdminPanel = () => {
         } catch (err: any) {
             console.error('Cache load error:', err);
         }
+    };
+
+    // Publish stats to public endpoint for Google Sheets (Etsy product)
+    const publishToEtsy = async () => {
+        setIsPublishing(true);
+        try {
+            const res = await fetch(`${API_BASE}/stats/publish`, {
+                method: 'POST',
+                headers: { ...getAuthHeaders() as any }
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                setLastPublished(data.publishedAt);
+                toast.success(`✅ ${data.message} - Sheets için yayınlandı!`);
+            } else {
+                toast.error(data.error || 'Yayınlama başarısız');
+            }
+        } catch (err: any) {
+            toast.error('Publish error: ' + err.message);
+        }
+        setIsPublishing(false);
     };
 
     const runAnalysis = async (limit: number = 500, leagueFilter: boolean = true, noCupFilter: boolean = false) => {
@@ -925,6 +952,20 @@ const AdminPanel = () => {
                                     <><Play className="mr-2 h-4 w-4" />Analizi Başlat (Tüm Ligler)</>
                                 )}
                             </Button>
+
+                            <Button
+                                onClick={publishToEtsy}
+                                disabled={isPublishing || results.length === 0}
+                                variant="outline"
+                                className="border-green-500/50 text-green-500 hover:bg-green-500/10"
+                            >
+                                {isPublishing ? (
+                                    <><Activity className="mr-2 h-4 w-4 animate-spin" />Yayınlanıyor...</>
+                                ) : (
+                                    <><UploadCloud className="mr-2 h-4 w-4" />Google Sheets'e Yayınla</>
+                                )}
+                            </Button>
+                            {lastPublished && <span className="text-xs text-muted-foreground">Son: {new Date(lastPublished).toLocaleTimeString()}</span>}
 
                             <Button
                                 onClick={runPremierLeagueAnalysis}

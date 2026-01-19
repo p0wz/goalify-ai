@@ -1,0 +1,24 @@
+[2026-01-19T18:14:46.513Z] === Sentio Picks Twitter Bot (Image Mode) Starting ===
+[2026-01-19T18:14:46.515Z] 📷 Using image: C:\Users\p0wzs\.gemini\antigravity\scratch\goalsniper-daily\growth\promo-image.jpg
+[2026-01-19T18:15:02.660Z] ⚠️ Twitter login required!
+[2026-01-19T18:15:02.661Z] Please login manually in the browser...
+[2026-01-19T18:15:02.661Z] Press ENTER after logging in.
+[2026-01-19T18:18:18.098Z] === Sentio Picks Twitter Bot (Image Mode) Starting ===
+[2026-01-19T18:18:18.099Z] 📷 Using image: C:\Users\p0wzs\.gemini\antigravity\scratch\goalsniper-daily\growth\promo-image.jpg
+[2026-01-19T18:18:32.365Z] ⚠️ Twitter login required!
+[2026-01-19T18:18:32.365Z] Please login manually in the browser...
+[2026-01-19T18:18:32.366Z] Press ENTER after logging in.
+[2026-01-19T18:25:28.743Z] === Sentio Picks Twitter Bot (Image Mode) Starting ===
+[2026-01-19T18:25:28.743Z] 📷 Using image: C:\Users\p0wzs\.gemini\antigravity\scratch\goalsniper-daily\growth\promo-image.jpg
+[2026-01-19T18:25:28.744Z] 🔑 Using your real Chrome profile...
+[2026-01-19T18:25:28.744Z] ⚠️ IMPORTANT: Close all Chrome windows first!
+[2026-01-19T18:25:28.888Z] Fatal error: Failed to launch the browser process! undefined
+
+
+TROUBLESHOOTING: https://pptr.dev/troubleshooting
+
+[2026-01-19T18:25:44.587Z] === Sentio Picks Twitter Bot (Image Mode) Starting ===
+[2026-01-19T18:25:44.588Z] 📷 Using image: C:\Users\p0wzs\.gemini\antigravity\scratch\goalsniper-daily\growth\promo-image.jpg
+[2026-01-19T18:25:44.588Z] 🔑 Using your real Chrome profile...
+[2026-01-19T18:25:44.588Z] ⚠️ IMPORTANT: Close all Chrome windows first!
+[2026-01-19T18:26:14.689Z] Fatal error: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!

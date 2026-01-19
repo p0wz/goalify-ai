@@ -10,7 +10,10 @@
  * 3. Bot will automatically reply with images
  */
 
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
+
 const fs = require('fs');
 const path = require('path');
 
@@ -97,24 +100,29 @@ async function main() {
     const absoluteImagePath = path.resolve(CONFIG.promoImagePath);
     log('📷 Using image: ' + absoluteImagePath);
 
-    // Launch browser
+    // Launch browser with REAL Chrome profile
+    // This uses your actual Chrome with existing login!
+    const chromeUserDataDir = 'C:\\Users\\p0wzs\\AppData\\Local\\Google\\Chrome\\User Data';
+
+    log('🔑 Using your real Chrome profile...');
+    log('⚠️ IMPORTANT: Close all Chrome windows first!');
+
     const browser = await puppeteer.launch({
-        headless: CONFIG.headless,
+        headless: false,
         defaultViewport: null,
-        args: ['--start-maximized', '--no-sandbox']
+        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        userDataDir: chromeUserDataDir,
+        args: ['--start-maximized', '--no-sandbox', '--profile-directory=Default']
     });
 
     const page = await browser.newPage();
 
-    // Set user agent
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-
-    // Load cookies if available
-    await loadCookies(page);
+    // Using real Chrome profile - no need to set user agent or load cookies
+    // Your existing Twitter login will be used automatically!
 
     // Go to Twitter
-    await page.goto('https://twitter.com', { waitUntil: 'networkidle2' });
-    await sleep(3000);
+    await page.goto('https://twitter.com/home', { waitUntil: 'networkidle2' });
+    await sleep(5000);
 
     // Check login status
     const isLoggedIn = await page.evaluate(() => {

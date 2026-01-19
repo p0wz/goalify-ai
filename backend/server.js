@@ -1305,6 +1305,74 @@ async function start() {
         }
     });
 
+    // ============ ETSY GOOGLE SHEETS PUBLIC API ============
+
+    // Admin publishes current analysis to public endpoint
+    app.post('/api/stats/publish', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
+        try {
+            console.log('[Publish] Publishing stats to public endpoint...');
+
+            // Get current cached analysis
+            const cached = await redis.getCachedAnalysisResults();
+            if (!cached || !cached.allMatches) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'No analysis data to publish. Run analysis first.'
+                });
+            }
+
+            // Format for public consumption
+            const publishedData = {
+                publishedAt: new Date().toISOString(),
+                matchCount: cached.allMatches.length,
+                matches: cached.allMatches.map(m => ({
+                    homeTeam: m.homeTeam,
+                    awayTeam: m.awayTeam,
+                    league: m.league,
+                    kickoff: new Date(m.timestamp * 1000).toISOString(),
+                    stats: m.detailedStats
+                }))
+            };
+
+            // Store in Redis with public key
+            await redis.set('public:etsy:stats', JSON.stringify(publishedData));
+
+            console.log(`[Publish] Published ${publishedData.matchCount} matches`);
+            res.json({
+                success: true,
+                message: `Published ${publishedData.matchCount} matches`,
+                publishedAt: publishedData.publishedAt
+            });
+        } catch (error) {
+            console.error('[Publish] Error:', error.message);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // Public endpoint for Google Sheets (NO AUTH REQUIRED)
+    app.get('/api/public/stats', async (req, res) => {
+        try {
+            const data = await redis.get('public:etsy:stats');
+            if (!data) {
+                return res.json({
+                    success: false,
+                    message: 'No published stats available yet.',
+                    matches: []
+                });
+            }
+
+            const parsed = JSON.parse(data);
+            res.json({
+                success: true,
+                publishedAt: parsed.publishedAt,
+                matchCount: parsed.matchCount,
+                matches: parsed.matches
+            });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
     // NOTE: Both bots do NOT auto-start. Use Admin Panel to start/stop manually.
     console.log('[LiveBot] Ready (manual start required)');
     console.log('[DeadBot] Ready (manual start required)');

@@ -1,0 +1,27 @@
+/* Sentio Quick Reply Button Styles */
+
+.sentio-quick-btn {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 12px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sentio-quick-btn:hover {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.sentio-quick-btn:active {
+    transform: scale(0.95);
+}
