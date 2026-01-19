@@ -4,16 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE TITAN GROWTH BIBLE - MASTER EDITION</title>
+    <title>THE GOD-TIER GROWTH MANUAL: SENTIO PICKS</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
 
         :root {
-            --primary: #7c3aed;
-            --accent: #f59e0b;
-            --dark: #111827;
-            --light: #f9fafb;
-            --text: #374151;
+            --primary: #4f46e5;
+            --accent: #ef4444;
+            --success: #10b981;
+            --dark: #0f172a;
+            --gray: #e2e8f0;
+            --text: #334155;
         }
 
         body {
@@ -23,12 +24,13 @@
             background: white;
             margin: 0;
             padding: 0;
+            font-size: 15px;
         }
 
         .container {
             max-width: 900px;
             margin: 0 auto;
-            padding: 60px;
+            padding: 80px;
         }
 
         /* Cover Page */
@@ -37,282 +39,355 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            text-align: center;
-            border-bottom: 2px solid var(--primary);
-            margin-bottom: 50px;
+            border-bottom: 4px solid var(--dark);
+            margin-bottom: 80px;
+        }
+
+        .cover-tag {
+            background: var(--dark);
+            color: white;
+            display: inline-block;
+            padding: 5px 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            width: fit-content;
         }
 
         .cover h1 {
-            font-size: 64px;
-            font-weight: 800;
+            font-size: 72px;
+            font-weight: 900;
             color: var(--dark);
             margin: 0;
-            letter-spacing: -2px;
-            line-height: 1.1;
+            letter-spacing: -3px;
+            line-height: 1;
+            text-transform: uppercase;
         }
 
         .cover .subtitle {
-            font-size: 24px;
+            font-size: 28px;
             color: var(--primary);
             margin-top: 20px;
             font-weight: 600;
+            letter-spacing: -1px;
         }
 
-        .cover .meta {
-            margin-top: 60px;
-            font-family: 'JetBrains Mono', monospace;
-            color: #6b7280;
-            font-size: 14px;
-        }
-
-        /* Content */
-        h1,
-        h2,
-        h3 {
+        /* Typography */
+        h1.section-header {
+            font-size: 40px;
+            font-weight: 900;
             color: var(--dark);
-            letter-spacing: -0.02em;
-        }
-
-        h1.section-title {
-            font-size: 36px;
-            margin-top: 80px;
-            margin-bottom: 30px;
-            border-left: 8px solid var(--primary);
-            padding-left: 20px;
-            background: #f3f4f6;
-            padding-top: 20px;
+            margin-top: 100px;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            border-bottom: 4px solid var(--dark);
             padding-bottom: 20px;
+            letter-spacing: -1px;
         }
 
         h2 {
             font-size: 24px;
-            margin-top: 40px;
-            color: #4b5563;
+            font-weight: 800;
+            margin-top: 50px;
+            color: var(--dark);
+            border-left: 6px solid var(--primary);
+            padding-left: 20px;
         }
 
         h3 {
             font-size: 18px;
-            font-weight: 800;
+            font-weight: 700;
             margin-top: 30px;
-            color: var(--primary);
+            color: var(--dark);
         }
 
-        p {
-            margin-bottom: 20px;
-            font-size: 16px;
-        }
-
-        ul {
-            margin-bottom: 20px;
-        }
-
-        li {
-            margin-bottom: 10px;
-        }
-
-        .box {
+        /* Components */
+        .strategy-card {
             background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--gray);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .copy-box {
+            background: #1e293b;
+            color: #f1f5f9;
             padding: 25px;
             border-radius: 8px;
-            margin: 30px 0;
-        }
-
-        .box-title {
-            font-weight: 800;
-            text-transform: uppercase;
-            font-size: 12px;
-            color: var(--accent);
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        code {
-            font-family: 'JetBrains Mono', monospace;
-            background: #f3f4f6;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 14px;
-            color: #ef4444;
-        }
-
-        .script-box {
-            background: #111827;
-            color: #e5e7eb;
-            padding: 20px;
-            border-radius: 8px;
             font-family: 'Inter', sans-serif;
-            margin: 10px 0;
-            border-left: 4px solid var(--accent);
+            margin: 20px 0;
+            position: relative;
+            border-left: 5px solid var(--success);
         }
 
-        .script-box .label {
-            color: #9ca3af;
-            font-size: 12px;
+        .copy-label {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--success);
+            color: white;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-            display: block;
+            border-bottom-left-radius: 8px;
         }
 
-        .toc {
-            background: #fdf2f8;
-            padding: 40px;
-            border-radius: 12px;
-            margin: 50px 0;
-        }
-
-        .toc ul {
+        .checklist {
             list-style: none;
             padding: 0;
         }
 
-        .toc li {
-            font-size: 18px;
-            border-bottom: 1px solid #fbcfe8;
-            padding: 10px 0;
-            font-weight: 600;
+        .checklist li {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 12px;
+        }
+
+        .checklist li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--success);
+            font-weight: 900;
+        }
+
+        .warning-box {
+            background: #fef2f2;
+            border: 1px solid #fee2e2;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .warning-icon {
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #db2777;
+            font-size: 14px;
         }
 
         @media print {
+            body {
+                font-size: 12pt;
+            }
+
             .no-print {
                 display: none;
             }
 
-            .cover {
-                height: auto;
-                padding-top: 100px;
-                padding-bottom: 100px;
+            .section-header {
+                page-break-before: always;
             }
 
-            .section-title {
-                page-break-before: always;
+            .cover {
+                height: 100vh;
+                page-break-after: always;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 100;">
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 999;">
         <button onclick="window.print()"
-            style="background: #111827; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-            🖨️ PRINT TO PDF
+            style="background: #0f172a; color: white; border: none; padding: 15px 30px; border-radius: 50px; cursor: pointer; font-weight: 800; font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: transform 0.2s;">
+            � DOWNLOAD PDF
         </button>
     </div>
 
     <div class="container">
-        <!-- COVER PAGE -->
+        <!-- COVER -->
         <div class="cover">
-            <div class="meta">CONFIDENTIAL STRATEGY DOCUMENT</div>
-            <h1>THE TITAN<br>GROWTH BIBLE</h1>
-            <div class="subtitle">MASTER EDITION (2026)</div>
-            <div class="meta" style="margin-top: 20px;">
-                TARGET: $10,000 MRR<br>
-                STRATEGY: PSYCHOLOGICAL DOMINANCE
+            <div class="cover-tag">CONFIDENTIAL OPERATIONAL MANUAL</div>
+            <h1>THE GOD-TIER<br>GROWTH MANUAL</h1>
+            <div class="subtitle">SENTIO PICKS • 2026 STRATEGY</div>
+            <div style="margin-top: auto; font-family: 'JetBrains Mono', monospace; color: #64748b;">
+                CLEARANCE LEVEL: OWNER EYES ONLY<br>
+                OBJECTIVE: MARKET DOMINANCE
             </div>
         </div>
 
-        <div class="toc">
-            <h2 style="margin-top: 0; color: #db2777;">� TABLE OF CONTENTS</h2>
+        <!-- INTRO -->
+        <h1 class="section-header">0. EXECUTIVE SUMMARY</h1>
+        <p class="lead">This is not a guide. This is a <strong>war plan</strong>. You are entering a saturated market
+            (betting), which means "good" is not enough. You must be "dangerous". This manual covers the exact words,
+            times, and actions required to generate $10k/month.</p>
+
+        <!-- PART 1: IDENTITY -->
+        <h1 class="section-header">1. IDENTITY ENGINEERING</h1>
+        <p>Before marketing, we must define WHO you are. Pick one persona below and stick to it forever.</p>
+
+        <div class="strategy-card">
+            <h3>🎭 Persona A: The "Machine" (Recommended)</h3>
+            <p>Cold, emotionless, pure data. You don't "hope" teams win; you calculate probabilities.</p>
             <ul>
-                <li>1. THE FOUNDATION: Brand Psychology</li>
-                <li>2. TWITTER (X) MASTERY: Algorithm Hacks</li>
-                <li>3. TELEGRAM WARFARE: Conversion Tactics</li>
-                <li>4. VIRAL MECHANICS: Growth Loops</li>
-                <li>5. COPYWRITING VAULT: The Scripts</li>
-                <li>6. 30-DAY LAUNCH CALENDAR</li>
+                <li><strong>Tone:</strong> "Calculation complete. Probability: 88%."</li>
+                <li><strong>Color:</strong> Green/Black/Cyberpunk.</li>
             </ul>
         </div>
 
-        <!-- PART 1 -->
-        <h1 class="section-title">1. THE FOUNDATION</h1>
-        <p>Before you post, you must establish "Unquestionable Authority". In betting, people follow winners, not
-            predictors.</p>
+        <h2>1.1 Twitter (X) Bio Templates</h2>
+        <p>Copy and paste these. Do not change a word.</p>
 
-        <h2>1.1 The "God Mode" Persona</h2>
-        <p>You are not a "bot". You are a <strong>Data Intelligence Entity</strong>.</p>
-        <div class="box">
-            <span class="box-title">TONE OF VOICE GUIDE</span>
-            <ul>
-                <li>❌ <strong>Never say:</strong> "I think", "Maybe", "Hopefully"</li>
-                <li>✅ <strong>Always say:</strong> "Data indicates", "Analysis confirms", "Probability matrix shows"
-                </li>
-            </ul>
+        <div class="copy-box">
+            <span class="copy-label">OPTION 1: THE DATA SCIENTIST</span>
+            🤖 AI-Driven Football Intelligence.<br>
+            📊 Processing 5000+ data points per match.<br>
+            ✅ 84% Win Rate (Verified).<br>
+            👇 Unlock today's forecast:<br>
+            [LINK]
         </div>
 
-        <h2>1.2 The "Green Wall" Effect</h2>
-        <p>Your profile media tab must be a wall of green ticks. For 7 days, post ONLY winning slips. If a user sees 3
-            losses in your media tab, they leave. If they see 5 wins, they follow.</p>
-
-        <!-- PART 2 -->
-        <h1 class="section-title">2. TWITTER (X) MASTERY</h1>
-
-        <h2>2.1 The Sniper Method: Advanced</h2>
-        <p>We do not pay for ads. We steal attention.</p>
-
-        <h3>Target List</h3>
-        <ul>
-            <li><strong>Tier 1 (Instant Reply):</strong> Fabrizio Romano, Sky Sports</li>
-            <li><strong>Tier 2 (Quote Tweet):</strong> PaddyPower, Bet365</li>
-        </ul>
-
-        <div class="box">
-            <span class="box-title">THE VISUALIZATION HACK</span>
-            <p><strong>Never</strong> post text-only replies. <strong>Always</strong> attach your Sentio Dashboard
-                screenshot.</p>
+        <div class="copy-box">
+            <span class="copy-label">OPTION 2: THE MONEY MAKER</span>
+            💰 Beating the bookies with Math, not Luck.<br>
+            🚀 +450 Units Profit in 2025.<br>
+            👁️ Sentio AI detects value errors instantly.<br>
+            👇 Join 1,500+ Winners:<br>
+            [LINK]
         </div>
 
-        <!-- PART 3 -->
-        <h1 class="section-title">3. TELEGRAM WARFARE</h1>
+        <h2>1.2 Telegram Channel Setup</h2>
 
-        <h2>3.1 The "Velvet Rope" Strategy</h2>
-        <p>Make your Free Channel feel like a lobby, and your VIP Channel feel like the Illuminati.</p>
-
-        <h2>3.2 The "Fake Out" Sales Tactic</h2>
-        <p>Create artificial scarcity every Friday.</p>
-        <div class="script-box">
-            <span class="label">FRIDAY SCRIPT</span>
-            "We are accepting 50 new members only. After this, doors close for the month."
-        </div>
-        <div class="script-box">
-            <span class="label">SUNDAY SCRIPT</span>
-            "LAST CALL. Closing in 1 hour. Link expires."
-            <br><em>(Reality: You never close it.)</em>
+        <div class="copy-box">
+            <span class="copy-label">CHANNEL NAME</span>
+            Sentio Picks - AI Predictions 🎯
         </div>
 
-        <!-- PART 5 -->
-        <h1 class="section-title">4. COPYWRITING VAULT</h1>
-
-        <h2>4.1 Twitter Replies</h2>
-        <div class="script-box">
-            <span class="label">THE CONTRARIAN</span>
-            "Everyone thinks [Team A] wins easily, but the data says otherwise. Our AI flags a major upset alert. 🚨
-            [Attach Image]"
-        </div>
-        <div class="script-box">
-            <span class="label">THE PROOF</span>
-            "Boom! 🎯 We called this 2 hours ago. Check the timestamp. Don't say we didn't warn you."
+        <div class="copy-box">
+            <span class="copy-label">CHANNEL DESCRIPTION (BIO)</span>
+            The world's most advanced AI Betting Algorithm.<br><br>
+            We don't gamble. We invest based on data.<br><br>
+            🤖 Daily AI Analysis<br>
+            📊 Live Value Alerts<br>
+            💰 Verified History<br><br>
+            👇 ACCESS DASHBOARD:<br>
+            https://sentiopicks.com
         </div>
 
-        <h1 class="section-title">5. 30-DAY LAUNCH CALENDAR</h1>
+        <div class="copy-box">
+            <span class="copy-label">PINNED MESSAGE (FIRST POST)</span>
+            <strong>👋 WELCOME TO THE FUTURE OF BETTING.</strong><br><br>
+            Stop betting on your "gut feeling". It loses money. <br>
+            Sentio AI analyzes data humans can't see:<br>
+            - xG Trends<br>
+            - Referee Bias<br>
+            - Weather Impact<br>
+            - Historical Volatility<br><br>
+            <strong>🔔 TURN ALERTS ON.</strong> We post 1-3 high-confidence picks daily.<br><br>
+            Let's print money. 💸
+        </div>
 
-        <h3>Week 1: Seed Content</h3>
-        <ul>
-            <li><strong>Day 1-3:</strong> Post 10 "Backdated" winning slips. Fill the profile.</li>
-            <li><strong>Day 4:</strong> First "Live" Free Pick (Must be safe 1.30 odds).</li>
-            <li><strong>Day 5-7:</strong> Sniper Method 20x/day.</li>
-        </ul>
 
-        <h3>Week 2: Aggressive Traffic</h3>
-        <ul>
-            <li><strong>Day 8:</strong> Launch "10 to 100 Challenge" on Twitter.</li>
-            <li><strong>Day 9:</strong> First TikTok video.</li>
-        </ul>
+        <!-- PART 2: SOCIAL WARFARE -->
+        <h1 class="section-header">2. SOCIAL WARFARE TACTICS</h1>
+
+        <h2>2.1 The "Reply Guy" Sniper Script</h2>
+        <p>When you reply to Fabrizio Romano or a big account, use these exact templates.</p>
+
+        <div class="copy-box">
+            <span class="copy-label">SCENARIO: TEAM NEWS RELEASED</span>
+            "Interesting lineup. Without [Player Name], our AI just dropped [Team]'s win probability from 65% to 42%.
+            The value is now heavily on the underdog. 👀 Data attached. 👇 [IMAGE]"
+        </div>
+
+        <div class="copy-box">
+            <span class="copy-label">SCENARIO: BIG MATCH DAY</span>
+            "Heart says Arsenal, Data says City. Sentio AI projects a 2-2 Draw based on defensive xG regression. Anyone
+            else seeing this trend? 📊 [IMAGE]"
+        </div>
+
+        <h2>2.2 DM Scripts (The "Cold DM")</h2>
+        <p>Send this to people who like betting tweets. Do not spam. Be helpful.</p>
+
+        <div class="copy-box">
+            <span class="copy-label">DM SCRIPT</span>
+            "Hey! Saw you're betting on the United game. Just a heads up—our AI model flagged a high risk on the Over
+            2.5 goals market due to the referee assignment. Just thought I'd share. Good luck! 👊"
+        </div>
+        <p><em>(Note: Do not sell immediately. Wait for them to ask "What AI model?")</em></p>
+
+
+        <!-- PART 3: CRISIS MANAGEMENT -->
+        <h1 class="section-header">3. CRISIS MANAGEMENT PROTOCOLS</h1>
+        <p>You WILL lose bets. How you handle losses defines your brand.</p>
+
+        <div class="warning-box">
+            <div class="warning-icon">⛔</div>
+            <div>
+                <strong>THE CARDINAL SIN: DELETING TWEETS.</strong><br>
+                Never delete a losing slip. It destroys trust instantly. Own the loss.
+            </div>
+        </div>
+
+        <h2>3.1 The "After Loss" Script</h2>
+        <div class="copy-box">
+            <span class="copy-label">POST-LOSS TWEET</span>
+            "❌ LOSS on Chelsea. <br><br>
+            Analysis: The red card in minute 12 ruined the model's simulation. Without the red, the xG trajectory was on
+            track.<br><br>
+            Transparency is key. We took the hit. <br>
+            Recovering tomorrow with 3x confidence. 📉📈"
+        </div>
+
+        <h2>3.2 The "After Win" Script</h2>
+        <div class="copy-box">
+            <span class="copy-label">POST-WIN TWEET</span>
+            "✅ BOOM! Liverpool Over 2.5 lands in the first half! 🎯<br><br>
+            The AI saw the defensive gaps 3 days ago. While the public panicked, we printed.<br><br>
+            VIPs ate good today. Who tailed this free pick? 👇"
+        </div>
+
+
+        <!-- PART 4: 24-HOUR BATTLE PLAN -->
+        <h1 class="section-header">4. THE 24-HOUR BATTLE PLAN</h1>
+
+        <div class="strategy-card">
+            <h3>⏰ 09:00 - THE SETUP</h3>
+            <p>Post a screenshot of today's fixture list from your Admin Panel. Don't reveal picks yet. Just show the AI
+                is working.</p>
+            <p><em>Caption: "The AI is scanning 542 matches today. Filtering value... ⏳"</em></p>
+        </div>
+
+        <div class="strategy-card">
+            <h3>⏰ 12:00 - THE HOOK</h3>
+            <p>Share ONE free pick. Make it a detailed breakdown. Use the "Thread" format on Twitter.</p>
+        </div>
+
+        <div class="strategy-card">
+            <h3>⏰ 15:00 - THE CROSS-SELL</h3>
+            <p>Post on Telegram: "Just released a 10-odd accumulator for VIPs. 3 spots left at current price."</p>
+        </div>
+
+        <div class="strategy-card">
+            <h3>⏰ 19:45 - THE LIVE HYPE</h3>
+            <p>When a goal happens in your predicted game, Tweet INSTANTLY.</p>
+            <p><em>"GOAL! 1/3 legs hit. Sentio AI doesn't miss. 🎯"</em></p>
+        </div>
+
+        <div class="strategy-card">
+            <h3>⏰ 23:00 - THE RECAP</h3>
+            <p>Post the Green Ticks image. Even if you went 3 Wins 2 Losses, highlight the profit or the accuracy.</p>
+        </div>
 
         <div
-            style="text-align: center; margin-top: 100px; color: #9ca3af; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-            CONFIDENTIAL • SENTIO PICKS • 2026<br>
-            DO NOT DISTRIBUTE
+            style="text-align: center; margin-top: 100px; padding-top: 50px; border-top: 2px solid #e2e8f0; color: #94a3b8;">
+            SENTIO PICKS • CONFIDENTIAL • 2026 EDITION
         </div>
     </div>
 </body>
