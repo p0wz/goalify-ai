@@ -124,8 +124,17 @@ export const Footer = () => {
           </div>
         </div>
 
+        {/* Legal Disclaimer */}
+        <div className="border-t border-border mt-12 pt-8">
+          <p className="text-xs text-muted-foreground/60 text-center max-w-4xl mx-auto leading-relaxed">
+            {language === 'tr'
+              ? "Sentio Platformu, sadece 18 yaş ve üzeri kullanıcılara yönelik istatistiksel veri analiz hizmetleri sunar. Herhangi bir bahis faaliyeti yürütmez, yasadışı bahse aracılık etmez veya teşvikte bulunmaz. Sunulan içerikler, matematiksel modellemelere dayalı bilgilendirme amaçlıdır."
+              : "Sentio Platform is designed for users aged 18 and over. We do not facilitate betting activities or engage in such activities. Our platform provides analytical tools, information, and mathematical operations to help users make informed decisions."}
+          </p>
+        </div>
+
         {/* Bottom Bar */}
-        <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
             © 2024 <span className="font-display">SENTIO PICKS</span>. {t.footer.allRightsReserved}
           </p>
