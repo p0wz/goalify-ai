@@ -1565,6 +1565,7 @@ const AdminPanel = () => {
                             <div className="flex items-center gap-3">
                                 <Activity className="h-6 w-6 text-green-500" />
                                 <span className="font-semibold">Canlı Maçlar ({liveScores.length})</span>
+                                <Badge variant="secondary" className="text-xs">v2.2</Badge>
                             </div>
                             <div className="flex gap-2">
                                 <Button
@@ -1631,7 +1632,9 @@ const AdminPanel = () => {
                                                 </TableCell>
                                                 <TableCell className="font-medium">{match.homeTeam}</TableCell>
                                                 <TableCell className="text-center">
-                                                    <span className="text-lg font-bold">{match.homeScore} - {match.awayScore}</span>
+                                                    <span className="text-lg font-bold">
+                                                        {(match.homeScore !== undefined && match.homeScore !== null) ? match.homeScore : '-'} - {(match.awayScore !== undefined && match.awayScore !== null) ? match.awayScore : '-'}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="font-medium">{match.awayTeam}</TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{match.league}</TableCell>
