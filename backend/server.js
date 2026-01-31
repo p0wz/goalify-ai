@@ -1008,41 +1008,69 @@ async function start() {
             const { leagueFilter } = req.body;
             console.log(`[API] Fetching live matches (Filter: ${leagueFilter})`);
 
-            // Use the hybrid V2 fetch function
-            const liveData = await flashscore.fetchLiveMatches();
-            const tournaments = Array.isArray(liveData) ? liveData : [];
+            let matches = [];
 
-            const matches = [];
-            for (const tournament of tournaments) {
-                if (!tournament.matches) continue;
-                for (const m of tournament.matches) {
-                    // Filter logic (optional)
-                    if (leagueFilter) {
-                        // Simplify: allow all for now or check ALLOWED_LEAGUES
+            // 1. Try V2 (Hybrid Strategy) from Live Bot Key
+            try {
+                const liveData = await flashscore.fetchLiveMatches();
+                const tournaments = Array.isArray(liveData) ? liveData : [];
+
+                for (const tournament of tournaments) {
+                    if (!tournament.matches) continue;
+                    for (const m of tournament.matches) {
+                        // V2 Parsing
+                        const elapsed = m.match_status?.live_time || parseInt(m.stage) || 0;
+                        const homeScore = m.scores?.home !== undefined ? parseInt(m.scores.home) : (parseInt(m.home_team?.score) || 0);
+                        const awayScore = m.scores?.away !== undefined ? parseInt(m.scores.away) : (parseInt(m.away_team?.score) || 0);
+                        const isFinished = m.match_status?.is_finished === true;
+
+                        if (!isFinished) {
+                            matches.push({
+                                matchId: m.match_id || m.id,
+                                homeTeam: m.home_team?.name || 'Unknown',
+                                awayTeam: m.away_team?.name || 'Unknown',
+                                homeScore,
+                                awayScore,
+                                minute: elapsed,
+                                league: `${tournament.country_name}: ${tournament.name || m.league_name}`,
+                                status: m.match_status?.status_type || 'LIVE'
+                            });
+                        }
                     }
+                }
+            } catch (v2Error) {
+                console.error('[API] V2 Fetch failed, trying V1 fallback:', v2Error.message);
+            }
 
-                    // V2 Parsing Logic
-                    const elapsed = m.match_status?.live_time || parseInt(m.stage) || 0;
-                    const homeScore = parseInt(m.scores?.home) || parseInt(m.home_team?.score) || 0;
-                    const awayScore = parseInt(m.scores?.away) || parseInt(m.away_team?.score) || 0;
-                    const isFinished = m.match_status?.is_finished === true;
+            // 2. Fallback to V1 (Daily Key/Live Key) if V2 returned nothing or failed
+            if (matches.length === 0) {
+                console.log('[API] V2 returned 0 matches, switching to V1 Fallback...');
+                try {
+                    const liveDataV1 = await flashscore.fetchLiveMatchesV1(); // Explicit V1 call
+                    const list = Array.isArray(liveDataV1) ? liveDataV1 : [];
 
-                    if (!isFinished) {
-                        matches.push({
-                            matchId: m.match_id || m.id,
-                            homeTeam: m.home_team?.name || 'Unknown',
-                            awayTeam: m.away_team?.name || 'Unknown',
-                            homeScore,
-                            awayScore,
-                            minute: elapsed,
-                            league: `${tournament.country_name}: ${tournament.name || m.league_name}`,
-                            status: m.match_status?.status_type || 'LIVE'
-                        });
+                    for (const tournament of list) {
+                        for (const m of tournament.matches || []) {
+                            const elapsed = parseInt(m.stage) || 0; // V1: "45" or "1"
+                            // V1 Parsing: home_team.score is usually set
+                            matches.push({
+                                matchId: m.match_id || m.id,
+                                homeTeam: m.home_team?.name || 'Unknown',
+                                awayTeam: m.away_team?.name || 'Unknown',
+                                homeScore: parseInt(m.home_team?.score) || 0,
+                                awayScore: parseInt(m.away_team?.score) || 0,
+                                minute: elapsed,
+                                league: `${tournament.country_name || ''}: ${tournament.name || 'Unknown'}`,
+                                status: 'LIVE'
+                            });
+                        }
                     }
+                } catch (v1Error) {
+                    console.error('[API] V1 Fallback failed:', v1Error.message);
                 }
             }
 
-            console.log(`[API] Returning ${matches.length} live matches`);
+            console.log(`[API] Returning ${matches.length} live matches (Source: ${matches.length > 0 ? 'Hybrid/V2' : 'Empty'})`);
             res.json({ success: true, matches, count: matches.length });
         } catch (error) {
             console.error('[API] Live matches error:', error.message);
