@@ -304,41 +304,44 @@ function normalizeText(text) {
 }
 
 /**
- * Fetch live matches (for live bot) - Uses LIVE key
+ * Fetch live matches (v2) - Uses LIVE key
  */
-async function fetchLiveMatches() {
+async function fetchLiveMatchesV2() {
     try {
         await sleep(400);
+        // v2 endpoint: /api/flashscore/v2/matches/live
         const response = await fetchWithRetry(
-            `${FLASHSCORE_API_LIVE.baseURL}/api/flashscore/v1/match/live/1`,
+            `${FLASHSCORE_API_LIVE.baseURL}/api/flashscore/v2/matches/live?sport_id=1`,
             { headers: FLASHSCORE_API_LIVE.headers, timeout: 15000 }
         );
         return response.data || [];
     } catch (error) {
-        console.error('[Flashscore] fetchLiveMatches error:', error.message);
+        console.error('[Flashscore] fetchLiveMatchesV2 error:', error.message);
         return [];
     }
 }
 
 /**
- * Fetch match statistics (for live bot) - Uses LIVE key
+ * Fetch match statistics (v2) - Uses LIVE key
  */
-async function fetchMatchStats(matchId) {
+async function fetchMatchStatsV2(matchId) {
     try {
         await sleep(400);
+        // v2 endpoint: /api/flashscore/v2/matches/match/stats
         const response = await fetchWithRetry(
-            `${FLASHSCORE_API_LIVE.baseURL}/api/flashscore/v1/match/stats/${matchId}`,
+            `${FLASHSCORE_API_LIVE.baseURL}/api/flashscore/v2/matches/match/stats?match_id=${matchId}`,
             { headers: FLASHSCORE_API_LIVE.headers, timeout: 15000 }
         );
         return response.data || null;
     } catch (error) {
-        console.error('[Flashscore] fetchMatchStats error:', error.message);
+        console.error('[Flashscore] fetchMatchStatsV2 error:', error.message);
         return null;
     }
 }
 
 /**
  * Fetch match H2H (alias for live bot compatibility)
+ * Note: Still using v1 H2H for now unless specifically requested to migrate H2H too
  */
 async function fetchMatchH2H(matchId) {
     return fetchH2H(matchId);
@@ -353,7 +356,9 @@ module.exports = {
     formatOddsForPrompt,
     normalizeText,
     // Live bot functions
-    fetchLiveMatches,
-    fetchMatchStats,
+    fetchLiveMatches: fetchLiveMatchesV2, // Pointing "fetchLiveMatches" to V2 implementation
+    fetchMatchStats: fetchMatchStatsV2,   // Pointing "fetchMatchStats" to V2 implementation
+    fetchLiveMatchesV1: fetchLiveMatches, // Keeping original as backup alias
+    fetchMatchStatsV1: fetchMatchStats,   // Keeping original as backup alias
     fetchMatchH2H
 };

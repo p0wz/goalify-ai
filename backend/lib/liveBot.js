@@ -74,21 +74,25 @@ function recordSignalSent(matchId, strategyCode, score = null) {
 }
 
 /**
- * Parse elapsed time from stage string
+ * Parse elapsed time from v2 match_status or legacy stage
  */
-function parseElapsedTime(stage) {
-    if (!stage) return 0;
-    const stageStr = String(stage).toLowerCase();
+function parseElapsedTime(stageOrTime) {
+    if (!stageOrTime) return 0;
 
-    const minuteMatch = stageStr.match(/(\d+)/);
+    // v2 sends integer minutes directly sometimes, or string "45"
+    if (typeof stageOrTime === 'number') return stageOrTime;
+
+    const timeStr = String(stageOrTime).toLowerCase();
+
+    const minuteMatch = timeStr.match(/(\d+)/);
     if (minuteMatch) {
         const mins = parseInt(minuteMatch[1]);
         if (mins >= 1 && mins <= 120) return mins;
     }
 
-    if (stageStr.includes('halftime') || stageStr.includes('ht')) return 45;
-    if (stageStr.includes('2nd half')) return 60;
-    if (stageStr.includes('1st half')) return 25;
+    if (timeStr.includes('halftime') || timeStr.includes('ht') || timeStr.includes('half time')) return 45;
+    if (timeStr.includes('2nd half')) return 60;
+    if (timeStr.includes('1st half')) return 25;
 
     return 0;
 }
@@ -181,11 +185,13 @@ async function scanLiveMatches() {
         // Flatten matches
         const allMatches = [];
         for (const tournament of tournaments) {
-            for (const match of tournament.matches || []) {
+            if (!tournament.matches) continue;
+            for (const match of tournament.matches) {
                 allMatches.push({
                     ...match,
-                    league_name: tournament.name,
-                    country_name: tournament.country_name
+                    // v2 structure might differ slightly, ensuring fallback
+                    league_name: tournament.name || match.league_name,
+                    country_name: tournament.country_name || match.country_name
                 });
             }
         }
@@ -205,13 +211,16 @@ async function scanLiveMatches() {
                 if (!isAllowed) return false;
             }
 
-            const elapsed = parseElapsedTime(m.stage);
-            const homeScore = m.home_team?.score || 0;
-            const awayScore = m.away_team?.score || 0;
+            // v2: handling both legacy stage and v2 match_status.live_time
+            const elapsed = parseElapsedTime(m.match_status?.live_time || m.stage);
+
+            // v2: scores are often in scores object { home: X, away: Y }
+            // Fallback to legacy structure
+            const homeScore = parseInt(m.scores?.home) || parseInt(m.home_team?.score) || 0;
+            const awayScore = parseInt(m.scores?.away) || parseInt(m.away_team?.score) || 0;
             const scoreDiff = Math.abs(homeScore - awayScore);
 
-            const stageStr = (m.stage || '').toString().toUpperCase();
-            const isFinished = stageStr.includes('FT') || stageStr.includes('AET') || elapsed >= 90;
+            const isFinished = m.match_status?.is_finished === true || elapsed >= 90; // v2 explicit flag
             if (isFinished) return false;
 
             const isFirstHalf = elapsed >= 5 && elapsed <= 38 && scoreDiff <= 1;
@@ -227,11 +236,17 @@ async function scanLiveMatches() {
 
         // Analyze each candidate with form-based approach
         for (const match of candidates) {
-            const elapsed = parseElapsedTime(match.stage);
-            const matchId = match.match_id;
+            const elapsed = parseElapsedTime(match.match_status?.live_time || match.stage);
+            // v2 match_id
+            const matchId = match.match_id || match.id;
             const homeTeam = match.home_team?.name;
             const awayTeam = match.away_team?.name;
-            const score = `${match.home_team?.score || 0}-${match.away_team?.score || 0}`;
+
+            // Score parsing v2/v1
+            const hScore = parseInt(match.scores?.home) || parseInt(match.home_team?.score) || 0;
+            const aScore = parseInt(match.scores?.away) || parseInt(match.away_team?.score) || 0;
+            const score = `${hScore}-${aScore}`;
+
             const league = `${match.country_name}: ${match.league_name}`;
 
             console.log(`[LiveBot] ────────────────────────────────────`);
@@ -324,7 +339,10 @@ async function scanLiveMatches() {
             }
 
             if (freshMatch) {
-                const freshScore = `${freshMatch.home_team?.score || 0}-${freshMatch.away_team?.score || 0}`;
+                const freshH = parseInt(freshMatch.scores?.home) || parseInt(freshMatch.home_team?.score) || 0;
+                const freshA = parseInt(freshMatch.scores?.away) || parseInt(freshMatch.away_team?.score) || 0;
+                const freshScore = `${freshH}-${freshA}`;
+
                 if (freshScore !== score) {
                     console.log(`[LiveBot]    ⚠️ Score changed: ${score} → ${freshScore} - SKIPPING`);
                     continue;
