@@ -1002,6 +1002,54 @@ async function start() {
         }
     });
 
+    // Get current live matches (Admin - Live Scores Tab)
+    app.post('/api/live/current-matches', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
+        try {
+            const { leagueFilter } = req.body;
+            console.log(`[API] Fetching live matches (Filter: ${leagueFilter})`);
+
+            // Use the hybrid V2 fetch function
+            const liveData = await flashscore.fetchLiveMatches();
+            const tournaments = Array.isArray(liveData) ? liveData : [];
+
+            const matches = [];
+            for (const tournament of tournaments) {
+                if (!tournament.matches) continue;
+                for (const m of tournament.matches) {
+                    // Filter logic (optional)
+                    if (leagueFilter) {
+                        // Simplify: allow all for now or check ALLOWED_LEAGUES
+                    }
+
+                    // V2 Parsing Logic
+                    const elapsed = m.match_status?.live_time || parseInt(m.stage) || 0;
+                    const homeScore = parseInt(m.scores?.home) || parseInt(m.home_team?.score) || 0;
+                    const awayScore = parseInt(m.scores?.away) || parseInt(m.away_team?.score) || 0;
+                    const isFinished = m.match_status?.is_finished === true;
+
+                    if (!isFinished) {
+                        matches.push({
+                            matchId: m.match_id || m.id,
+                            homeTeam: m.home_team?.name || 'Unknown',
+                            awayTeam: m.away_team?.name || 'Unknown',
+                            homeScore,
+                            awayScore,
+                            minute: elapsed,
+                            league: `${tournament.country_name}: ${tournament.name || m.league_name}`,
+                            status: m.match_status?.status_type || 'LIVE'
+                        });
+                    }
+                }
+            }
+
+            console.log(`[API] Returning ${matches.length} live matches`);
+            res.json({ success: true, matches, count: matches.length });
+        } catch (error) {
+            console.error('[API] Live matches error:', error.message);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
     // Mobile live signals (Pending Only)
     app.get('/api/mobile/live-signals', auth.authenticateToken, async (req, res) => {
         try {
