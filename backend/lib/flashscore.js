@@ -347,6 +347,42 @@ async function fetchMatchH2H(matchId) {
     return fetchH2H(matchId);
 }
 
+/**
+ * Fetch live matches (v1) - Uses LIVE key
+ * Renamed to V1 to avoid conflict, but exported as alias if needed
+ */
+async function fetchLiveMatchesV1() {
+    try {
+        await sleep(400);
+        const response = await fetchWithRetry(
+            `${FLASHSCORE_API_LIVE.baseURL}/api/flashscore/v1/match/live/1`,
+            { headers: FLASHSCORE_API_LIVE.headers, timeout: 15000 }
+        );
+        return response.data || [];
+    } catch (error) {
+        console.error('[Flashscore] fetchLiveMatchesV1 error:', error.message);
+        return [];
+    }
+}
+
+/**
+ * Fetch match statistics (v1) - Uses LIVE key
+ * Renamed to V1 to avoid conflict
+ */
+async function fetchMatchStatsV1(matchId) {
+    try {
+        await sleep(400);
+        const response = await fetchWithRetry(
+            `${FLASHSCORE_API_LIVE.baseURL}/api/flashscore/v1/match/stats/${matchId}`,
+            { headers: FLASHSCORE_API_LIVE.headers, timeout: 15000 }
+        );
+        return response.data || null;
+    } catch (error) {
+        console.error('[Flashscore] fetchMatchStatsV1 error:', error.message);
+        return null;
+    }
+}
+
 module.exports = {
     fetchDayMatches,
     fetchH2H,
@@ -355,10 +391,11 @@ module.exports = {
     parseMatchResult,
     formatOddsForPrompt,
     normalizeText,
-    // Live bot functions
-    fetchLiveMatches: fetchLiveMatchesV2, // Pointing "fetchLiveMatches" to V2 implementation
-    fetchMatchStats: fetchMatchStatsV2,   // Pointing "fetchMatchStats" to V2 implementation
-    fetchLiveMatchesV1: fetchLiveMatches, // Keeping original as backup alias
-    fetchMatchStatsV1: fetchMatchStats,   // Keeping original as backup alias
+    // Main Live Bot functions (Hybrid Strategy: Point to V2)
+    fetchLiveMatches: fetchLiveMatchesV2,
+    fetchMatchStats: fetchMatchStatsV2,
+    // Backup V1 functions (explicitly defined now)
+    fetchLiveMatchesV1,
+    fetchMatchStatsV1,
     fetchMatchH2H
 };
