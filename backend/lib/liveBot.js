@@ -471,6 +471,242 @@ function getStatus() {
 /**
  * Debug Scan - Returns detailed match data for AI analysis (no signals generated)
  */
+// Helper to parse V2 time string
+function parseV2Time(timeStr) {
+    if (!timeStr) return 0;
+    if (timeStr === 'Half Time') return 45;
+    if (typeof timeStr === 'string' && timeStr.includes('+')) return parseInt(timeStr) || 90;
+    return parseInt(timeStr) || 0;
+}
+
+async function scanLiveMatches() {
+    if (!isRunning) return []; // Assuming CONFIG.isRunning maps to isRunning
+
+    let signals = [];
+    console.log(`[LiveBot] Scanning... (Filter: ${useLeagueFilter ? 'ON' : 'OFF'})`); // Assuming CONFIG.activeFilter maps to useLeagueFilter
+
+    try {
+        // Fetch from Flashscore V2
+        const liveData = await flashscore.fetchLiveMatches();
+        const tournaments = Array.isArray(liveData) ? liveData : [];
+
+        let candidates = [];
+
+        // 1. Flatten Matches
+        for (const t of tournaments) {
+            if (!t.matches) continue;
+            for (const m of t.matches) {
+                // Check if match is active
+                if (m.match_status?.is_finished) continue;
+
+                // V2 Parsing
+                const timeStr = m.match_status?.live_time || '';
+                const elapsed = parseV2Time(timeStr);
+
+                // Scores
+                const hScore = m.scores?.home !== undefined ? m.scores.home : 0;
+                const aScore = m.scores?.away !== undefined ? m.scores.away : 0;
+                const totalGoals = hScore + aScore;
+
+                m.home_score = hScore; // Normalize for internal use
+                m.away_score = aScore;
+                m.elapsed = elapsed;
+                m.league_name_full = `${t.country_name || ''}: ${t.name || m.league_name}`;
+
+                // Add to candidates if it meets BASIC time criteria (e.g. > 1 min)
+                if (elapsed > 0 || timeStr === 'Half Time') {
+                    candidates.push(m);
+                }
+            }
+        }
+
+        console.log(`[LiveBot] Found ${candidates.length} active matches`);
+
+        // Filter for active matches (not finished)
+        // Filter for active matches (not finished)
+        const filteredCandidates = candidates.filter(m => {
+            const isFinished = m.match_status?.is_finished === true || m.elapsed >= 90;
+            return !isFinished && m.elapsed >= 10;
+        });
+
+        console.log(`[LiveBot] Found ${filteredCandidates.length} matches for analysis`);
+
+        for (const match of filteredCandidates) {
+            const elapsed = match.elapsed;
+            // v2 match_id
+            const matchId = match.match_id || match.id;
+            const homeTeam = match.home_team?.name || 'Unknown';
+            const awayTeam = match.away_team?.name || 'Unknown';
+
+            // Score parsing v2/v1
+            const hScore = match.home_score;
+            const aScore = match.away_score;
+            const score = `${hScore}-${aScore}`;
+
+            const league = match.league_name_full;
+
+            // Apply league filter
+            if (useLeagueFilter && !ALLOWED_LEAGUES.includes(league)) {
+                console.log(`[LiveBot]    ❌ League not allowed: ${league}`);
+                continue;
+            }
+
+            // Fetch live stats
+            const statsData = await flashscore.fetchMatchStats(matchId);
+            const liveStats = parseMatchStats(statsData || {});
+
+            // Run form analysis
+            let formResult = { valid: false, reason: 'Not analyzed' };
+            try {
+                formResult = await formAnalysis.analyzeForm(matchId, homeTeam, awayTeam, score, elapsed, liveStats);
+            } catch (e) {
+                console.error(`[LiveBot]    Form analysis error for ${homeTeam} vs ${awayTeam}: ${e.message}`);
+                formResult = { valid: false, reason: e.message };
+            }
+
+            if (!formResult.valid) {
+                console.log(`[LiveBot]    ❌ Form analysis invalid: ${formResult.reason}`);
+                continue;
+            }
+            console.log(`[LiveBot]    ${formResult.reason}`);
+
+            // ============ STRICT FILTER MODE ============
+            // Filter 1: Minimum Potential Check
+            // Allow if EITHER team has high potential (>= 0.9) OR total is very high
+            const minIndividualPotential = 0.9;
+            if (formResult.homeRemaining < minIndividualPotential && formResult.awayRemaining < minIndividualPotential) {
+                console.log(`[LiveBot]    ❌ STRICT: Low potential (Both teams < ${minIndividualPotential})`);
+                continue;
+            }
+
+            // Filter 2: Tempo Check (reject ONLY 'low' tempo matches - worst case)
+            // 'slow' tempo is acceptable, only 'low' (< 8 shots AND < 3 SoT projected) is blocked
+            if (formResult.tempo === 'low') {
+                console.log(`[LiveBot]    ❌ STRICT: Very low tempo match (low)`);
+                continue;
+            }
+
+            // Note: Volatility (CV) only affects confidence score, not signal blocking
+
+            // Filter 4: Live Stats Minimum (at least some activity)
+            const totalShots = formResult.liveShots || 0;
+            if (totalShots < 4 && elapsed > 30) {
+                console.log(`[LiveBot]    ❌ STRICT: Match too passive (${totalShots} shots in ${elapsed}')`);
+                continue;
+            }
+
+            console.log(`[LiveBot]    ✓ STRICT FILTERS PASSED`);
+            // ============ END STRICT FILTER MODE ============
+
+            // Check if any markets available
+            if (!formResult.markets || formResult.markets.length === 0) {
+                console.log(`[LiveBot]    ❌ No suitable markets found`);
+                continue;
+            }
+
+            // Get best market
+            const bestMarket = formResult.markets[0];
+            console.log(`[LiveBot]    ✓ Best Market: ${bestMarket.name} (${bestMarket.confidence}%)`);
+
+            // Minimum confidence check (relaxed for more signals)
+            const minConfidence = 58;
+            if (bestMarket.confidence < minConfidence) {
+                console.log(`[LiveBot]    ❌ Confidence too low (${bestMarket.confidence}% < ${minConfidence}%)`);
+                continue;
+            }
+
+            // Determine strategy code based on timing
+            const strategyCode = elapsed <= 45 ? 'FIRST_HALF' : 'LATE_GAME';
+
+            // Check signal limit (pass current score to allow extra signal on score change)
+            if (!checkSignalLimit(matchId, strategyCode, score)) {
+                console.log(`[LiveBot]    ❌ Signal limit reached for ${strategyCode}`);
+                continue;
+            }
+
+            // ============ SCORE SAFETY CHECK ============
+            console.log(`[LiveBot]    🔒 Score safety check...`);
+            const freshLiveData = await flashscore.fetchLiveMatches();
+            const freshTournaments = Array.isArray(freshLiveData) ? freshLiveData : [];
+            let freshMatch = null;
+
+            for (const t of freshTournaments) {
+                freshMatch = (t.matches || []).find(m => m.match_id === matchId);
+                if (freshMatch) break;
+            }
+
+            if (freshMatch) {
+                const freshH = parseInt(freshMatch.scores?.home) || parseInt(freshMatch.home_team?.score) || 0;
+                const freshA = parseInt(freshMatch.scores?.away) || parseInt(freshMatch.away_team?.score) || 0;
+                const freshScore = `${freshH}-${freshA}`;
+
+                if (freshScore !== score) {
+                    console.log(`[LiveBot]    ⚠️ Score changed: ${score} → ${freshScore} - SKIPPING`);
+                    continue;
+                }
+                console.log(`[LiveBot]    ✓ Score unchanged: ${freshScore}`);
+            }
+            // ============ END SCORE SAFETY CHECK ============
+
+            // Build signal object
+            const candidate = {
+                matchId,
+                home: homeTeam,
+                away: awayTeam,
+                league,
+                strategy: bestMarket.name,
+                strategyCode,
+                market: bestMarket.name,
+                entryScore: score,
+                entryMinute: elapsed,
+                confidencePercent: bestMarket.confidence,
+                reason: formResult.reason,
+                stats: {
+                    homeRemaining: formResult.homeRemaining,
+                    awayRemaining: formResult.awayRemaining,
+                    homeExpected: formResult.homeExpected?.toFixed(2),
+                    awayExpected: formResult.awayExpected?.toFixed(2)
+                },
+                // Pre-match odds info
+                favorite: formResult.favorite,
+                homeOdds: formResult.homeOdds,
+                awayOdds: formResult.awayOdds,
+                isFormBased: true
+            };
+
+            console.log(`[LiveBot]    🎯 SIGNAL GENERATED: ${candidate.strategy} (${candidate.confidencePercent}%)`);
+            console.log(`[LiveBot] ────────────────────────────────────`);
+
+            // Save to database
+            await database.addLiveSignal(candidate);
+
+            // Send to Telegram
+            await telegram.sendLiveSignal(candidate);
+
+            // Record for limit tracking (with score for change detection)
+            recordSignalSent(matchId, candidate.strategyCode, score);
+
+            signals.push(candidate);
+
+            // Rate limit delay
+            await new Promise(r => setTimeout(r, 2000));
+        }
+
+        lastScanTime = new Date().toISOString();
+        console.log(`[LiveBot] ════════════════════════════════════════`);
+        console.log(`[LiveBot] Scan complete: ${signals.length} signals generated`);
+        console.log('[LiveBot] ════════════════════════════════════════');
+
+    } catch (error) {
+        console.error('[LiveBot] Scan error:', error.message);
+    }
+
+    return signals;
+}
+
+/**
+ * Debug Scan - Returns detailed match data for AI analysis (no signals generated)
+ */
 async function debugScanMatches() {
     console.log('[LiveBot] Starting DEBUG scan for AI analysis...');
     const matchesData = [];
@@ -479,41 +715,42 @@ async function debugScanMatches() {
         const liveData = await flashscore.fetchLiveMatches();
         const tournaments = Array.isArray(liveData) ? liveData : [];
 
-        const allMatches = [];
-        for (const tournament of tournaments) {
-            if (!tournament.matches) continue;
-            for (const match of tournament.matches) {
-                allMatches.push({
-                    ...match,
-                    league_name: tournament.name || match.league_name,
-                    country_name: tournament.country_name || match.country_name
-                });
+        let candidates = [];
+        for (const t of tournaments) {
+            if (!t.matches) continue;
+            for (const m of t.matches) {
+                if (m.match_status?.is_finished) continue;
+
+                // V2 Parsing
+                const timeStr = m.match_status?.live_time || '';
+                const elapsed = parseV2Time(timeStr);
+
+                const hScore = m.scores?.home !== undefined ? m.scores.home : 0;
+                const aScore = m.scores?.away !== undefined ? m.scores.away : 0;
+
+                m.home_score = hScore;
+                m.away_score = aScore;
+                m.elapsed = elapsed;
+                m.league_name_full = `${t.country_name || ''}: ${t.name || m.league_name}`;
+
+                // Debug Filter: Allow almost any match with time > 0 to see analysis
+                if (elapsed > 0 || timeStr === 'Half Time') {
+                    candidates.push(m);
+                }
             }
         }
-
-        // Filter for active matches (not finished)
-        // Filter for active matches (not finished)
-        const candidates = allMatches.filter(m => {
-            const elapsed = parseElapsedTime(m.match_status?.live_time || m.stage);
-            const isFinished = m.match_status?.is_finished === true || elapsed >= 90;
-            return !isFinished && elapsed >= 10;
-        });
 
         console.log(`[LiveBot] DEBUG: Found ${candidates.length} active matches`);
 
         for (const match of candidates.slice(0, 30)) { // Limit to 30 for API quota
-            const elapsed = parseElapsedTime(match.match_status?.live_time || match.stage);
-            // v2 match_id
+            const elapsed = match.elapsed;
             const matchId = match.match_id || match.id;
             const homeTeam = match.home_team?.name || 'Unknown';
             const awayTeam = match.away_team?.name || 'Unknown';
-
-            // Score parsing v2/v1
-            const hScore = parseInt(match.scores?.home) || parseInt(match.home_team?.score) || 0;
-            const aScore = parseInt(match.scores?.away) || parseInt(match.away_team?.score) || 0;
+            const hScore = match.home_score;
+            const aScore = match.away_score;
             const score = `${hScore}-${aScore}`;
-
-            const league = `${match.country_name}: ${match.league_name}`;
+            const league = match.league_name_full;
 
             // Fetch live stats
             const statsData = await flashscore.fetchMatchStats(matchId);
@@ -530,7 +767,7 @@ async function debugScanMatches() {
             // Apply strict filters (simulate)
             const strictFilters = {
                 minPotential: { passed: formResult.totalRemaining >= 1.2, value: formResult.totalRemaining },
-                tempo: { passed: formResult.tempo !== 'low' && formResult.tempo !== 'slow', value: formResult.tempo },
+                tempo: { passed: formResult.tempo !== 'low', value: formResult.tempo }, // Logic sync with scan matches
                 activity: { passed: (formResult.liveShots || 0) >= 4 || elapsed <= 30, value: formResult.liveShots || 0 }
             };
             const allFiltersPassed = Object.values(strictFilters).every(f => f.passed);

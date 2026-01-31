@@ -1018,10 +1018,20 @@ async function start() {
                 for (const tournament of tournaments) {
                     if (!tournament.matches) continue;
                     for (const m of tournament.matches) {
-                        // V2 Parsing
-                        const elapsed = m.match_status?.live_time || parseInt(m.stage) || 0;
-                        const homeScore = m.scores?.home !== undefined ? parseInt(m.scores.home) : (parseInt(m.home_team?.score) || 0);
-                        const awayScore = m.scores?.away !== undefined ? parseInt(m.scores.away) : (parseInt(m.away_team?.score) || 0);
+                        // V2 Exact Parsing based on User JSON
+                        // live_time: "22", "Half Time", "90+"
+                        let elapsed = m.match_status?.live_time || '';
+                        let displayMinute = elapsed; // For UI
+
+                        // Parse simple integer for sorting/logic if needed, but UI can take string
+                        if (elapsed === 'Half Time') displayMinute = 'HT';
+
+                        // Score is DIRECT number in V2
+                        // Check explicit undefined because 0 is falsy
+                        const homeScore = m.scores?.home !== undefined ? m.scores.home : 0;
+                        const awayScore = m.scores?.away !== undefined ? m.scores.away : 0;
+
+                        // Status check
                         const isFinished = m.match_status?.is_finished === true;
 
                         if (!isFinished) {
@@ -1031,9 +1041,9 @@ async function start() {
                                 awayTeam: m.away_team?.name || 'Unknown',
                                 homeScore,
                                 awayScore,
-                                minute: elapsed,
-                                league: `${tournament.country_name}: ${tournament.name || m.league_name}`,
-                                status: m.match_status?.status_type || 'LIVE'
+                                minute: displayMinute,
+                                league: `${tournament.country_name || ''}: ${tournament.name || m.league_name || ''}`,
+                                status: m.match_status?.status_type || 'LIVE' // e.g. "live"
                             });
                         }
                     }
