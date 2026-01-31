@@ -507,83 +507,7 @@ app.get('/api/analysis/results', auth.authenticateToken, async (req, res) => {
 
 // ============ LIVE MATCHES ENDPOINT ============
 
-app.post('/api/live/current-matches', auth.authenticateToken, async (req, res) => {
-    console.log('[LiveMatches] Fetching current live matches...');
-    try {
-        const { leagueFilter = false } = req.body;
-
-        // Fetch live matches from Flashscore API
-        const liveData = await flashscore.fetchLiveMatches();
-
-        console.log(`[LiveMatches] Raw API response type: ${typeof liveData}`);
-        console.log(`[LiveMatches] Raw API response is array: ${Array.isArray(liveData)}`);
-        console.log(`[LiveMatches] Raw API response length: ${liveData?.length || 0}`);
-
-        if (!liveData || liveData.length === 0) {
-            console.log('[LiveMatches] No data from API');
-            return res.json({ success: true, matches: [], count: 0 });
-        }
-
-        // Log first item structure for debugging
-        if (liveData[0]) {
-            console.log('[LiveMatches] First item keys:', Object.keys(liveData[0]));
-        }
-
-        // Process matches - Same structure as liveBot.js
-        const tournaments = Array.isArray(liveData) ? liveData : [];
-        let matches = [];
-
-        for (const tournament of tournaments) {
-            const leagueName = tournament.name || 'Unknown League';
-            const countryName = tournament.country_name || '';
-            const fullLeague = countryName ? `${countryName}: ${leagueName}` : leagueName;
-
-            // League filter check
-            if (leagueFilter && ALLOWED_LEAGUES.length > 0) {
-                const isAllowed = ALLOWED_LEAGUES.some(l =>
-                    fullLeague.toUpperCase().includes(l.toUpperCase())
-                );
-                if (!isAllowed) continue;
-            }
-
-            const tournamentMatches = tournament.matches || [];
-            console.log(`[LiveMatches] Tournament: ${fullLeague}, Matches: ${tournamentMatches.length}`);
-
-            for (const match of tournamentMatches) {
-                const homeTeam = match.home_team?.name || 'Unknown';
-                const awayTeam = match.away_team?.name || 'Unknown';
-                const homeScore = match.home_team?.score ?? '-';
-                const awayScore = match.away_team?.score ?? '-';
-                const minute = match.stage || 'Live';
-                const matchId = match.id;
-
-                // Half-time scores if available
-                const htHome = match.home_team?.score_1st_half ?? null;
-                const htAway = match.away_team?.score_1st_half ?? null;
-
-                matches.push({
-                    matchId,
-                    homeTeam,
-                    awayTeam,
-                    league: fullLeague,
-                    homeScore,
-                    awayScore,
-                    minute,
-                    htHome,
-                    htAway,
-                    status: match.stage || 'LIVE'
-                });
-            }
-        }
-
-        console.log(`[LiveMatches] Total matches found: ${matches.length} (filter: ${leagueFilter})`);
-        res.json({ success: true, matches, count: matches.length });
-
-    } catch (error) {
-        console.error('[LiveMatches] Error:', error.message);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
+// [DELETED] Duplicate legacy route was here. Using updated V2 route definition below (approx line 1000+).
 
 // ============ APPROVAL ROUTES ============
 
@@ -1081,7 +1005,12 @@ async function start() {
             }
 
             console.log(`[API] Returning ${matches.length} live matches (Source: ${matches.length > 0 ? 'Hybrid/V2' : 'Empty'})`);
-            res.json({ success: true, matches, count: matches.length });
+            res.json({
+                success: true,
+                matches,
+                count: matches.length,
+                backendVersion: 'v2.3' // Version Check
+            });
         } catch (error) {
             console.error('[API] Live matches error:', error.message);
             res.status(500).json({ success: false, error: error.message });

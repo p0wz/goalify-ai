@@ -1647,6 +1647,14 @@ const AdminPanel = () => {
                                 </Table>
                             </Card>
                         )}
+
+                        {/* DEBUG: Raw Data Dump */}
+                        {liveScores.length > 0 && (
+                            <div className="mt-4 p-4 bg-black/50 rounded border border-red-500/30 font-mono text-xs overflow-x-auto text-red-300">
+                                <p className="mb-2 font-bold text-red-400">🔥 DEBUG DATA (ilk maç):</p>
+                                <pre>{JSON.stringify(liveScores[0], null, 2)}</pre>
+                            </div>
+                        )}
                     </TabsContent>
 
                     {/* ============ PREMIER LEAGUE TAB ============ */}
