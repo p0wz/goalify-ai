@@ -481,31 +481,38 @@ async function debugScanMatches() {
 
         const allMatches = [];
         for (const tournament of tournaments) {
-            for (const match of tournament.matches || []) {
+            if (!tournament.matches) continue;
+            for (const match of tournament.matches) {
                 allMatches.push({
                     ...match,
-                    league_name: tournament.name,
-                    country_name: tournament.country_name
+                    league_name: tournament.name || match.league_name,
+                    country_name: tournament.country_name || match.country_name
                 });
             }
         }
 
         // Filter for active matches (not finished)
+        // Filter for active matches (not finished)
         const candidates = allMatches.filter(m => {
-            const elapsed = parseElapsedTime(m.stage);
-            const stageStr = (m.stage || '').toString().toUpperCase();
-            const isFinished = stageStr.includes('FT') || stageStr.includes('AET') || elapsed >= 90;
+            const elapsed = parseElapsedTime(m.match_status?.live_time || m.stage);
+            const isFinished = m.match_status?.is_finished === true || elapsed >= 90;
             return !isFinished && elapsed >= 10;
         });
 
         console.log(`[LiveBot] DEBUG: Found ${candidates.length} active matches`);
 
         for (const match of candidates.slice(0, 30)) { // Limit to 30 for API quota
-            const elapsed = parseElapsedTime(match.stage);
-            const matchId = match.match_id;
+            const elapsed = parseElapsedTime(match.match_status?.live_time || match.stage);
+            // v2 match_id
+            const matchId = match.match_id || match.id;
             const homeTeam = match.home_team?.name || 'Unknown';
             const awayTeam = match.away_team?.name || 'Unknown';
-            const score = `${match.home_team?.score || 0}-${match.away_team?.score || 0}`;
+
+            // Score parsing v2/v1
+            const hScore = parseInt(match.scores?.home) || parseInt(match.home_team?.score) || 0;
+            const aScore = parseInt(match.scores?.away) || parseInt(match.away_team?.score) || 0;
+            const score = `${hScore}-${aScore}`;
+
             const league = `${match.country_name}: ${match.league_name}`;
 
             // Fetch live stats
