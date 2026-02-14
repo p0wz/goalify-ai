@@ -599,7 +599,8 @@ app.get('/api/etsy/daily', async (req, res) => {
                 awayTeam: m.awayTeam,
                 league: m.league,
                 kickoff: m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '--:--',
-                stats: m.stats || {}
+                stats: m.stats || {},
+                detailedStats: m.detailedStats || ''
             }))
         });
     } catch (error) {
@@ -757,6 +758,31 @@ app.post('/api/export/excel', auth.authenticateToken, auth.requireAuth('admin'),
             guide.getCell(`A${i + 3}`).font = { size: 11 };
         });
         guide.getColumn(1).width = 60;
+
+        // === AI PROMPT SHEET ===
+        const promptSheet = wb.addWorksheet('AI Prompt');
+        promptSheet.mergeCells('A1:C1');
+        promptSheet.getCell('A1').value = 'SENTIO PICKS — AI Analysis Prompt';
+        promptSheet.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF10B981' } };
+        promptSheet.getCell('A2').value = 'Bu metni ChatGPT, Claude veya herhangi bir AI\'a yapıştırarak detaylı analiz alabilirsiniz.';
+        promptSheet.getCell('A2').font = { size: 10, italic: true, color: { argb: 'FF9CA3AF' } };
+
+        let promptRow = 4;
+        for (const m of matches) {
+            if (m.detailedStats) {
+                const lines = m.detailedStats.split('\n');
+                for (const line of lines) {
+                    promptSheet.getCell(`A${promptRow}`).value = line;
+                    promptSheet.getCell(`A${promptRow}`).font = { size: 10, name: 'Consolas' };
+                    promptRow++;
+                }
+                // Separator
+                promptSheet.getCell(`A${promptRow}`).value = '---';
+                promptSheet.getCell(`A${promptRow}`).font = { size: 10, color: { argb: 'FF6B7280' } };
+                promptRow += 2;
+            }
+        }
+        promptSheet.getColumn(1).width = 100;
 
         // Generate buffer
         const buffer = await wb.xlsx.writeBuffer();

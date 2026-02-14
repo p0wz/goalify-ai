@@ -2342,7 +2342,7 @@ function fetchTodaysData() {
   sheet.autoResizeColumns(1, headers.length);
   sheet.setFrozenRows(2);
 
-  ui.alert("✅ " + matches.length + " maç yüklendi! (" + data.date + ")");
+  ui.alert("✅ " + matches.length + " maç yüklendi! (AI Prompt sayfası dahil) (" + data.date + ")");\n\n  // === AI PROMPT SHEET ===\n  let promptSheet = ss.getSheetByName("AI Prompt");\n  if (!promptSheet) promptSheet = ss.insertSheet("AI Prompt");\n  promptSheet.clear();\n  promptSheet.getRange("A1").setValue("SENTIO PICKS — AI Analysis Prompt");\n  promptSheet.getRange("A1:C1").merge().setFontSize(14).setFontWeight("bold").setFontColor("#10b981");\n  promptSheet.getRange("A2").setValue("Bu metni ChatGPT, Claude veya herhangi bir AI\\'a yapıştırarak detaylı analiz alabilirsiniz.").setFontSize(10).setFontStyle("italic").setFontColor("#9ca3af");\n  let pRow = 4;\n  for (let i = 0; i < matches.length; i++) {\n    const prompt = matches[i].detailedStats;\n    if (prompt) {\n      const lines = prompt.split("\\n");\n      for (let l = 0; l < lines.length; l++) {\n        promptSheet.getRange(pRow, 1).setValue(lines[l]).setFontFamily("Consolas").setFontSize(10);\n        pRow++;\n      }\n      promptSheet.getRange(pRow, 1).setValue("---").setFontColor("#6b7280");\n      pRow += 2;\n    }\n  }\n  promptSheet.setColumnWidth(1, 800);
 }
 
 // Menü ekleme
