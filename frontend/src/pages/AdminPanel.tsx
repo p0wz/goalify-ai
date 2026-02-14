@@ -214,6 +214,7 @@ const AdminPanel = () => {
     const [newKeyLabel, setNewKeyLabel] = useState('');
     const [excelDownloading, setExcelDownloading] = useState(false);
     const [vbaCopied, setVbaCopied] = useState(false);
+    const [gSheetsCopied, setGSheetsCopied] = useState(false);
 
 
     // Load data on mount
@@ -2250,7 +2251,114 @@ const AdminPanel = () => {
                                 }}
                             >
                                 {vbaCopied ? <Check className="h-4 w-4 mr-2" /> : <Code className="h-4 w-4 mr-2" />}
-                                {vbaCopied ? 'Kopyalandı!' : 'VBA Kodu Kopyala'}
+                                {vbaCopied ? 'Kopyalandı!' : 'VBA Kodu Kopyala (Excel)'}
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    const gsCode = `// === SENTIO PICKS — Google Sheets Daily Fetch ===
+// Uzantılar > Apps Script > Bu kodu yapıştırın
+// Ardından "Güncel Verileri Çek" fonksiyonunu çalıştırın
+
+const API_URL = "https://goalify-ai.onrender.com/api/etsy/daily";
+
+function fetchTodaysData() {
+  const ui = SpreadsheetApp.getUi();
+  const keyResult = ui.prompt("SENTIO API Key", "API key giriniz:", ui.ButtonSet.OK_CANCEL);
+  if (keyResult.getSelectedButton() !== ui.Button.OK) return;
+  const apiKey = keyResult.getResponseText().trim();
+  if (!apiKey) { ui.alert("Key boş olamaz!"); return; }
+
+  const response = UrlFetchApp.fetch(API_URL + "?key=" + apiKey, { muteHttpExceptions: true });
+  if (response.getResponseCode() !== 200) {
+    ui.alert("Hata: " + response.getResponseCode() + " - " + response.getContentText());
+    return;
+  }
+
+  const data = JSON.parse(response.getContentText());
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName("Overview");
+  if (!sheet) sheet = ss.insertSheet("Overview");
+
+  // Clear old data
+  sheet.clear();
+
+  // Branding
+  sheet.getRange("A1").setValue("SENTIO PICKS — Daily AI Football Analysis • " + data.date);
+  sheet.getRange("A1:Q1").merge().setBackground("#10b981").setFontColor("#fff").setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
+
+  // Headers
+  const headers = ["Maç","Lig","Saat","Lig Ort.","Ev G%","Dep G%","Ev Ü2.5%","Dep Ü2.5%","KG Var%","Ev Ort.Gol","Dep Ort.Gol","Ev Yen.Gol","Dep Yen.Gol","Ev CS%","Dep CS%","Ev İY G%","Dep İY G%"];
+  const headerRange = sheet.getRange(2, 1, 1, headers.length);
+  headerRange.setValues([headers]).setBackground("#1f2937").setFontColor("#fff").setFontWeight("bold").setHorizontalAlignment("center");
+
+  // Data
+  const matches = data.matches || [];
+  for (let i = 0; i < matches.length; i++) {
+    const m = matches[i];
+    const s = m.stats || {};
+    const hf = s.homeForm || {};
+    const af = s.awayForm || {};
+    const hh = s.homeHomeStats || {};
+    const aa = s.awayAwayStats || {};
+    const leagueAvg = hf.avgTotalGoals && af.avgTotalGoals ? ((hf.avgTotalGoals + af.avgTotalGoals) / 2).toFixed(2) : "-";
+    const btts = hf.bttsRate && af.bttsRate ? ((hf.bttsRate + af.bttsRate) / 2).toFixed(0) : "-";
+
+    const row = [
+      m.homeTeam + " vs " + m.awayTeam,
+      m.league,
+      m.kickoff,
+      leagueAvg,
+      hf.winRate ? hf.winRate.toFixed(0) : "-",
+      af.winRate ? af.winRate.toFixed(0) : "-",
+      hf.over25Rate ? hf.over25Rate.toFixed(0) : "-",
+      af.over25Rate ? af.over25Rate.toFixed(0) : "-",
+      btts,
+      hh.avgScored ? hh.avgScored.toFixed(2) : "-",
+      aa.avgScored ? aa.avgScored.toFixed(2) : "-",
+      hh.avgConceded ? hh.avgConceded.toFixed(2) : "-",
+      aa.avgConceded ? aa.avgConceded.toFixed(2) : "-",
+      hf.cleanSheetRate ? hf.cleanSheetRate.toFixed(0) : "-",
+      af.cleanSheetRate ? af.cleanSheetRate.toFixed(0) : "-",
+      hf.firstHalfWinRate ? hf.firstHalfWinRate.toFixed(0) : "-",
+      af.firstHalfWinRate ? af.firstHalfWinRate.toFixed(0) : "-"
+    ];
+    sheet.getRange(i + 3, 1, 1, row.length).setValues([row]).setHorizontalAlignment("center");
+
+    // Conditional colors for percentage cols (5-17)
+    for (let c = 4; c < row.length; c++) {
+      const val = parseFloat(row[c]);
+      if (!isNaN(val)) {
+        const cell = sheet.getRange(i + 3, c + 1);
+        if (val >= 70) cell.setFontColor("#10b981").setFontWeight("bold");
+        else if (val >= 40) cell.setFontColor("#f59e0b");
+        else cell.setFontColor("#ef4444");
+      }
+    }
+  }
+
+  // Auto resize
+  sheet.autoResizeColumns(1, headers.length);
+  sheet.setFrozenRows(2);
+
+  ui.alert("✅ " + matches.length + " maç yüklendi! (" + data.date + ")");
+}
+
+// Menü ekleme
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu("🔄 SENTIO")
+    .addItem("Güncel Verileri Çek", "fetchTodaysData")
+    .addToUi();
+}`;
+                                    navigator.clipboard.writeText(gsCode);
+                                    setGSheetsCopied(true);
+                                    setTimeout(() => setGSheetsCopied(false), 3000);
+                                    toast.success('Google Sheets script kopyalandı!');
+                                }}
+                            >
+                                {gSheetsCopied ? <Check className="h-4 w-4 mr-2" /> : <Code className="h-4 w-4 mr-2" />}
+                                {gSheetsCopied ? 'Kopyalandı!' : 'Google Sheets Script Kopyala'}
                             </Button>
                         </div>
 
@@ -2383,8 +2491,9 @@ const AdminPanel = () => {
                                 <p><strong>1.</strong> "Tüm Maçlar" sekmesinden maçları <strong>Yayınla</strong> ile onayla</p>
                                 <p><strong>2.</strong> "Excel İndir" ile güncel verilerin Excel'ini al</p>
                                 <p><strong>3.</strong> "Key Oluştur" ile her müşteriye benzersiz API key ver</p>
-                                <p><strong>4.</strong> "VBA Kodu Kopyala" → Excel'de Developer → Visual Basic → Insert Module → Yapıştır → .xlsm olarak kaydet</p>
-                                <p><strong>5.</strong> Müşteri Excel'i açar → Makroları etkinleştir → <code>FetchTodaysData</code> makrosunu çalıştır → Key girer → Veriler yüklenir</p>
+                                <p><strong>4a.</strong> <strong>Excel:</strong> "VBA Kodu Kopyala" → Developer → Visual Basic → Insert Module → Yapıştır → .xlsm kaydet</p>
+                                <p><strong>4b.</strong> <strong>Google Sheets:</strong> "Google Sheets Script Kopyala" → Uzantılar → Apps Script → Yapıştır → Kaydet</p>
+                                <p><strong>5.</strong> Müşteri dosyayı açar → Makroyu/Scripti çalıştırır → Key girer → Veriler yüklenir</p>
                             </CardContent>
                         </Card>
                     </TabsContent>
