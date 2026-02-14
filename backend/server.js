@@ -511,7 +511,7 @@ app.get('/api/analysis/results', auth.authenticateToken, async (req, res) => {
 app.post('/api/matches/publish', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
     console.log('[Publish] Publishing match to Analiz tab...');
     try {
-        const { matchId, homeTeam, awayTeam, league, timestamp, stats } = req.body;
+        const { matchId, homeTeam, awayTeam, league, timestamp, stats, detailedStats } = req.body;
 
         if (!matchId || !homeTeam || !awayTeam) {
             return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -523,7 +523,8 @@ app.post('/api/matches/publish', auth.authenticateToken, auth.requireAuth('admin
             awayTeam,
             league: league || 'Unknown',
             timestamp: timestamp || Math.floor(Date.now() / 1000),
-            stats: stats || {}
+            stats: stats || {},
+            detailedStats: detailedStats || ''
         });
 
         if (result.duplicate) {
