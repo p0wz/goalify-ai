@@ -1503,6 +1503,27 @@ const AdminPanel = () => {
                                 <Button variant="outline" onClick={publishAllMatches} disabled={allMatches.length === 0}>
                                     <UploadCloud className="mr-2 h-4 w-4" /> Tümünü Yayınla
                                 </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetch(`${API_BASE}/matches/published`, {
+                                                method: 'DELETE',
+                                                headers: { ...getAuthHeaders() as Record<string, string> }
+                                            });
+                                            handleAuthError(res);
+                                            const data = await safeJson(res);
+                                            if (data.success) {
+                                                setPublishedMatchIds(new Set());
+                                                toast.success('Tüm yayınlar sıfırlandı!');
+                                            }
+                                        } catch (err: any) {
+                                            toast.error(err.message);
+                                        }
+                                    }}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" /> Yayınları Sıfırla
+                                </Button>
                                 <Button onClick={copyAllRawDetailedPrompts} disabled={allMatches.length === 0}>
                                     <Copy className="mr-2 h-4 w-4" /> Detaylı İstatistikleri Kopyala
                                 </Button>
