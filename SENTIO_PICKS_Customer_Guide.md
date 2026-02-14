@@ -81,4 +81,14 @@ Copy all text from this sheet → paste into ChatGPT, Claude, or Gemini → ask 
 
 Contact us through Etsy messages — we respond within 24 hours.
 
+---
+
+## 🐦 Follow Us on X (Twitter)
+
+Want daily match predictions & tips? Follow us for free:
+
+**[@sentiopicksmain](https://x.com/sentiopicksmain)**
+
+---
+
 *© SENTIO PICKS — Daily AI Football Analysis*
