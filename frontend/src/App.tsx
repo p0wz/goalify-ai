@@ -10,8 +10,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
 import Login from "./pages/Login";
-import Live from "./pages/Live";
-import Predictions from "./pages/Predictions";
+import Analysis from "./pages/Analysis";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
@@ -47,16 +46,17 @@ const App = () => (
                             <Route path="/cookies" element={<Cookies />} />
 
                             {/* App Pages */}
-                            <Route path="/predictions" element={<Predictions />} />
-                            <Route path="/live" element={<Live />} />
+                            <Route path="/analysis" element={<Analysis />} />
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/notifications" element={<Notifications />} />
                             <Route path="/premium" element={<Premium />} />
 
                             {/* Redirects */}
-                            <Route path="/dashboard" element={<Navigate to="/predictions" replace />} />
-                            <Route path="/leagues" element={<Navigate to="/predictions" replace />} />
+                            <Route path="/predictions" element={<Navigate to="/analysis" replace />} />
+                            <Route path="/live" element={<Navigate to="/analysis" replace />} />
+                            <Route path="/dashboard" element={<Navigate to="/analysis" replace />} />
+                            <Route path="/leagues" element={<Navigate to="/analysis" replace />} />
 
                             {/* Protected Routes */}
                             <Route element={<RequireAuth />}>

@@ -201,6 +201,9 @@ const AdminPanel = () => {
     const [debugData, setDebugData] = useState<any>(null);
     const [debugLoading, setDebugLoading] = useState(false);
 
+    // Published Matches State (for Analiz tab)
+    const [publishedMatchIds, setPublishedMatchIds] = useState<Set<string>>(new Set());
+
 
     // Load data on mount
     useEffect(() => {
@@ -225,6 +228,48 @@ const AdminPanel = () => {
     // Etsy Publish State
     const [isPublishing, setIsPublishing] = useState(false);
     const [lastPublished, setLastPublished] = useState<string | null>(null);
+
+    // ============ PUBLISH TO ANALIZ TAB ============
+
+    const publishMatchToAnaliz = async (match: RawMatch) => {
+        try {
+            const res = await fetch(`${API_BASE}/matches/publish`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({
+                    matchId: match.matchId,
+                    homeTeam: match.homeTeam,
+                    awayTeam: match.awayTeam,
+                    league: match.league,
+                    timestamp: match.timestamp,
+                    stats: match.stats
+                })
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                setPublishedMatchIds(prev => new Set([...prev, match.matchId]));
+                if (data.duplicate) {
+                    toast.info('Bu maç zaten yayınlanmış');
+                } else {
+                    toast.success(`Yayınlandı: ${match.homeTeam} vs ${match.awayTeam}`);
+                }
+            } else {
+                toast.error(data.error || 'Yayınlama hatası');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
+
+    const publishAllMatches = async () => {
+        for (const match of allMatches) {
+            if (!publishedMatchIds.has(match.matchId)) {
+                await publishMatchToAnaliz(match);
+            }
+        }
+        toast.success('Tüm maçlar yayınlandı!');
+    };
 
     // ============ ANALYSIS FUNCTIONS ============
 
@@ -1421,9 +1466,14 @@ const AdminPanel = () => {
                     <TabsContent value="matches" className="space-y-4">
                         <div className="flex justify-between items-center bg-card p-4 rounded-lg border">
                             <span>Günlük Fikstür ({allMatches.length})</span>
-                            <Button onClick={copyAllRawDetailedPrompts} disabled={allMatches.length === 0}>
-                                <Copy className="mr-2 h-4 w-4" /> Detaylı İstatistikleri Kopyala
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={publishAllMatches} disabled={allMatches.length === 0}>
+                                    <UploadCloud className="mr-2 h-4 w-4" /> Tümünü Yayınla
+                                </Button>
+                                <Button onClick={copyAllRawDetailedPrompts} disabled={allMatches.length === 0}>
+                                    <Copy className="mr-2 h-4 w-4" /> Detaylı İstatistikleri Kopyala
+                                </Button>
+                            </div>
                         </div>
 
                         {allMatches.length === 0 ? (
@@ -1547,7 +1597,19 @@ const AdminPanel = () => {
                                                 />
                                             </div>
 
-                                            <div className="col-span-3 text-right">
+                                            <div className="col-span-3 text-right flex gap-2 justify-end">
+                                                <Button
+                                                    variant="outline"
+                                                    className={publishedMatchIds.has(match.matchId) ? 'border-green-500 text-green-500' : ''}
+                                                    onClick={() => publishMatchToAnaliz(match)}
+                                                    disabled={publishedMatchIds.has(match.matchId)}
+                                                >
+                                                    {publishedMatchIds.has(match.matchId) ? (
+                                                        <><CheckCircle className="mr-2 h-4 w-4" /> Yayında</>
+                                                    ) : (
+                                                        <><UploadCloud className="mr-2 h-4 w-4" /> Yayınla</>
+                                                    )}
+                                                </Button>
                                                 <Button onClick={() => approveRawMatch(match)}>
                                                     <CheckCircle className="mr-2 h-4 w-4" /> Onayla
                                                 </Button>

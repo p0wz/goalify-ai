@@ -505,9 +505,75 @@ app.get('/api/analysis/results', auth.authenticateToken, async (req, res) => {
     }
 });
 
-// ============ LIVE MATCHES ENDPOINT ============
+// ============ PUBLISHED MATCHES (User-facing Analiz Tab) ============
 
-// [DELETED] Duplicate legacy route was here. Using updated V2 route definition below (approx line 1000+).
+// Admin publishes a match (with stats) to the user-facing Analiz tab
+app.post('/api/matches/publish', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
+    console.log('[Publish] Publishing match to Analiz tab...');
+    try {
+        const { matchId, homeTeam, awayTeam, league, timestamp, stats } = req.body;
+
+        if (!matchId || !homeTeam || !awayTeam) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+
+        const result = await redis.publishMatch({
+            matchId,
+            homeTeam,
+            awayTeam,
+            league: league || 'Unknown',
+            timestamp: timestamp || Math.floor(Date.now() / 1000),
+            stats: stats || {}
+        });
+
+        if (result.duplicate) {
+            return res.json({ success: true, message: 'Already published', duplicate: true });
+        }
+
+        console.log(`[Publish] ✅ ${homeTeam} vs ${awayTeam} published (total: ${result.total})`);
+        res.json({ success: true, message: 'Match published', total: result.total });
+    } catch (error) {
+        console.error('[Publish] Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Users fetch published matches (premium gate applied)
+app.get('/api/public/matches', auth.authenticateToken, async (req, res) => {
+    try {
+        const allMatches = await redis.getPublishedMatches();
+
+        // Sort by timestamp ascending (earliest first)
+        allMatches.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        const user = req.user;
+        const isPremium = user?.isPremium || user?.is_premium || user?.plan === 'pro' || user?.plan === 'pro_plus' || user?.role === 'admin';
+        const FREE_LIMIT = 3;
+
+        const matches = isPremium ? allMatches : allMatches.slice(0, FREE_LIMIT);
+
+        res.json({
+            success: true,
+            matches,
+            totalCount: allMatches.length,
+            isPremium,
+            limited: !isPremium && allMatches.length > FREE_LIMIT
+        });
+    } catch (error) {
+        console.error('[PublicMatches] Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Admin clears all published matches
+app.delete('/api/matches/published', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
+    try {
+        await redis.clearPublishedMatches();
+        res.json({ success: true, message: 'All published matches cleared' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 // ============ APPROVAL ROUTES ============
 

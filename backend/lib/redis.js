@@ -177,6 +177,68 @@ async function ping() {
     }
 }
 
+// ============ PUBLISHED MATCHES (User-facing Analiz Tab) ============
+
+const PUBLISHED_MATCHES_KEY = 'goalsniper:published:matches';
+const PUBLISHED_MATCHES_TTL = 86400; // 24 hours
+
+async function publishMatch(matchData) {
+    const client = getClient();
+    if (!client) return false;
+
+    try {
+        const existing = await getPublishedMatches();
+        const alreadyPublished = existing.some(m => m.matchId === matchData.matchId);
+        if (alreadyPublished) {
+            console.log(`[Redis] Match ${matchData.matchId} already published, skipping`);
+            return { success: true, duplicate: true };
+        }
+
+        const enriched = {
+            ...matchData,
+            publishedAt: new Date().toISOString()
+        };
+
+        const updated = [...existing, enriched];
+        await client.set(PUBLISHED_MATCHES_KEY, JSON.stringify(updated), { ex: PUBLISHED_MATCHES_TTL });
+        console.log(`[Redis] Published match: ${matchData.homeTeam} vs ${matchData.awayTeam} (total: ${updated.length})`);
+        return { success: true, duplicate: false, total: updated.length };
+    } catch (error) {
+        console.error('[Redis] Publish error:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+async function getPublishedMatches() {
+    const client = getClient();
+    if (!client) return [];
+
+    try {
+        const data = await client.get(PUBLISHED_MATCHES_KEY);
+        if (data) {
+            const matches = typeof data === 'string' ? JSON.parse(data) : data;
+            return Array.isArray(matches) ? matches : [];
+        }
+        return [];
+    } catch (error) {
+        console.error('[Redis] Get published error:', error.message);
+        return [];
+    }
+}
+
+async function clearPublishedMatches() {
+    const client = getClient();
+    if (!client) return false;
+
+    try {
+        await client.del(PUBLISHED_MATCHES_KEY);
+        console.log('[Redis] Published matches cleared');
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 module.exports = {
     getClient,
     // Analysis Cache
@@ -192,5 +254,9 @@ module.exports = {
     incrementStat,
     getStats,
     // Health
-    ping
+    ping,
+    // Published Matches
+    publishMatch,
+    getPublishedMatches,
+    clearPublishedMatches
 };

@@ -1,7 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   TrendingUp,
-  Radio,
   Trophy,
   Settings,
   Bell,
@@ -20,8 +19,7 @@ export const Sidebar = () => {
   const { t } = useLanguage();
 
   const mainNavItems = [
-    { icon: TrendingUp, label: t.nav.predictions, path: "/predictions" },
-    { icon: Radio, label: t.nav.live, path: "/live" },
+    { icon: TrendingUp, label: t.nav.analysis || "Analiz", path: "/analysis" },
   ];
 
   const bottomNavItems = [
