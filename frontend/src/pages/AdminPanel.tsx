@@ -39,7 +39,11 @@ import {
     Smartphone,
     Radio,
     History,
-    UploadCloud
+    UploadCloud,
+    FileSpreadsheet,
+    Key,
+    Download,
+    Code
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://goalify-ai.onrender.com/api';
@@ -204,6 +208,13 @@ const AdminPanel = () => {
     // Published Matches State (for Analiz tab)
     const [publishedMatchIds, setPublishedMatchIds] = useState<Set<string>>(new Set());
 
+    // Etsy State
+    const [etsyKeys, setEtsyKeys] = useState<any[]>([]);
+    const [etsyKeysLoading, setEtsyKeysLoading] = useState(false);
+    const [newKeyLabel, setNewKeyLabel] = useState('');
+    const [excelDownloading, setExcelDownloading] = useState(false);
+    const [vbaCopied, setVbaCopied] = useState(false);
+
 
     // Load data on mount
     useEffect(() => {
@@ -269,6 +280,24 @@ const AdminPanel = () => {
             }
         }
         toast.success('Tüm maçlar yayınlandı!');
+    };
+
+    // ============ ETSY KEY MANAGEMENT ============
+
+    const loadEtsyKeys = async () => {
+        setEtsyKeysLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/etsy-keys`, {
+                headers: { ...getAuthHeaders() as Record<string, string> }
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) setEtsyKeys(data.keys || []);
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setEtsyKeysLoading(false);
+        }
     };
 
     // ============ ANALYSIS FUNCTIONS ============
@@ -967,6 +996,10 @@ const AdminPanel = () => {
                         <TabsTrigger value="aidebug" className="flex items-center gap-2">
                             <Zap className="h-4 w-4" />
                             AI Debug
+                        </TabsTrigger>
+                        <TabsTrigger value="etsy" className="flex items-center gap-2">
+                            <FileSpreadsheet className="h-4 w-4" />
+                            Etsy Excel
                         </TabsTrigger>
                     </TabsList>
 
@@ -2150,6 +2183,191 @@ const AdminPanel = () => {
                             </CardContent>
                         </Card>
                     </TabsContent>
+
+                    {/* ============ ETSY EXCEL TAB ============ */}
+                    <TabsContent value="etsy" className="space-y-4">
+                        {/* Actions Row */}
+                        <div className="flex flex-wrap gap-3 items-center">
+                            <Button
+                                onClick={async () => {
+                                    setExcelDownloading(true);
+                                    try {
+                                        const res = await fetch(`${API_BASE}/export/excel`, {
+                                            method: 'POST',
+                                            headers: { ...getAuthHeaders() as Record<string, string> }
+                                        });
+                                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                        const blob = await res.blob();
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `SENTIO_Daily_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                        toast.success('Excel indirildi!');
+                                    } catch (err: any) {
+                                        toast.error(err.message);
+                                    } finally {
+                                        setExcelDownloading(false);
+                                    }
+                                }}
+                                disabled={excelDownloading}
+                                className="bg-emerald-600 hover:bg-emerald-700"
+                            >
+                                <Download className="h-4 w-4 mr-2" />
+                                {excelDownloading ? 'İndiriliyor...' : 'Excel İndir'}
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    const vbaCode = `' === SENTIO PICKS — Daily AI Football Analysis ===\n' Bu makroyu Excel\'e ekleyerek günlük verileri çekebilirsiniz.\n' Developer > Visual Basic > Insert > Module > Bu kodu yapıştırın\n\nPrivate Const API_URL As String = "${window.location.origin.replace('://www.', '://').replace('vercel.app', 'onrender.com').includes('localhost') ? 'https://goalify-ai.onrender.com' : 'https://goalify-ai.onrender.com'}/api/etsy/daily"\n\nSub FetchTodaysData()\n    Dim apiKey As String\n    apiKey = InputBox("SENTIO API Key giriniz:", "API Key")\n    If apiKey = "" Then Exit Sub\n    \n    Dim http As Object\n    Set http = CreateObject("MSXML2.XMLHTTP")\n    http.Open "GET", API_URL & "?key=" & apiKey, False\n    http.send\n    \n    If http.Status <> 200 Then\n        MsgBox "Hata: " & http.Status & " - " & http.responseText, vbCritical\n        Exit Sub\n    End If\n    \n    Dim json As String\n    json = http.responseText\n    \n    ' Parse JSON manually (basit parser)\n    Dim ws As Worksheet\n    Set ws = ThisWorkbook.Sheets("Overview")\n    \n    ' Clear old data (keep headers row 1-2)\n    ws.Range("A3:Q1000").ClearContents\n    \n    ' Parse matches array\n    Dim pos As Long, row As Long\n    row = 3\n    pos = InStr(json, """matches"":")\n    If pos = 0 Then\n        MsgBox "Veri bulunamadi!", vbExclamation\n        Exit Sub\n    End If\n    \n    ' Her bir homeTeam icin satir olustur\n    Dim startPos As Long\n    startPos = pos\n    Do\n        Dim htPos As Long\n        htPos = InStr(startPos, json, """homeTeam"":")\n        If htPos = 0 Then Exit Do\n        \n        ws.Cells(row, 1).Value = ExtractVal(json, htPos, "homeTeam") & " vs " & ExtractVal(json, htPos, "awayTeam")\n        ws.Cells(row, 2).Value = ExtractVal(json, htPos, "league")\n        ws.Cells(row, 3).Value = ExtractVal(json, htPos, "kickoff")\n        \n        row = row + 1\n        startPos = htPos + 10\n        If row > 200 Then Exit Do\n    Loop\n    \n    MsgBox "Guncellendi! " & (row - 3) & " mac yuklendi.", vbInformation\nEnd Sub\n\nPrivate Function ExtractVal(json As String, startFrom As Long, key As String) As String\n    Dim kPos As Long\n    kPos = InStr(startFrom, json, """" & key & """:")\n    If kPos = 0 Then\n        ExtractVal = "-"\n        Exit Function\n    End If\n    Dim vStart As Long\n    vStart = InStr(kPos, json, ":") + 1\n    ' Skip whitespace and quote\n    Do While Mid(json, vStart, 1) = " " Or Mid(json, vStart, 1) = """"\n        vStart = vStart + 1\n    Loop\n    Dim vEnd As Long\n    vEnd = vStart\n    Do While Mid(json, vEnd, 1) <> """" And Mid(json, vEnd, 1) <> "," And Mid(json, vEnd, 1) <> "}"\n        vEnd = vEnd + 1\n        If vEnd > Len(json) Then Exit Do\n    Loop\n    ExtractVal = Mid(json, vStart, vEnd - vStart)\nEnd Function`;
+                                    navigator.clipboard.writeText(vbaCode);
+                                    setVbaCopied(true);
+                                    setTimeout(() => setVbaCopied(false), 3000);
+                                    toast.success('VBA kodu kopyalandı!');
+                                }}
+                            >
+                                {vbaCopied ? <Check className="h-4 w-4 mr-2" /> : <Code className="h-4 w-4 mr-2" />}
+                                {vbaCopied ? 'Kopyalandı!' : 'VBA Kodu Kopyala'}
+                            </Button>
+                        </div>
+
+                        {/* API Key Management */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Key className="h-5 w-5 text-amber-500" />
+                                    Etsy API Key Yönetimi
+                                </CardTitle>
+                                <CardDescription>
+                                    Her Etsy müşterisi için benzersiz API key oluşturun. Müşteriye key'i verin, Excel template ile günlük veri çekebilsinler.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {/* Create Key */}
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="Müşteri adı (opsiyonel)"
+                                        value={newKeyLabel}
+                                        onChange={e => setNewKeyLabel(e.target.value)}
+                                        className="max-w-xs"
+                                    />
+                                    <Button
+                                        onClick={async () => {
+                                            try {
+                                                const res = await fetch(`${API_BASE}/admin/etsy-keys`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() as Record<string, string> },
+                                                    body: JSON.stringify({ label: newKeyLabel })
+                                                });
+                                                handleAuthError(res);
+                                                const data = await safeJson(res);
+                                                if (data.success) {
+                                                    toast.success(`Key oluşturuldu: ${data.key}`);
+                                                    navigator.clipboard.writeText(data.key);
+                                                    setNewKeyLabel('');
+                                                    // Reload keys
+                                                    loadEtsyKeys();
+                                                }
+                                            } catch (err: any) {
+                                                toast.error(err.message);
+                                            }
+                                        }}
+                                        className="bg-amber-600 hover:bg-amber-700"
+                                    >
+                                        <Key className="h-4 w-4 mr-2" />
+                                        Key Oluştur
+                                    </Button>
+                                </div>
+
+                                {/* Keys List */}
+                                <div className="space-y-2">
+                                    <Button variant="outline" size="sm" onClick={loadEtsyKeys} disabled={etsyKeysLoading}>
+                                        <RefreshCw className={`h-3 w-3 mr-1 ${etsyKeysLoading ? 'animate-spin' : ''}`} />
+                                        Key'leri Yükle
+                                    </Button>
+
+                                    {etsyKeys.length > 0 && (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>API Key</TableHead>
+                                                    <TableHead>Müşteri</TableHead>
+                                                    <TableHead>Tarih</TableHead>
+                                                    <TableHead>İşlem</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {etsyKeys.map((k: any) => (
+                                                    <TableRow key={k.key}>
+                                                        <TableCell>
+                                                            <code className="text-xs bg-muted px-2 py-1 rounded">{k.key}</code>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="ml-2"
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(k.key);
+                                                                    toast.success('Key kopyalandı');
+                                                                }}
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </Button>
+                                                        </TableCell>
+                                                        <TableCell>{k.label || '-'}</TableCell>
+                                                        <TableCell className="text-xs text-muted-foreground">
+                                                            {k.createdAt ? new Date(k.createdAt).toLocaleDateString('tr-TR') : '-'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Button
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await fetch(`${API_BASE}/admin/etsy-keys/${encodeURIComponent(k.key)}`, {
+                                                                            method: 'DELETE',
+                                                                            headers: { ...getAuthHeaders() as Record<string, string> }
+                                                                        });
+                                                                        toast.success('Key iptal edildi');
+                                                                        loadEtsyKeys();
+                                                                    } catch (err: any) {
+                                                                        toast.error(err.message);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Trash2 className="h-3 w-3 mr-1" />
+                                                                İptal
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    )}
+
+                                    {etsyKeys.length === 0 && !etsyKeysLoading && (
+                                        <p className="text-sm text-muted-foreground">Henüz key oluşturulmamış. Yukarıdan yeni key oluşturabilirsiniz.</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Instructions */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-sm">📋 Etsy Satış Akışı</CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-sm space-y-2 text-muted-foreground">
+                                <p><strong>1.</strong> "Tüm Maçlar" sekmesinden maçları <strong>Yayınla</strong> ile onayla</p>
+                                <p><strong>2.</strong> "Excel İndir" ile güncel verilerin Excel'ini al</p>
+                                <p><strong>3.</strong> "Key Oluştur" ile her müşteriye benzersiz API key ver</p>
+                                <p><strong>4.</strong> "VBA Kodu Kopyala" → Excel'de Developer → Visual Basic → Insert Module → Yapıştır → .xlsm olarak kaydet</p>
+                                <p><strong>5.</strong> Müşteri Excel'i açar → Makroları etkinleştir → <code>FetchTodaysData</code> makrosunu çalıştır → Key girer → Veriler yüklenir</p>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
                 </Tabs>
             </div>
         </AppLayout>

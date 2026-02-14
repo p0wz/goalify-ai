@@ -575,6 +575,202 @@ app.delete('/api/matches/published', auth.authenticateToken, auth.requireAuth('a
     }
 });
 
+// ============ ETSY API (Public Data + Key Management) ============
+
+// Public data endpoint — no auth, API key validation only
+app.get('/api/etsy/daily', async (req, res) => {
+    try {
+        const key = req.query.key;
+        if (!key) return res.status(400).json({ error: 'API key required' });
+
+        const valid = await redis.validateEtsyKey(key);
+        if (!valid) return res.status(403).json({ error: 'Invalid or revoked API key' });
+
+        const matches = await redis.getPublishedMatches();
+        matches.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        const today = new Date().toISOString().split('T')[0];
+        res.json({
+            date: today,
+            count: matches.length,
+            provider: 'SENTIO PICKS AI',
+            matches: matches.map(m => ({
+                homeTeam: m.homeTeam,
+                awayTeam: m.awayTeam,
+                league: m.league,
+                kickoff: m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '--:--',
+                stats: m.stats || {}
+            }))
+        });
+    } catch (error) {
+        console.error('[Etsy] Error:', error.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Generate key
+app.post('/api/admin/etsy-keys', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
+    try {
+        const { label } = req.body;
+        const key = await redis.generateEtsyKey(label);
+        if (!key) return res.status(500).json({ success: false, error: 'Key generation failed' });
+        res.json({ success: true, key });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Admin: List all keys
+app.get('/api/admin/etsy-keys', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
+    try {
+        const keys = await redis.listEtsyKeys();
+        res.json({ success: true, keys });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Admin: Revoke key
+app.delete('/api/admin/etsy-keys/:key', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
+    try {
+        const result = await redis.revokeEtsyKey(req.params.key);
+        res.json({ success: result, message: result ? 'Key revoked' : 'Key not found' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Admin: Generate Excel from published matches
+app.post('/api/export/excel', auth.authenticateToken, auth.requireAuth('admin'), async (req, res) => {
+    try {
+        const ExcelJS = require('exceljs');
+        const matches = await redis.getPublishedMatches();
+        matches.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'SENTIO PICKS AI';
+        wb.created = new Date();
+
+        // === OVERVIEW SHEET ===
+        const ws = wb.addWorksheet('Overview', { views: [{ state: 'frozen', ySplit: 2 }] });
+
+        // Branding row
+        ws.mergeCells('A1:Q1');
+        const brandCell = ws.getCell('A1');
+        brandCell.value = `SENTIO PICKS — Daily AI Football Analysis • ${new Date().toLocaleDateString('tr-TR')}`;
+        brandCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+        brandCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
+        brandCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        ws.getRow(1).height = 36;
+
+        // Headers
+        const headers = [
+            'Maç', 'Lig', 'Saat', 'Lig Ort.',
+            'Ev G%', 'Dep G%', 'Ev Ü2.5%', 'Dep Ü2.5%',
+            'KG Var%', 'Ev Ort.Gol', 'Dep Ort.Gol',
+            'Ev Yen.Gol', 'Dep Yen.Gol', 'Ev CS%', 'Dep CS%',
+            'Ev İY G%', 'Dep İY G%'
+        ];
+        const headerRow = ws.addRow(headers);
+        headerRow.eachCell(cell => {
+            cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2937' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            cell.border = {
+                bottom: { style: 'thin', color: { argb: 'FF10B981' } }
+            };
+        });
+        headerRow.height = 28;
+
+        // Data rows
+        for (const m of matches) {
+            const s = m.stats || {};
+            const hf = s.homeForm || {};
+            const af = s.awayForm || {};
+            const hh = s.homeHomeStats || {};
+            const aa = s.awayAwayStats || {};
+            const kickoff = m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+            const leagueAvg = hf.avgTotalGoals && af.avgTotalGoals ? ((hf.avgTotalGoals + af.avgTotalGoals) / 2).toFixed(2) : '-';
+
+            const row = ws.addRow([
+                `${m.homeTeam} vs ${m.awayTeam}`,
+                m.league,
+                kickoff,
+                leagueAvg,
+                hf.winRate ? hf.winRate.toFixed(0) : '-',
+                af.winRate ? af.winRate.toFixed(0) : '-',
+                hf.over25Rate ? hf.over25Rate.toFixed(0) : '-',
+                af.over25Rate ? af.over25Rate.toFixed(0) : '-',
+                hf.bttsRate && af.bttsRate ? ((hf.bttsRate + af.bttsRate) / 2).toFixed(0) : '-',
+                hh.avgScored ? hh.avgScored.toFixed(2) : '-',
+                aa.avgScored ? aa.avgScored.toFixed(2) : '-',
+                hh.avgConceded ? hh.avgConceded.toFixed(2) : '-',
+                aa.avgConceded ? aa.avgConceded.toFixed(2) : '-',
+                hf.cleanSheetRate ? hf.cleanSheetRate.toFixed(0) : '-',
+                af.cleanSheetRate ? af.cleanSheetRate.toFixed(0) : '-',
+                hf.firstHalfWinRate ? hf.firstHalfWinRate.toFixed(0) : '-',
+                af.firstHalfWinRate ? af.firstHalfWinRate.toFixed(0) : '-'
+            ]);
+
+            row.eachCell((cell, colNum) => {
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.font = { size: 10 };
+
+                // Conditional coloring for percentage columns (5-17)
+                if (colNum >= 5 && colNum <= 17) {
+                    const val = parseFloat(cell.value);
+                    if (!isNaN(val)) {
+                        if (val >= 70) cell.font = { size: 10, color: { argb: 'FF10B981' }, bold: true };
+                        else if (val >= 40) cell.font = { size: 10, color: { argb: 'FFF59E0B' } };
+                        else cell.font = { size: 10, color: { argb: 'FFEF4444' } };
+                    }
+                }
+            });
+        }
+
+        // Auto-fit columns
+        ws.columns.forEach((col, i) => {
+            col.width = i === 0 ? 32 : i === 1 ? 24 : 12;
+        });
+
+        // === GUIDE SHEET ===
+        const guide = wb.addWorksheet('Kullanım Kılavuzu');
+        guide.mergeCells('A1:D1');
+        guide.getCell('A1').value = 'SENTIO PICKS — Kullanım Kılavuzu';
+        guide.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FF10B981' } };
+
+        const instructions = [
+            '', 'Bu Excel dosyası SENTIO AI tarafından oluşturulmuştur.',
+            '', '📊 Overview Sayfası:',
+            '  • Tüm maçların istatistiksel detayları yer alır.',
+            '  • Yeşil = %70+ (güçlü)', '  • Sarı = %40-70 (orta)', '  • Kırmızı = %40 altı (zayıf)',
+            '', '📌 Kolon Açıklamaları:',
+            '  • Lig Ort. = İki takımın ortalama maç başı toplam gol',
+            '  • Ev/Dep G% = Galibiyet oranı', '  • Ü2.5% = Maçta 2.5 üstü gol oranı',
+            '  • KG Var% = Karşılıklı gol oranı', '  • CS% = Gol yememe oranı',
+            '  • İY G% = İlk yarı galibiyet oranı',
+            '', '⚡ Her gün güncel veriler için VBA makrosunu kullanın.',
+            '  Developer > Macros > FetchTodaysData > Run'
+        ];
+        instructions.forEach((line, i) => {
+            guide.getCell(`A${i + 3}`).value = line;
+            guide.getCell(`A${i + 3}`).font = { size: 11 };
+        });
+        guide.getColumn(1).width = 60;
+
+        // Generate buffer
+        const buffer = await wb.xlsx.writeBuffer();
+        const filename = `SENTIO_Daily_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(Buffer.from(buffer));
+    } catch (error) {
+        console.error('[Excel] Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ APPROVAL ROUTES ============
 
 app.post('/api/bets/approve', auth.authenticateToken, async (req, res) => {

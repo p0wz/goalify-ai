@@ -239,6 +239,80 @@ async function clearPublishedMatches() {
     }
 }
 
+// ============ ETSY API KEYS ============
+
+const ETSY_KEYS_KEY = 'goalsniper:etsy:keys';
+
+function generateKeyString() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let key = 'SENTIO_';
+    for (let i = 0; i < 16; i++) key += chars[Math.floor(Math.random() * chars.length)];
+    return key;
+}
+
+async function generateEtsyKey(label = '') {
+    const client = getClient();
+    if (!client) return null;
+
+    try {
+        const key = generateKeyString();
+        const meta = JSON.stringify({
+            label: label || 'Etsy Customer',
+            createdAt: new Date().toISOString(),
+            active: true
+        });
+        await client.hset(ETSY_KEYS_KEY, { [key]: meta });
+        console.log(`[Redis] Generated Etsy key: ${key}`);
+        return key;
+    } catch (error) {
+        console.error('[Redis] Etsy key gen error:', error.message);
+        return null;
+    }
+}
+
+async function validateEtsyKey(key) {
+    const client = getClient();
+    if (!client) return false;
+
+    try {
+        const meta = await client.hget(ETSY_KEYS_KEY, key);
+        if (!meta) return false;
+        const parsed = typeof meta === 'string' ? JSON.parse(meta) : meta;
+        return parsed.active !== false;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function listEtsyKeys() {
+    const client = getClient();
+    if (!client) return [];
+
+    try {
+        const all = await client.hgetall(ETSY_KEYS_KEY);
+        if (!all) return [];
+        return Object.entries(all).map(([key, meta]) => {
+            const parsed = typeof meta === 'string' ? JSON.parse(meta) : meta;
+            return { key, ...parsed };
+        });
+    } catch (error) {
+        return [];
+    }
+}
+
+async function revokeEtsyKey(key) {
+    const client = getClient();
+    if (!client) return false;
+
+    try {
+        await client.hdel(ETSY_KEYS_KEY, key);
+        console.log(`[Redis] Revoked Etsy key: ${key}`);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 module.exports = {
     getClient,
     // Analysis Cache
@@ -258,5 +332,10 @@ module.exports = {
     // Published Matches
     publishMatch,
     getPublishedMatches,
-    clearPublishedMatches
+    clearPublishedMatches,
+    // Etsy API Keys
+    generateEtsyKey,
+    validateEtsyKey,
+    listEtsyKeys,
+    revokeEtsyKey
 };
