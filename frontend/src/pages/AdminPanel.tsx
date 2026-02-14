@@ -254,7 +254,8 @@ const AdminPanel = () => {
                     awayTeam: match.awayTeam,
                     league: match.league,
                     timestamp: match.timestamp,
-                    stats: match.stats
+                    stats: match.stats,
+                    detailedStats: match.detailedStats
                 })
             });
             handleAuthError(res);
@@ -2258,21 +2259,21 @@ const AdminPanel = () => {
                                 variant="outline"
                                 onClick={() => {
                                     const gsCode = `// === SENTIO PICKS — Google Sheets Daily Fetch ===
-// Uzantılar > Apps Script > Bu kodu yapıştırın
-// Ardından "Güncel Verileri Çek" fonksiyonunu çalıştırın
+// Extensions > Apps Script > Paste this code
+// Then run the "Fetch Today's Data" function
 
 const API_URL = "https://goalify-ai.onrender.com/api/etsy/daily";
 
 function fetchTodaysData() {
   const ui = SpreadsheetApp.getUi();
-  const keyResult = ui.prompt("SENTIO API Key", "API key giriniz:", ui.ButtonSet.OK_CANCEL);
+  const keyResult = ui.prompt("SENTIO API Key", "Enter your API key:", ui.ButtonSet.OK_CANCEL);
   if (keyResult.getSelectedButton() !== ui.Button.OK) return;
   const apiKey = keyResult.getResponseText().trim();
-  if (!apiKey) { ui.alert("Key boş olamaz!"); return; }
+  if (!apiKey) { ui.alert("API key cannot be empty!"); return; }
 
   const response = UrlFetchApp.fetch(API_URL + "?key=" + apiKey, { muteHttpExceptions: true });
   if (response.getResponseCode() !== 200) {
-    ui.alert("Hata: " + response.getResponseCode() + " - " + response.getContentText());
+    ui.alert("Error: " + response.getResponseCode() + " - " + response.getContentText());
     return;
   }
 
@@ -2289,7 +2290,7 @@ function fetchTodaysData() {
   sheet.getRange("A1:Q1").merge().setBackground("#10b981").setFontColor("#fff").setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
 
   // Headers
-  const headers = ["Maç","Lig","Saat","Lig Ort.","Ev G%","Dep G%","Ev Ü2.5%","Dep Ü2.5%","KG Var%","Ev Ort.Gol","Dep Ort.Gol","Ev Yen.Gol","Dep Yen.Gol","Ev CS%","Dep CS%","Ev İY G%","Dep İY G%"];
+  const headers = ["Match","League","Time","League Avg","H Win%","A Win%","H O2.5%","A O2.5%","BTTS%","H Avg Scored","A Avg Scored","H Avg Conceded","A Avg Conceded","H CS%","A CS%","H FH Win%","A FH Win%"];
   const headerRange = sheet.getRange(2, 1, 1, headers.length);
   headerRange.setValues([headers]).setBackground("#1f2937").setFontColor("#fff").setFontWeight("bold").setHorizontalAlignment("center");
 
@@ -2342,23 +2343,23 @@ function fetchTodaysData() {
   sheet.autoResizeColumns(1, headers.length);
   sheet.setFrozenRows(2);
 
-  ui.alert("✅ " + matches.length + " maç yüklendi! (AI Prompt sayfası dahil) (" + data.date + ")");\n\n  // === AI PROMPT SHEET ===\n  let promptSheet = ss.getSheetByName("AI Prompt");\n  if (!promptSheet) promptSheet = ss.insertSheet("AI Prompt");\n  promptSheet.clear();\n  promptSheet.getRange("A1").setValue("SENTIO PICKS — AI Analysis Prompt");\n  promptSheet.getRange("A1:C1").merge().setFontSize(14).setFontWeight("bold").setFontColor("#10b981");\n  promptSheet.getRange("A2").setValue("Bu metni ChatGPT, Claude veya herhangi bir AI\\'a yapıştırarak detaylı analiz alabilirsiniz.").setFontSize(10).setFontStyle("italic").setFontColor("#9ca3af");\n  let pRow = 4;\n  for (let i = 0; i < matches.length; i++) {\n    const prompt = matches[i].detailedStats;\n    if (prompt) {\n      const lines = prompt.split("\\n");\n      for (let l = 0; l < lines.length; l++) {\n        promptSheet.getRange(pRow, 1).setValue(lines[l]).setFontFamily("Consolas").setFontSize(10);\n        pRow++;\n      }\n      promptSheet.getRange(pRow, 1).setValue("---").setFontColor("#6b7280");\n      pRow += 2;\n    }\n  }\n  promptSheet.setColumnWidth(1, 800);
+  ui.alert("✅ " + matches.length + " matches loaded! (AI Prompt sheet included) (" + data.date + ")");\n\n  // === AI PROMPT SHEET ===\n  let promptSheet = ss.getSheetByName("AI Prompt");\n  if (!promptSheet) promptSheet = ss.insertSheet("AI Prompt");\n  promptSheet.clear();\n  promptSheet.getRange("A1").setValue("SENTIO PICKS — AI Analysis Prompt");\n  promptSheet.getRange("A1:C1").merge().setFontSize(14).setFontWeight("bold").setFontColor("#10b981");\n  promptSheet.getRange("A2").setValue("Copy this text and paste it into ChatGPT, Claude, or any AI to get a detailed match analysis.").setFontSize(10).setFontStyle("italic").setFontColor("#9ca3af");\n  let pRow = 4;\n  for (let i = 0; i < matches.length; i++) {\n    const prompt = matches[i].detailedStats;\n    if (prompt) {\n      const lines = prompt.split("\\n");\n      for (let l = 0; l < lines.length; l++) {\n        promptSheet.getRange(pRow, 1).setValue(lines[l]).setFontFamily("Consolas").setFontSize(10);\n        pRow++;\n      }\n      promptSheet.getRange(pRow, 1).setValue("---").setFontColor("#6b7280");\n      pRow += 2;\n    }\n  }\n  promptSheet.setColumnWidth(1, 800);
 }
 
-// Menü ekleme
+// Menu setup
 function onOpen() {
   SpreadsheetApp.getUi().createMenu("🔄 SENTIO")
-    .addItem("Güncel Verileri Çek", "fetchTodaysData")
+    .addItem("Fetch Today's Data", "fetchTodaysData")
     .addToUi();
 }`;
                                     navigator.clipboard.writeText(gsCode);
                                     setGSheetsCopied(true);
                                     setTimeout(() => setGSheetsCopied(false), 3000);
-                                    toast.success('Google Sheets script kopyalandı!');
+                                    toast.success('Google Sheets script copied!');
                                 }}
                             >
                                 {gSheetsCopied ? <Check className="h-4 w-4 mr-2" /> : <Code className="h-4 w-4 mr-2" />}
-                                {gSheetsCopied ? 'Kopyalandı!' : 'Google Sheets Script Kopyala'}
+                                {gSheetsCopied ? 'Copied!' : 'Copy Google Sheets Script'}
                             </Button>
                         </div>
 
@@ -2367,17 +2368,17 @@ function onOpen() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Key className="h-5 w-5 text-amber-500" />
-                                    Etsy API Key Yönetimi
+                                    Etsy API Key Management
                                 </CardTitle>
                                 <CardDescription>
-                                    Her Etsy müşterisi için benzersiz API key oluşturun. Müşteriye key'i verin, Excel template ile günlük veri çekebilsinler.
+                                    Generate unique API keys for each customer. Share the key with your buyer so they can fetch daily data.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {/* Create Key */}
                                 <div className="flex gap-2">
                                     <Input
-                                        placeholder="Müşteri adı (opsiyonel)"
+                                        placeholder="Customer name (optional)"
                                         value={newKeyLabel}
                                         onChange={e => setNewKeyLabel(e.target.value)}
                                         className="max-w-xs"
@@ -2393,10 +2394,9 @@ function onOpen() {
                                                 handleAuthError(res);
                                                 const data = await safeJson(res);
                                                 if (data.success) {
-                                                    toast.success(`Key oluşturuldu: ${data.key}`);
+                                                    toast.success(`Key created: ${data.key}`);
                                                     navigator.clipboard.writeText(data.key);
                                                     setNewKeyLabel('');
-                                                    // Reload keys
                                                     loadEtsyKeys();
                                                 }
                                             } catch (err: any) {
@@ -2406,7 +2406,7 @@ function onOpen() {
                                         className="bg-amber-600 hover:bg-amber-700"
                                     >
                                         <Key className="h-4 w-4 mr-2" />
-                                        Key Oluştur
+                                        Generate Key
                                     </Button>
                                 </div>
 
@@ -2414,7 +2414,7 @@ function onOpen() {
                                 <div className="space-y-2">
                                     <Button variant="outline" size="sm" onClick={loadEtsyKeys} disabled={etsyKeysLoading}>
                                         <RefreshCw className={`h-3 w-3 mr-1 ${etsyKeysLoading ? 'animate-spin' : ''}`} />
-                                        Key'leri Yükle
+                                        Load Keys
                                     </Button>
 
                                     {etsyKeys.length > 0 && (
@@ -2422,9 +2422,9 @@ function onOpen() {
                                             <TableHeader>
                                                 <TableRow>
                                                     <TableHead>API Key</TableHead>
-                                                    <TableHead>Müşteri</TableHead>
-                                                    <TableHead>Tarih</TableHead>
-                                                    <TableHead>İşlem</TableHead>
+                                                    <TableHead>Customer</TableHead>
+                                                    <TableHead>Created</TableHead>
+                                                    <TableHead>Action</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -2438,7 +2438,7 @@ function onOpen() {
                                                                 className="ml-2"
                                                                 onClick={() => {
                                                                     navigator.clipboard.writeText(k.key);
-                                                                    toast.success('Key kopyalandı');
+                                                                    toast.success('Key copied!');
                                                                 }}
                                                             >
                                                                 <Copy className="h-3 w-3" />
@@ -2446,7 +2446,7 @@ function onOpen() {
                                                         </TableCell>
                                                         <TableCell>{k.label || '-'}</TableCell>
                                                         <TableCell className="text-xs text-muted-foreground">
-                                                            {k.createdAt ? new Date(k.createdAt).toLocaleDateString('tr-TR') : '-'}
+                                                            {k.createdAt ? new Date(k.createdAt).toLocaleDateString('en-US') : '-'}
                                                         </TableCell>
                                                         <TableCell>
                                                             <Button
@@ -2458,7 +2458,7 @@ function onOpen() {
                                                                             method: 'DELETE',
                                                                             headers: { ...getAuthHeaders() as Record<string, string> }
                                                                         });
-                                                                        toast.success('Key iptal edildi');
+                                                                        toast.success('Key revoked');
                                                                         loadEtsyKeys();
                                                                     } catch (err: any) {
                                                                         toast.error(err.message);
@@ -2466,7 +2466,7 @@ function onOpen() {
                                                                 }}
                                                             >
                                                                 <Trash2 className="h-3 w-3 mr-1" />
-                                                                İptal
+                                                                Revoke
                                                             </Button>
                                                         </TableCell>
                                                     </TableRow>
@@ -2476,7 +2476,7 @@ function onOpen() {
                                     )}
 
                                     {etsyKeys.length === 0 && !etsyKeysLoading && (
-                                        <p className="text-sm text-muted-foreground">Henüz key oluşturulmamış. Yukarıdan yeni key oluşturabilirsiniz.</p>
+                                        <p className="text-sm text-muted-foreground">No keys generated yet. Create a new key above.</p>
                                     )}
                                 </div>
                             </CardContent>
@@ -2485,15 +2485,14 @@ function onOpen() {
                         {/* Instructions */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-sm">📋 Etsy Satış Akışı</CardTitle>
+                                <CardTitle className="text-sm">📋 Sales Workflow</CardTitle>
                             </CardHeader>
                             <CardContent className="text-sm space-y-2 text-muted-foreground">
-                                <p><strong>1.</strong> "Tüm Maçlar" sekmesinden maçları <strong>Yayınla</strong> ile onayla</p>
-                                <p><strong>2.</strong> "Excel İndir" ile güncel verilerin Excel'ini al</p>
-                                <p><strong>3.</strong> "Key Oluştur" ile her müşteriye benzersiz API key ver</p>
-                                <p><strong>4a.</strong> <strong>Excel:</strong> "VBA Kodu Kopyala" → Developer → Visual Basic → Insert Module → Yapıştır → .xlsm kaydet</p>
-                                <p><strong>4b.</strong> <strong>Google Sheets:</strong> "Google Sheets Script Kopyala" → Uzantılar → Apps Script → Yapıştır → Kaydet</p>
-                                <p><strong>5.</strong> Müşteri dosyayı açar → Makroyu/Scripti çalıştırır → Key girer → Veriler yüklenir</p>
+                                <p><strong>1.</strong> Go to "All Matches" tab → <strong>Publish</strong> matches</p>
+                                <p><strong>2.</strong> Download the Excel or set up Google Sheets template</p>
+                                <p><strong>3.</strong> Generate API key for each customer</p>
+                                <p><strong>4.</strong> Share template + API key with customer</p>
+                                <p><strong>5.</strong> Customer opens file → runs script → enters key → gets data!</p>
                             </CardContent>
                         </Card>
                     </TabsContent>
