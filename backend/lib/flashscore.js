@@ -392,10 +392,18 @@ async function fetchMatchStatsV1(matchId) {
  */
 async function fetchMatchesByDate(dateStr, allowedLeagues = []) {
     try {
+        const url = `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/list/1/${dateStr}`;
         console.log(`[Flashscore] Fetching matches for date: ${dateStr}`);
+        console.log(`[Flashscore] Full URL: ${url}`);
         const response = await fetchWithRetry(
-            `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/list/1/${dateStr}`,
-            { headers: FLASHSCORE_API.headers, timeout: 15000 }
+            url,
+            { 
+                headers: { 
+                    ...FLASHSCORE_API.headers, 
+                    'Content-Type': 'application/json' 
+                }, 
+                timeout: 15000 
+            }
         );
 
         const data = response.data;
