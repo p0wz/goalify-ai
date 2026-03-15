@@ -145,7 +145,7 @@ const AdminPanel = () => {
     const [oddsInputs, setOddsInputs] = useState<Record<string, string>>({});
 
     // Date-based Analysis State
-    const [dateInput, setDateInput] = useState("");
+    const [dayOffset, setDayOffset] = useState<string>("");
     const [dateAnalysisLoading, setDateAnalysisLoading] = useState(false);
 
     // Live Scores State
@@ -386,8 +386,8 @@ const AdminPanel = () => {
     };
 
     const runDateAnalysis = async (leagueFilter: boolean = true) => {
-        if (!dateInput) {
-            toast.error('Lütfen bir tarih seçin');
+        if (dayOffset === "") {
+            toast.error('Lütfen bir gün seçin');
             return;
         }
         setDateAnalysisLoading(true);
@@ -395,14 +395,14 @@ const AdminPanel = () => {
             const res = await fetch(`${API_BASE}/analysis/run-by-date`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                body: JSON.stringify({ date: dateInput, limit: 500, leagueFilter })
+                body: JSON.stringify({ dayOffset: parseInt(dayOffset), limit: 500, leagueFilter })
             });
             handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) {
                 setResults(data.results);
                 setAllMatches(data.allMatches || []);
-                toast.success(`${data.count} aday bulundu! (${data.totalMatches || 0} toplam maç) — ${data.date}`);
+                toast.success(`${data.count} aday bulundu! (${data.totalMatches || 0} toplam maç)`);
             } else {
                 toast.error(data.error || 'Analiz hatası');
             }
@@ -1132,17 +1132,33 @@ const AdminPanel = () => {
                                 <div className="flex flex-wrap gap-3 items-center">
                                     <div className="flex items-center gap-2">
                                         <Clock className="h-4 w-4 text-purple-500" />
-                                        <span className="text-sm font-semibold text-purple-400">Tarihe Göre Analiz</span>
+                                        <span className="text-sm font-semibold text-purple-400">Güne Göre Analiz</span>
                                     </div>
-                                    <Input
-                                        type="date"
-                                        value={dateInput}
-                                        onChange={e => setDateInput(e.target.value)}
-                                        className="w-44 border-purple-500/30"
-                                    />
+                                    <Select value={dayOffset} onValueChange={setDayOffset}>
+                                        <SelectTrigger className="w-48 border-purple-500/30">
+                                            <SelectValue placeholder="Gün Seç" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="-7">7 gün önce</SelectItem>
+                                            <SelectItem value="-6">6 gün önce</SelectItem>
+                                            <SelectItem value="-5">5 gün önce</SelectItem>
+                                            <SelectItem value="-4">4 gün önce</SelectItem>
+                                            <SelectItem value="-3">3 gün önce</SelectItem>
+                                            <SelectItem value="-2">2 gün önce</SelectItem>
+                                            <SelectItem value="-1">Dün</SelectItem>
+                                            <SelectItem value="0">Bugün</SelectItem>
+                                            <SelectItem value="1">Yarın</SelectItem>
+                                            <SelectItem value="2">2 gün sonra</SelectItem>
+                                            <SelectItem value="3">3 gün sonra</SelectItem>
+                                            <SelectItem value="4">4 gün sonra</SelectItem>
+                                            <SelectItem value="5">5 gün sonra</SelectItem>
+                                            <SelectItem value="6">6 gün sonra</SelectItem>
+                                            <SelectItem value="7">7 gün sonra</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                     <Button
                                         onClick={() => runDateAnalysis(true)}
-                                        disabled={dateAnalysisLoading || !dateInput}
+                                        disabled={dateAnalysisLoading || dayOffset === ""}
                                         className="bg-purple-600 hover:bg-purple-700 text-white"
                                     >
                                         {dateAnalysisLoading ? (
@@ -1153,7 +1169,7 @@ const AdminPanel = () => {
                                     </Button>
                                     <Button
                                         onClick={() => runDateAnalysis(false)}
-                                        disabled={dateAnalysisLoading || !dateInput}
+                                        disabled={dateAnalysisLoading || dayOffset === ""}
                                         variant="outline"
                                         className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
                                     >

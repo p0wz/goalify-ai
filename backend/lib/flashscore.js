@@ -384,32 +384,21 @@ async function fetchMatchStatsV1(matchId) {
 }
 
 /**
- * Fetch matches for a specific date (YYYY-MM-DD format)
- * Converts date to day offset (API only accepts -7 to 7 range)
- * API day param: 1=today, 0=yesterday, 2=tomorrow, -1=2 days ago, etc.
- * Unlike fetchDayMatches, does NOT skip past matches
- * @param {string} dateStr - Date in YYYY-MM-DD format (e.g. '2025-12-22')
+ * Fetch matches by day offset
+ * API: /match/list/1/{dayOffset} where 0=today, -1=yesterday, 1=tomorrow
+ * Range: -7 to 7. Unlike fetchDayMatches, does NOT skip past matches.
+ * @param {number} dayOffset - Day offset (-7 to 7)
  * @param {Array} allowedLeagues - List of allowed leagues
  */
-async function fetchMatchesByDate(dateStr, allowedLeagues = []) {
+async function fetchMatchesByDayOffset(dayOffset = 0, allowedLeagues = []) {
     try {
-        // Calculate day offset from today
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const target = new Date(dateStr + 'T00:00:00');
-        const diffMs = target.getTime() - today.getTime();
-        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-        const dayParam = diffDays; // API: 0 = today, -1 = yesterday, 1 = tomorrow
-
-        console.log(`[Flashscore] Date: ${dateStr}, diffDays: ${diffDays}, dayParam: ${dayParam}`);
-
-        if (dayParam < -7 || dayParam > 7) {
-            console.error(`[Flashscore] Day param ${dayParam} out of range (-7 to 7). Date too far from today.`);
+        if (dayOffset < -7 || dayOffset > 7) {
+            console.error(`[Flashscore] dayOffset ${dayOffset} out of range (-7 to 7)`);
             return [];
         }
 
-        const url = `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/list/1/${dayParam}`;
-        console.log(`[Flashscore] Full URL: ${url}`);
+        const url = `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/list/1/${dayOffset}`;
+        console.log(`[Flashscore] Fetching matches for day offset: ${dayOffset}, URL: ${url}`);
         const response = await fetchWithRetry(
             url,
             { headers: FLASHSCORE_API.headers, timeout: 15000 }
@@ -424,7 +413,6 @@ async function fetchMatchesByDate(dateStr, allowedLeagues = []) {
 
             const leagueName = tournament.name || 'Unknown League';
 
-            // League filter
             if (allowedLeagues.length > 0) {
                 const normalizedLeague = normalizeText(leagueName);
                 const isAllowed = allowedLeagues.some(allowed => {
@@ -449,17 +437,17 @@ async function fetchMatchesByDate(dateStr, allowedLeagues = []) {
             });
         });
 
-        console.log(`[Flashscore] Found ${matches.length} matches for ${dateStr} (day=${dayParam})`);
+        console.log(`[Flashscore] Found ${matches.length} matches for offset ${dayOffset}`);
         return matches;
     } catch (error) {
-        console.error('[Flashscore] fetchMatchesByDate error:', error.message);
+        console.error('[Flashscore] fetchMatchesByDayOffset error:', error.message);
         return [];
     }
 }
 
 module.exports = {
     fetchDayMatches,
-    fetchMatchesByDate,
+    fetchMatchesByDayOffset,
     fetchH2H,
     fetchMatchDetails,
     fetchMatchOdds,

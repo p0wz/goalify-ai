@@ -510,13 +510,13 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
     console.log('[Analysis-Date] === STARTING DATE-BASED ANALYSIS ===');
 
     try {
-        const { date, limit = 50, leagueFilter = true, noCupFilter = false } = req.body;
+        const { dayOffset = 0, limit = 50, leagueFilter = true, noCupFilter = false } = req.body;
 
-        if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-            return res.status(400).json({ success: false, error: 'Valid date required (YYYY-MM-DD format)' });
+        if (typeof dayOffset !== 'number' || dayOffset < -7 || dayOffset > 7) {
+            return res.status(400).json({ success: false, error: 'dayOffset must be a number between -7 and 7' });
         }
 
-        console.log(`[Analysis-Date] Date: ${date}, limit=${limit}, leagueFilter=${leagueFilter}, noCupFilter=${noCupFilter}`);
+        console.log(`[Analysis-Date] dayOffset: ${dayOffset}, limit=${limit}, leagueFilter=${leagueFilter}, noCupFilter=${noCupFilter}`);
 
         // Rate limiting
         const rateCheck = await redis.checkRateLimit('analysis-date', 5, 60);
@@ -536,8 +536,8 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
             leagues = noCupFilter ? ALLOWED_LEAGUES_NO_CUPS : ALLOWED_LEAGUES;
         }
 
-        console.log(`[Analysis-Date] Fetching matches for ${date}...`);
-        const matches = await flashscore.fetchMatchesByDate(date, leagues);
+        console.log(`[Analysis-Date] Fetching matches for offset ${dayOffset}...`);
+        const matches = await flashscore.fetchMatchesByDayOffset(dayOffset, leagues);
         console.log(`[Analysis-Date] Fetched ${matches.length} matches`);
 
         if (matches.length === 0) {
