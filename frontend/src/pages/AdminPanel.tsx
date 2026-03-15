@@ -144,6 +144,10 @@ const AdminPanel = () => {
     const [marketFilter, setMarketFilter] = useState("all");
     const [oddsInputs, setOddsInputs] = useState<Record<string, string>>({});
 
+    // Date-based Analysis State
+    const [dateInput, setDateInput] = useState("");
+    const [dateAnalysisLoading, setDateAnalysisLoading] = useState(false);
+
     // Live Scores State
     const [liveScores, setLiveScores] = useState<any[]>([]);
     const [liveScoresLoading, setLiveScoresLoading] = useState(false);
@@ -379,6 +383,33 @@ const AdminPanel = () => {
             toast.error(err.message);
         }
         setAnalysisLoading(false);
+    };
+
+    const runDateAnalysis = async (leagueFilter: boolean = true) => {
+        if (!dateInput) {
+            toast.error('Lütfen bir tarih seçin');
+            return;
+        }
+        setDateAnalysisLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/analysis/run-by-date`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ date: dateInput, limit: 500, leagueFilter })
+            });
+            handleAuthError(res);
+            const data = await safeJson(res);
+            if (data.success) {
+                setResults(data.results);
+                setAllMatches(data.allMatches || []);
+                toast.success(`${data.count} aday bulundu! (${data.totalMatches || 0} toplam maç) — ${data.date}`);
+            } else {
+                toast.error(data.error || 'Analiz hatası');
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+        setDateAnalysisLoading(false);
     };
 
     const approveBet = async (item: AnalysisResult) => {
@@ -1094,6 +1125,47 @@ const AdminPanel = () => {
                                 </>
                             )}
                         </div>
+
+                        {/* Date-Based Analysis Section */}
+                        <Card className="border-purple-500/30 bg-purple-500/5">
+                            <CardContent className="p-4">
+                                <div className="flex flex-wrap gap-3 items-center">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4 text-purple-500" />
+                                        <span className="text-sm font-semibold text-purple-400">Tarihe Göre Analiz</span>
+                                    </div>
+                                    <Input
+                                        type="date"
+                                        value={dateInput}
+                                        onChange={e => setDateInput(e.target.value)}
+                                        className="w-44 border-purple-500/30"
+                                    />
+                                    <Button
+                                        onClick={() => runDateAnalysis(true)}
+                                        disabled={dateAnalysisLoading || !dateInput}
+                                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                                    >
+                                        {dateAnalysisLoading ? (
+                                            <><Activity className="mr-2 h-4 w-4 animate-spin" />Taranıyor...</>
+                                        ) : (
+                                            <><Play className="mr-2 h-4 w-4" />Filtreli Başlat</>
+                                        )}
+                                    </Button>
+                                    <Button
+                                        onClick={() => runDateAnalysis(false)}
+                                        disabled={dateAnalysisLoading || !dateInput}
+                                        variant="outline"
+                                        className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                                    >
+                                        {dateAnalysisLoading ? (
+                                            <><Activity className="mr-2 h-4 w-4 animate-spin" />Taranıyor...</>
+                                        ) : (
+                                            <><Play className="mr-2 h-4 w-4" />Tüm Ligler</>
+                                        )}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         {results.length === 0 ? (
                             <Card className="glass-card">

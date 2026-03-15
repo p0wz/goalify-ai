@@ -383,8 +383,66 @@ async function fetchMatchStatsV1(matchId) {
     }
 }
 
+/**
+ * Fetch matches for a specific date (YYYY-MM-DD format)
+ * Uses endpoint: /api/flashscore/v1/match/list/1/{date}
+ * Unlike fetchDayMatches, does NOT skip past matches (since the date may be in the past)
+ * @param {string} dateStr - Date in YYYY-MM-DD format (e.g. '2025-12-22')
+ * @param {Array} allowedLeagues - List of allowed leagues
+ */
+async function fetchMatchesByDate(dateStr, allowedLeagues = []) {
+    try {
+        console.log(`[Flashscore] Fetching matches for date: ${dateStr}`);
+        const response = await fetchWithRetry(
+            `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/list/1/${dateStr}`,
+            { headers: FLASHSCORE_API.headers, timeout: 15000 }
+        );
+
+        const data = response.data;
+        const matches = [];
+        const list = Array.isArray(data) ? data : Object.values(data);
+
+        list.forEach(tournament => {
+            if (!tournament.matches || !Array.isArray(tournament.matches)) return;
+
+            const leagueName = tournament.name || 'Unknown League';
+
+            // League filter
+            if (allowedLeagues.length > 0) {
+                const normalizedLeague = normalizeText(leagueName);
+                const isAllowed = allowedLeagues.some(allowed => {
+                    const normalizedAllowed = normalizeText(allowed);
+                    return normalizedLeague.includes(normalizedAllowed) ||
+                        normalizedAllowed.includes(normalizedLeague);
+                });
+                if (!isAllowed) return;
+            }
+
+            tournament.matches.forEach(match => {
+                const matchId = match.match_id || match.id || match.eventId ||
+                    `${match.timestamp}_${(match.home_team?.name || 'UNK').substring(0, 3)}_${(match.away_team?.name || 'UNK').substring(0, 3)}`;
+
+                matches.push({
+                    matchId,
+                    timestamp: match.timestamp,
+                    homeTeam: match.home_team?.name || 'Unknown',
+                    awayTeam: match.away_team?.name || 'Unknown',
+                    league: leagueName
+                });
+            });
+        });
+
+        console.log(`[Flashscore] Found ${matches.length} matches for ${dateStr}`);
+        return matches;
+    } catch (error) {
+        console.error('[Flashscore] fetchMatchesByDate error:', error.message);
+        return [];
+    }
+}
+
 module.exports = {
     fetchDayMatches,
+    fetchMatchesByDate,
     fetchH2H,
     fetchMatchDetails,
     fetchMatchOdds,

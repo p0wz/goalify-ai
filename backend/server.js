@@ -505,6 +505,161 @@ app.get('/api/analysis/results', auth.authenticateToken, async (req, res) => {
     }
 });
 
+// ============ DATE-BASED ANALYSIS ============
+app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) => {
+    console.log('[Analysis-Date] === STARTING DATE-BASED ANALYSIS ===');
+
+    try {
+        const { date, limit = 50, leagueFilter = true, noCupFilter = false } = req.body;
+
+        if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return res.status(400).json({ success: false, error: 'Valid date required (YYYY-MM-DD format)' });
+        }
+
+        console.log(`[Analysis-Date] Date: ${date}, limit=${limit}, leagueFilter=${leagueFilter}, noCupFilter=${noCupFilter}`);
+
+        // Rate limiting
+        const rateCheck = await redis.checkRateLimit('analysis-date', 5, 60);
+        if (!rateCheck.allowed) {
+            return res.status(429).json({
+                success: false,
+                error: 'Rate limit exceeded. Try again in a minute.',
+                remaining: rateCheck.remaining
+            });
+        }
+
+        await redis.incrementStat('analysisRuns');
+
+        // Choose league list
+        let leagues = [];
+        if (leagueFilter) {
+            leagues = noCupFilter ? ALLOWED_LEAGUES_NO_CUPS : ALLOWED_LEAGUES;
+        }
+
+        console.log(`[Analysis-Date] Fetching matches for ${date}...`);
+        const matches = await flashscore.fetchMatchesByDate(date, leagues);
+        console.log(`[Analysis-Date] Fetched ${matches.length} matches`);
+
+        if (matches.length === 0) {
+            return res.json({
+                success: true,
+                count: 0,
+                processed: 0,
+                results: [],
+                allMatches: [],
+                message: `No matches found for ${date}`
+            });
+        }
+
+        const results = [];
+        const allMatches = [];
+        let processed = 0;
+
+        for (const match of matches) {
+            if (processed >= limit) break;
+
+            console.log(`[Analysis-Date] Processing: ${match.homeTeam} vs ${match.awayTeam}`);
+
+            await redis.incrementStat('apiCalls');
+            const h2hData = await flashscore.fetchH2H(match.matchId);
+
+            if (!h2hData) {
+                console.log(`[Analysis-Date] No H2H data for ${match.matchId}`);
+                continue;
+            }
+
+            const analysis = await analyzer.analyzeMatch(match, h2hData);
+
+            // Store all match data
+            if (analysis && analysis.stats) {
+                const actualH2H = Array.isArray(h2hData) ? h2hData.filter(g =>
+                    (g.home_team?.name === match.homeTeam && g.away_team?.name === match.awayTeam) ||
+                    (g.home_team?.name === match.awayTeam && g.away_team?.name === match.homeTeam)
+                ).slice(0, 5) : [];
+
+                const homeMatches = Array.isArray(h2hData) ? h2hData.filter(g =>
+                    g.home_team?.name === match.homeTeam
+                ).slice(0, 3) : [];
+                const awayMatches = Array.isArray(h2hData) ? h2hData.filter(g =>
+                    g.away_team?.name === match.awayTeam
+                ).slice(0, 3) : [];
+
+                let htData = null;
+                try {
+                    htData = await analyzer.fetchHTDetailsForMatches(homeMatches, awayMatches, actualH2H.slice(0, 3));
+                } catch (err) {
+                    console.error('[Analysis-Date] Failed to fetch HT details:', err.message);
+                }
+
+                const detailedStats = htData
+                    ? analyzer.generateDetailedStatsWithHT(match, analysis.stats, actualH2H, htData)
+                    : analyzer.generateDetailedStats(match, analysis.stats, actualH2H);
+
+                allMatches.push({
+                    matchId: match.matchId,
+                    homeTeam: match.homeTeam,
+                    awayTeam: match.awayTeam,
+                    league: match.league,
+                    timestamp: match.timestamp,
+                    detailedStats: detailedStats,
+                    stats: analysis.stats
+                });
+            }
+
+            if (!analysis || analysis.passedMarkets.length === 0) {
+                console.log(`[Analysis-Date] No markets passed for ${match.matchId}`);
+            } else {
+                console.log(`[Analysis-Date] ${analysis.passedMarkets.length} markets passed for ${match.matchId}`);
+
+                const odds = await flashscore.fetchMatchOdds(match.matchId);
+                const oddsText = flashscore.formatOddsForPrompt(odds);
+
+                for (const pm of analysis.passedMarkets) {
+                    const aiPrompt = analyzer.generateAIPrompt(match, analysis.stats, pm, oddsText);
+                    const rawStats = analyzer.generateRawStats(match, analysis.stats, oddsText);
+
+                    results.push({
+                        id: `${match.matchId}_${pm.key}`,
+                        matchId: match.matchId,
+                        homeTeam: match.homeTeam,
+                        awayTeam: match.awayTeam,
+                        league: match.league,
+                        timestamp: match.timestamp,
+                        market: pm.market,
+                        marketKey: pm.key,
+                        stats: analysis.stats,
+                        aiPrompt,
+                        rawStats,
+                        odds: null,
+                        oddsData: odds
+                    });
+                }
+            }
+
+            processed++;
+            console.log(`[Analysis-Date] Progress: ${processed}/${limit}`);
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
+        console.log(`[Analysis-Date] === COMPLETED: ${results.length} signals, ${allMatches.length} total matches for ${date} ===`);
+
+        res.json({
+            success: true,
+            count: results.length,
+            totalMatches: allMatches.length,
+            processed,
+            date,
+            results,
+            allMatches
+        });
+
+    } catch (error) {
+        console.error('[Analysis-Date] === ERROR ===');
+        console.error('[Analysis-Date] Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ PUBLISHED MATCHES (User-facing Analiz Tab) ============
 
 // Admin publishes a match (with stats) to the user-facing Analiz tab
