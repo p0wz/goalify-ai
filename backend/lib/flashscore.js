@@ -399,7 +399,7 @@ async function fetchMatchesByDate(dateStr, allowedLeagues = []) {
         const target = new Date(dateStr + 'T00:00:00');
         const diffMs = target.getTime() - today.getTime();
         const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-        const dayParam = 1 + diffDays; // API: 1 = today
+        const dayParam = diffDays; // API: 0 = today, -1 = yesterday, 1 = tomorrow
 
         console.log(`[Flashscore] Date: ${dateStr}, diffDays: ${diffDays}, dayParam: ${dayParam}`);
 
@@ -408,7 +408,7 @@ async function fetchMatchesByDate(dateStr, allowedLeagues = []) {
             return [];
         }
 
-        const url = `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/list/${dayParam}/0`;
+        const url = `${FLASHSCORE_API.baseURL}/api/flashscore/v1/match/list/1/${dayParam}`;
         console.log(`[Flashscore] Full URL: ${url}`);
         const response = await fetchWithRetry(
             url,
