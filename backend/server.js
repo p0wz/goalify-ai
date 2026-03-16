@@ -641,14 +641,14 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
             await new Promise(r => setTimeout(r, 1500));
         }
 
-        console.log(`[Analysis-Date] === COMPLETED: ${results.length} signals, ${allMatches.length} total matches for ${date} ===`);
+        console.log(`[Analysis-Date] === COMPLETED: ${results.length} signals, ${allMatches.length} total matches for offset ${dayOffset} ===`);
 
         res.json({
             success: true,
             count: results.length,
             totalMatches: allMatches.length,
             processed,
-            date,
+            dayOffset,
             results,
             allMatches
         });
