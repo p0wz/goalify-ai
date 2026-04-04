@@ -30,35 +30,46 @@ const ANALYSIS_MATCHES_PREFIX = 'goalsniper:analysis:matches:part';
 const ANALYSIS_CACHE_TTL = 3600; // 1 hour
 const CHUNK_SIZE = 80; // 80 matches per chunk (Safer for Upstash 10MB limit)
 
-async function cacheAnalysisResults(data) {
+async function savePartialAnalysisResults(resultsChunk, matchesChunk, isFirst = false) {
     const client = getClient();
     if (!client) return false;
 
     try {
-        const { results = [], allMatches = [] } = data;
-
-        // 1. Save Results (Filtered signals) in main key
-        // This is usually small (e.g., 50 signals)
-        await client.set(ANALYSIS_CACHE_KEY, JSON.stringify({
-            results,
-            allMatchesCount: allMatches.length,
-            version: 'chunked'
-        }), { ex: ANALYSIS_CACHE_TTL });
-
-        // 2. Save allMatches in chunks
-        if (allMatches.length > 0) {
-            for (let i = 0; i < allMatches.length; i += CHUNK_SIZE) {
-                const chunk = allMatches.slice(i, i + CHUNK_SIZE);
-                const partIdx = Math.floor(i / CHUNK_SIZE);
-                const key = `${ANALYSIS_MATCHES_PREFIX}${partIdx}`;
-                await client.set(key, JSON.stringify(chunk), { ex: ANALYSIS_CACHE_TTL });
+        // 1. Handle Metadata & Results
+        let metadata = { results: [], allMatchesCount: 0, version: 'chunked' };
+        
+        if (!isFirst) {
+            const existing = await client.get(ANALYSIS_CACHE_KEY);
+            if (existing) {
+                metadata = typeof existing === 'string' ? JSON.parse(existing) : existing;
             }
         }
 
-        console.log(`[Redis] Cached ${results.length} results and ${allMatches.length} total matches in ${Math.ceil(allMatches.length / CHUNK_SIZE)} parts.`);
+        // Append new results
+        metadata.results = [...(metadata.results || []), ...resultsChunk];
+        
+        // Calculate new part index based on current count
+        const currentCount = metadata.allMatchesCount;
+        const partIdx = Math.floor(currentCount / CHUNK_SIZE);
+        
+        // Update total count
+        metadata.allMatchesCount += matchesChunk.length;
+
+        // Save metadata
+        await client.set(ANALYSIS_CACHE_KEY, JSON.stringify(metadata), { ex: ANALYSIS_CACHE_TTL });
+
+        // 2. Save matches chunk as a new part (or part of one if we wanted to be complex)
+        // To keep it simple, we just save each flush as its own part if it's exactly CHUNK_SIZE
+        // Or just use the index.
+        if (matchesChunk.length > 0) {
+            const key = `${ANALYSIS_MATCHES_PREFIX}${partIdx}`;
+            await client.set(key, JSON.stringify(matchesChunk), { ex: ANALYSIS_CACHE_TTL });
+        }
+
+        console.log(`[Redis] Partial cache: Added ${resultsChunk.length} results, ${matchesChunk.length} matches (Part: ${partIdx})`);
         return true;
     } catch (error) {
-        console.error('[Redis] Cache error:', error.message);
+        console.error('[Redis] Partial cache error:', error.message);
         return false;
     }
 }
@@ -89,7 +100,9 @@ async function getCachedAnalysisResults() {
                 const chunkRaw = await client.get(key);
                 if (chunkRaw) {
                     const chunk = typeof chunkRaw === 'string' ? JSON.parse(chunkRaw) : chunkRaw;
-                    allMatches.push(...chunk);
+                    if (Array.isArray(chunk)) {
+                        allMatches.push(...chunk);
+                    }
                 }
             }
         }

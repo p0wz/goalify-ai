@@ -382,10 +382,15 @@ const AdminPanel = () => {
             handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) {
-                setResults(data.results);
-                setAllMatches(data.allMatches || []);
+                if (data.isPartial) {
+                    console.log('[Analysis] Results saved to cache (isPartial), reloading...');
+                    await loadCachedAnalysis();
+                } else {
+                    setResults(data.results || []);
+                    setAllMatches(data.allMatches || []);
+                }
                 const noCupLabel = noCupFilter ? ' (kupassız)' : '';
-                toast.success(`${data.count} aday bulundu! (${data.totalMatches || 0} toplam maç${noCupLabel})`);
+                toast.success(`Analiz tamamlandı! (${data.processed || 0} maç${noCupLabel})`);
             } else {
                 toast.error(data.error || 'Analiz hatası');
             }
@@ -410,9 +415,14 @@ const AdminPanel = () => {
             handleAuthError(res);
             const data = await safeJson(res);
             if (data.success) {
-                setResults(data.results);
-                setAllMatches(data.allMatches || []);
-                toast.success(`${data.count} aday bulundu! (${data.totalMatches || 0} toplam maç)`);
+                if (data.isPartial) {
+                    console.log('[Analysis-Date] Results saved to cache (isPartial), reloading...');
+                    await loadCachedAnalysis();
+                } else {
+                    setResults(data.results || []);
+                    setAllMatches(data.allMatches || []);
+                }
+                toast.success(`Analiz tamamlandı! (${data.processed || 0} maç)`);
             } else {
                 toast.error(data.error || 'Analiz hatası');
             }

@@ -352,9 +352,10 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
             });
         }
 
-        const results = [];
-        const allMatches = []; // New: Collect ALL matches regardless of market
+        let results = [];
+        let allMatches = []; // New: Collect ALL matches regardless of market
         let processed = 0;
+        let isFirst = true;
 
         for (const match of matches) {
             if (processed >= limit) break;
@@ -447,32 +448,38 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
             processed++;
             console.log(`[Analysis] Progress: ${processed}/${limit}`);
 
+            // Periodically flush memory to Redis (every 50 matches)
+            if (processed % 50 === 0) {
+                console.log(`[Analysis] Periodic Memory Flush: Saving ${allMatches.length} matches to Redis...`);
+                await redis.savePartialAnalysisResults(results, allMatches, isFirst);
+                isFirst = false;
+                
+                // Clear memory
+                results = [];
+                allMatches = [];
+                if (global.gc) global.gc();
+            }
+
             // Explicitly clear large data before wait
-            h2hData.length = 0; // Hint for GC if array
+            if (h2hData && h2hData.length) h2hData.length = 0;
             
             // Rate limiting pause between matches
             await new Promise(r => setTimeout(r, 1500));
         }
 
-        // Cache results (both filtered and all)
-        lastAnalysisResults = { results, allMatches };
+        // Final Flush for remaining items
+        if (results.length > 0 || allMatches.length > 0 || isFirst) {
+            console.log(`[Analysis] Final Flush: Saving remaining items...`);
+            await redis.savePartialAnalysisResults(results, allMatches, isFirst);
+        }
 
-        // Update Redis Cache method in redis.js if needed, or just store object
-        // NOTE: We'll modify the redis helper separately if it expects array, but 
-        // strictly speaking we should just update the return object here.
-        // Assuming redis.cacheAnalysisResults handles simple JSON stringify.
-        // If not, we might need to check redis.js.
-        await redis.cacheAnalysisResults({ results, allMatches });
-
-        console.log(`[Analysis] === COMPLETED: ${results.length} signals, ${allMatches.length} total matches ===`);
+        console.log(`[Analysis] === COMPLETED: ${processed} matches processed ===`);
 
         res.json({
             success: true,
-            count: results.length,
-            totalMatches: allMatches.length,
+            count: processed,
             processed,
-            results,
-            allMatches // Send to frontend
+            isPartial: true // Tell frontend to reload from cache
         });
 
     } catch (error) {
@@ -555,9 +562,10 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
             });
         }
 
-        const results = [];
-        const allMatches = [];
+        let results = [];
+        let allMatches = [];
         let processed = 0;
+        let isFirst = true;
 
         for (const match of matches) {
             if (processed >= limit) break;
@@ -649,23 +657,39 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
 
             processed++;
             console.log(`[Analysis-Date] Progress: ${processed}/${limit}`);
+
+            // Periodically flush memory to Redis (every 50 matches)
+            if (processed % 50 === 0) {
+                console.log(`[Analysis-Date] Periodic Memory Flush: Saving ${allMatches.length} matches to Redis...`);
+                await redis.savePartialAnalysisResults(results, allMatches, isFirst);
+                isFirst = false;
+                
+                // Clear memory
+                results = [];
+                allMatches = [];
+                if (global.gc) global.gc();
+            }
             
             // Explicitly clear large data before wait
-            h2hData.length = 0; // Hint for GC if array
+            if (h2hData && h2hData.length) h2hData.length = 0;
             
             await new Promise(r => setTimeout(r, 1500));
         }
 
-        console.log(`[Analysis-Date] === COMPLETED: ${results.length} signals, ${allMatches.length} total matches for offset ${dayOffset} ===`);
+        // Final Flush for remaining items
+        if (results.length > 0 || allMatches.length > 0 || isFirst) {
+            console.log(`[Analysis-Date] Final Flush: Saving remaining items...`);
+            await redis.savePartialAnalysisResults(results, allMatches, isFirst);
+        }
+
+        console.log(`[Analysis-Date] === COMPLETED: ${processed} matches processed ===`);
 
         res.json({
             success: true,
-            count: results.length,
-            totalMatches: allMatches.length,
+            count: processed,
             processed,
             dayOffset,
-            results,
-            allMatches
+            isPartial: true // Tell frontend to reload from cache
         });
 
     } catch (error) {
