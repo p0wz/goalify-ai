@@ -58,9 +58,7 @@ async function savePartialAnalysisResults(resultsChunk, matchesChunk, isFirst = 
         // Save metadata
         await client.set(ANALYSIS_CACHE_KEY, JSON.stringify(metadata), { ex: ANALYSIS_CACHE_TTL });
 
-        // 2. Save matches chunk as a new part (or part of one if we wanted to be complex)
-        // To keep it simple, we just save each flush as its own part if it's exactly CHUNK_SIZE
-        // Or just use the index.
+        // 2. Save matches chunk as a new part
         if (matchesChunk.length > 0) {
             const key = `${ANALYSIS_MATCHES_PREFIX}${partIdx}`;
             await client.set(key, JSON.stringify(matchesChunk), { ex: ANALYSIS_CACHE_TTL });
@@ -72,6 +70,12 @@ async function savePartialAnalysisResults(resultsChunk, matchesChunk, isFirst = 
         console.error('[Redis] Partial cache error:', error.message);
         return false;
     }
+}
+
+// Wrapper for backward compatibility
+async function cacheAnalysisResults(data) {
+    const { results = [], allMatches = [] } = data;
+    return savePartialAnalysisResults(results, allMatches, true);
 }
 
 async function getCachedAnalysisResults() {
@@ -372,6 +376,7 @@ module.exports = {
     getClient,
     // Analysis Cache
     cacheAnalysisResults,
+    savePartialAnalysisResults,
     getCachedAnalysisResults,
     invalidateAnalysisCache,
     // Settlement
