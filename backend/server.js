@@ -451,7 +451,14 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
             // Periodically flush memory to Redis (every 50 matches)
             if (processed % 50 === 0) {
                 console.log(`[Analysis] Periodic Memory Flush: Saving ${allMatches.length} matches to Redis...`);
-                await redis.savePartialAnalysisResults(results, allMatches, isFirst);
+                
+                // Strip large objects from results before saving to save space
+                const sanitizedResults = results.map(r => {
+                    const { oddsData, rawStats, ...rest } = r;
+                    return rest;
+                });
+
+                await redis.savePartialAnalysisResults(sanitizedResults, allMatches, isFirst);
                 isFirst = false;
                 
                 // Clear memory
@@ -661,7 +668,14 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
             // Periodically flush memory to Redis (every 50 matches)
             if (processed % 50 === 0) {
                 console.log(`[Analysis-Date] Periodic Memory Flush: Saving ${allMatches.length} matches to Redis...`);
-                await redis.savePartialAnalysisResults(results, allMatches, isFirst);
+                
+                // Strip large objects from results before saving to save space
+                const sanitizedResults = results.map(r => {
+                    const { oddsData, rawStats, ...rest } = r;
+                    return rest;
+                });
+
+                await redis.savePartialAnalysisResults(sanitizedResults, allMatches, isFirst);
                 isFirst = false;
                 
                 // Clear memory
