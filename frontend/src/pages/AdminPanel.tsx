@@ -361,7 +361,7 @@ const AdminPanel = () => {
         setIsPublishing(false);
     };
 
-    const runAnalysis = async (limit: number = 500, leagueFilter: boolean = true, noCupFilter: boolean = false) => {
+    const runAnalysis = async (limit: number = 1000, leagueFilter: boolean = true, noCupFilter: boolean = false) => {
         setAnalysisLoading(true);
         try {
             const res = await fetch(`${API_BASE}/analysis/run`, {
@@ -395,7 +395,7 @@ const AdminPanel = () => {
             const res = await fetch(`${API_BASE}/analysis/run-by-date`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                body: JSON.stringify({ dayOffset: parseInt(dayOffset), limit: 500, leagueFilter })
+                body: JSON.stringify({ dayOffset: parseInt(dayOffset), limit: 1000, leagueFilter })
             });
             handleAuthError(res);
             const data = await safeJson(res);
@@ -467,7 +467,7 @@ const AdminPanel = () => {
             const res = await fetch(`${API_BASE}/analysis/run`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                body: JSON.stringify({ limit: 500, leagueFilter: true, specificLeague: 'Premier League' })
+                body: JSON.stringify({ limit: 1000, leagueFilter: true, specificLeague: 'Premier League' })
             });
             handleAuthError(res);
             const data = await safeJson(res);
@@ -1040,7 +1040,7 @@ const AdminPanel = () => {
                     <TabsContent value="analysis" className="space-y-4">
                         <div className="flex flex-wrap gap-3 items-center">
                             <Button
-                                onClick={() => runAnalysis(500, true)}
+                                onClick={() => runAnalysis(1000, true)}
                                 disabled={analysisLoading}
                                 className="gradient-primary text-white shadow-glow-primary"
                             >
@@ -1052,7 +1052,7 @@ const AdminPanel = () => {
                             </Button>
 
                             <Button
-                                onClick={() => runAnalysis(500, false)}
+                                onClick={() => runAnalysis(1000, false)}
                                 disabled={analysisLoading}
                                 variant="outline"
                                 className="border-primary/50 text-foreground hover:bg-primary/10"
@@ -1092,7 +1092,7 @@ const AdminPanel = () => {
                             </Button>
 
                             <Button
-                                onClick={() => runAnalysis(500, true, true)}
+                                onClick={() => runAnalysis(1000, true, true)}
                                 disabled={analysisLoading}
                                 variant="outline"
                                 className="border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
