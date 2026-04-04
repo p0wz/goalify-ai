@@ -325,7 +325,7 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
             });
         }
 
-        const { limit = 50, leagueFilter = true, noCupFilter = false } = req.body;
+        const { limit = 1000, leagueFilter = true, noCupFilter = false } = req.body;
 
         console.log(`[Analysis] Params: limit=${limit}, leagueFilter=${leagueFilter}, noCupFilter=${noCupFilter}`);
         await redis.incrementStat('analysisRuns');
@@ -371,15 +371,19 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
 
             const analysis = await analyzer.analyzeMatch(match, h2hData);
 
-            // Store Basic Match Data (Marketless)
+            // Trim stats to remove large nested match objects before storing
+            const trimmedStats = analysis && analysis.stats ? {
+                ...analysis.stats,
+                mutual: undefined // Remove historical match array to save memory
+            } : null;
+
             if (analysis && analysis.stats) {
-                // Filter to only include actual H2H matches (both teams involved)
+                // ... (existing logic for actualH2H, homeMatches, awayMatches)
                 const actualH2H = Array.isArray(h2hData) ? h2hData.filter(g =>
                     (g.home_team?.name === match.homeTeam && g.away_team?.name === match.awayTeam) ||
                     (g.home_team?.name === match.awayTeam && g.away_team?.name === match.homeTeam)
                 ).slice(0, 5) : [];
 
-                // Get home and away matches from h2hData for HT enrichment
                 const homeMatches = Array.isArray(h2hData) ? h2hData.filter(g =>
                     g.home_team?.name === match.homeTeam
                 ).slice(0, 3) : [];
@@ -387,7 +391,6 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
                     g.away_team?.name === match.awayTeam
                 ).slice(0, 3) : [];
 
-                // Fetch HT details for enriched prompt
                 let htData = null;
                 try {
                     htData = await analyzer.fetchHTDetailsForMatches(homeMatches, awayMatches, actualH2H.slice(0, 3));
@@ -395,7 +398,6 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
                     console.error('[Analysis] Failed to fetch HT details:', err.message);
                 }
 
-                // Use enhanced prompt with HT data
                 const detailedStats = htData
                     ? analyzer.generateDetailedStatsWithHT(match, analysis.stats, actualH2H, htData)
                     : analyzer.generateDetailedStats(match, analysis.stats, actualH2H);
@@ -407,24 +409,20 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
                     league: match.league,
                     timestamp: match.timestamp,
                     detailedStats: detailedStats,
-                    stats: analysis.stats
+                    stats: trimmedStats
                 });
+
+                // Clear htData immediately
+                htData = null;
             }
 
-            if (!analysis || analysis.passedMarkets.length === 0) {
-                console.log(`[Analysis] No markets passed for ${match.matchId}`);
-                // Continue to next match, but we already saved it to allMatches
-            } else {
-
+            if (analysis && analysis.passedMarkets.length > 0) {
                 console.log(`[Analysis] ${analysis.passedMarkets.length} markets passed for ${match.matchId}`);
 
-                // Fetch odds
                 const odds = await flashscore.fetchMatchOdds(match.matchId);
                 const oddsText = flashscore.formatOddsForPrompt(odds);
 
-                // Generate prompts for each passed market
                 for (const pm of analysis.passedMarkets) {
-                    // Pass full market object (pm) to include verification stats
                     const aiPrompt = analyzer.generateAIPrompt(match, analysis.stats, pm, oddsText);
                     const rawStats = analyzer.generateRawStats(match, analysis.stats, oddsText);
 
@@ -437,7 +435,7 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
                         timestamp: match.timestamp,
                         market: pm.market,
                         marketKey: pm.key,
-                        stats: analysis.stats,
+                        stats: trimmedStats,
                         aiPrompt,
                         rawStats,
                         odds: null,
@@ -449,6 +447,9 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
             processed++;
             console.log(`[Analysis] Progress: ${processed}/${limit}`);
 
+            // Explicitly clear large data before wait
+            h2hData.length = 0; // Hint for GC if array
+            
             // Rate limiting pause between matches
             await new Promise(r => setTimeout(r, 1500));
         }
@@ -510,7 +511,7 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
     console.log('[Analysis-Date] === STARTING DATE-BASED ANALYSIS ===');
 
     try {
-        const { dayOffset = 0, limit = 50, leagueFilter = true, noCupFilter = false } = req.body;
+        const { dayOffset = 0, limit = 1000, leagueFilter = true, noCupFilter = false } = req.body;
 
         if (typeof dayOffset !== 'number' || dayOffset < -7 || dayOffset > 7) {
             return res.status(400).json({ success: false, error: 'dayOffset must be a number between -7 and 7' });
@@ -547,7 +548,7 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
                 processed: 0,
                 results: [],
                 allMatches: [],
-                message: `No matches found for ${date}`
+                message: `No matches found for day offset ${dayOffset}`
             });
         }
 
@@ -569,6 +570,12 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
             }
 
             const analysis = await analyzer.analyzeMatch(match, h2hData);
+
+            // Trim stats to remove large nested match objects before storing
+            const trimmedStats = analysis && analysis.stats ? {
+                ...analysis.stats,
+                mutual: undefined // Remove historical match array to save memory
+            } : null;
 
             // Store all match data
             if (analysis && analysis.stats) {
@@ -602,13 +609,14 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
                     league: match.league,
                     timestamp: match.timestamp,
                     detailedStats: detailedStats,
-                    stats: analysis.stats
+                    stats: trimmedStats
                 });
+                
+                // Clear htData immediately
+                htData = null;
             }
 
-            if (!analysis || analysis.passedMarkets.length === 0) {
-                console.log(`[Analysis-Date] No markets passed for ${match.matchId}`);
-            } else {
+            if (analysis && analysis.passedMarkets.length > 0) {
                 console.log(`[Analysis-Date] ${analysis.passedMarkets.length} markets passed for ${match.matchId}`);
 
                 const odds = await flashscore.fetchMatchOdds(match.matchId);
@@ -627,7 +635,7 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
                         timestamp: match.timestamp,
                         market: pm.market,
                         marketKey: pm.key,
-                        stats: analysis.stats,
+                        stats: trimmedStats,
                         aiPrompt,
                         rawStats,
                         odds: null,
@@ -638,6 +646,10 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
 
             processed++;
             console.log(`[Analysis-Date] Progress: ${processed}/${limit}`);
+            
+            // Explicitly clear large data before wait
+            h2hData.length = 0; // Hint for GC if array
+            
             await new Promise(r => setTimeout(r, 1500));
         }
 
