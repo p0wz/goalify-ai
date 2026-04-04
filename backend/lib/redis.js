@@ -28,7 +28,7 @@ function getClient() {
 const ANALYSIS_CACHE_KEY = 'goalsniper:analysis:results';
 const ANALYSIS_MATCHES_PREFIX = 'goalsniper:analysis:matches:part';
 const ANALYSIS_CACHE_TTL = 3600; // 1 hour
-const CHUNK_SIZE = 100; // 100 matches per chunk
+const CHUNK_SIZE = 80; // 80 matches per chunk (Safer for Upstash 10MB limit)
 
 async function cacheAnalysisResults(data) {
     const client = getClient();
