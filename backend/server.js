@@ -487,17 +487,20 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
 app.get('/api/analysis/results', auth.authenticateToken, async (req, res) => {
     console.log('[Results] Fetching cached results...');
     try {
-        // Try Redis cache first
         const cached = await redis.getCachedAnalysisResults();
         if (cached) {
-            console.log(`[Results] Found ${cached.length} cached results`);
-            return res.json({ success: true, results: cached, cached: true });
+            // New chunked format returns { results, allMatches }
+            const results = cached.results || [];
+            const allMatches = cached.allMatches || [];
+            console.log(`[Results] Found cached results (Results: ${results.length}, All: ${allMatches.length})`);
+            return res.json({ success: true, results, allMatches, cached: true });
         }
 
-        console.log(`[Results] Returning memory results: ${lastAnalysisResults?.length || 0}`);
+        console.log(`[Results] No cache found. Returning memory results.`);
         res.json({
             success: true,
-            results: lastAnalysisResults || [],
+            results: lastAnalysisResults?.results || [],
+            allMatches: lastAnalysisResults?.allMatches || [],
             cached: false
         });
     } catch (error) {

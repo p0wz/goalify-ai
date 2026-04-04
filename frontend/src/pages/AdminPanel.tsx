@@ -327,12 +327,22 @@ const AdminPanel = () => {
     const loadCachedAnalysis = async () => {
         // Silent load - do not set analysisLoading to avoid "Analysis Starting" UI confusion
         try {
+            console.log('[Cache] Loading cached analysis...');
             const res = await fetch(`${API_BASE}/analysis/results`, { headers: getAuthHeaders() as any });
             handleAuthError(res);
             const data = await safeJson(res);
-            if (data.success && data.results && data.results.length > 0) {
-                setResults(data.results);
-                toast.success(`${data.results.length} analiz önbellekten yüklendi`);
+            
+            if (data.success) {
+                if (data.results && data.results.length > 0) {
+                    setResults(data.results);
+                }
+                if (data.allMatches && data.allMatches.length > 0) {
+                    setAllMatches(data.allMatches);
+                }
+                
+                if ((data.results && data.results.length > 0) || (data.allMatches && data.allMatches.length > 0)) {
+                    toast.success(`${data.results?.length || 0} aday, ${data.allMatches?.length || 0} maç önbellekten yüklendi`);
+                }
             }
         } catch (err: any) {
             console.error('Cache load error:', err);

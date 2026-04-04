@@ -23,18 +23,39 @@ function getClient() {
     return redis;
 }
 
-// ============ ANALYSIS CACHE ============
+// ============ ANALYSIS CACHE (CHUNKED) ============
 
 const ANALYSIS_CACHE_KEY = 'goalsniper:analysis:results';
+const ANALYSIS_MATCHES_PREFIX = 'goalsniper:analysis:matches:part';
 const ANALYSIS_CACHE_TTL = 3600; // 1 hour
+const CHUNK_SIZE = 100; // 100 matches per chunk
 
-async function cacheAnalysisResults(results) {
+async function cacheAnalysisResults(data) {
     const client = getClient();
     if (!client) return false;
 
     try {
-        await client.set(ANALYSIS_CACHE_KEY, JSON.stringify(results), { ex: ANALYSIS_CACHE_TTL });
-        console.log(`[Redis] Cached ${results.length} analysis results`);
+        const { results = [], allMatches = [] } = data;
+
+        // 1. Save Results (Filtered signals) in main key
+        // This is usually small (e.g., 50 signals)
+        await client.set(ANALYSIS_CACHE_KEY, JSON.stringify({
+            results,
+            allMatchesCount: allMatches.length,
+            version: 'chunked'
+        }), { ex: ANALYSIS_CACHE_TTL });
+
+        // 2. Save allMatches in chunks
+        if (allMatches.length > 0) {
+            for (let i = 0; i < allMatches.length; i += CHUNK_SIZE) {
+                const chunk = allMatches.slice(i, i + CHUNK_SIZE);
+                const partIdx = Math.floor(i / CHUNK_SIZE);
+                const key = `${ANALYSIS_MATCHES_PREFIX}${partIdx}`;
+                await client.set(key, JSON.stringify(chunk), { ex: ANALYSIS_CACHE_TTL });
+            }
+        }
+
+        console.log(`[Redis] Cached ${results.length} results and ${allMatches.length} total matches in ${Math.ceil(allMatches.length / CHUNK_SIZE)} parts.`);
         return true;
     } catch (error) {
         console.error('[Redis] Cache error:', error.message);
@@ -47,13 +68,34 @@ async function getCachedAnalysisResults() {
     if (!client) return null;
 
     try {
-        const data = await client.get(ANALYSIS_CACHE_KEY);
-        if (data) {
-            const results = typeof data === 'string' ? JSON.parse(data) : data;
-            console.log(`[Redis] Retrieved ${results.length} cached results`);
-            return results;
+        const metadataRaw = await client.get(ANALYSIS_CACHE_KEY);
+        if (!metadataRaw) return null;
+
+        const metadata = typeof metadataRaw === 'string' ? JSON.parse(metadataRaw) : metadataRaw;
+
+        // Backward compatibility check
+        if (!metadata.version || metadata.version !== 'chunked') {
+            return Array.isArray(metadata) ? { results: metadata, allMatches: [] } : metadata;
         }
-        return null;
+
+        const { results, allMatchesCount } = metadata;
+        const allMatches = [];
+
+        // Fetch chunks
+        if (allMatchesCount > 0) {
+            const partCount = Math.ceil(allMatchesCount / CHUNK_SIZE);
+            for (let i = 0; i < partCount; i++) {
+                const key = `${ANALYSIS_MATCHES_PREFIX}${i}`;
+                const chunkRaw = await client.get(key);
+                if (chunkRaw) {
+                    const chunk = typeof chunkRaw === 'string' ? JSON.parse(chunkRaw) : chunkRaw;
+                    allMatches.push(...chunk);
+                }
+            }
+        }
+
+        console.log(`[Redis] Retrieved ${results.length} results and ${allMatches.length} total matches from cache`);
+        return { results, allMatches };
     } catch (error) {
         console.error('[Redis] Get cache error:', error.message);
         return null;
