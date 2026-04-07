@@ -477,7 +477,13 @@ app.post('/api/analysis/run', auth.authenticateToken, async (req, res) => {
         // Final Flush for remaining items
         if (results.length > 0 || allMatches.length > 0 || isFirst) {
             console.log(`[Analysis] Final Flush: Saving remaining items...`);
-            await redis.savePartialAnalysisResults(results, allMatches, isFirst);
+            
+            const sanitizedResults = results.map(r => {
+                const { oddsData, rawStats, ...rest } = r;
+                return rest;
+            });
+            
+            await redis.savePartialAnalysisResults(sanitizedResults, allMatches, isFirst);
         }
 
         console.log(`[Analysis] === COMPLETED: ${processed} matches processed ===`);
@@ -693,7 +699,13 @@ app.post('/api/analysis/run-by-date', auth.authenticateToken, async (req, res) =
         // Final Flush for remaining items
         if (results.length > 0 || allMatches.length > 0 || isFirst) {
             console.log(`[Analysis-Date] Final Flush: Saving remaining items...`);
-            await redis.savePartialAnalysisResults(results, allMatches, isFirst);
+            
+            const sanitizedResults = results.map(r => {
+                const { oddsData, rawStats, ...rest } = r;
+                return rest;
+            });
+            
+            await redis.savePartialAnalysisResults(sanitizedResults, allMatches, isFirst);
         }
 
         console.log(`[Analysis-Date] === COMPLETED: ${processed} matches processed ===`);

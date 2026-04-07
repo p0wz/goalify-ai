@@ -29,50 +29,61 @@ const ANALYSIS_CACHE_KEY = 'goalsniper:analysis:results';
 const ANALYSIS_RESULTS_PREFIX = 'goalsniper:analysis:results:part';
 const ANALYSIS_MATCHES_PREFIX = 'goalsniper:analysis:matches:part';
 const ANALYSIS_CACHE_TTL = 7200; // 2 hours
-const CHUNK_SIZE = 50; // 50 matches/results per chunk (Safe for Upstash)
+const CHUNK_SIZE = 50; // Legacy keeping, no longer governs index strictly
 
 async function savePartialAnalysisResults(resultsChunk, matchesChunk, isFirst = false) {
     const client = getClient();
     if (!client) return false;
 
     try {
-        let metadata = { resultsCount: 0, allMatchesCount: 0, version: 'double-chunked' };
+        let metadata = { 
+            resultsCount: 0, 
+            allMatchesCount: 0, 
+            resultsParts: 0, 
+            matchesParts: 0, 
+            version: 'double-chunked-v2' 
+        };
         
         if (!isFirst) {
             const existing = await client.get(ANALYSIS_CACHE_KEY);
             if (existing) {
-                metadata = typeof existing === 'string' ? JSON.parse(existing) : existing;
+                const parsed = typeof existing === 'string' ? JSON.parse(existing) : existing;
+                metadata = { ...metadata, ...parsed };
             }
         } else {
-            console.log('[Redis] New analysis started, clearing old chunks...');
-            // Optional: We could explicitly DEL old parts here if needed, 
-            // but let's just overwrite them by index and rely on TTL.
+            console.log('[Redis] New analysis started, resetting chunk indexes...');
         }
 
-        // Calculate chunk indices for the NEW chunks
-        const resultsPartIdx = Math.floor(metadata.resultsCount / CHUNK_SIZE);
-        const matchesPartIdx = Math.floor(metadata.allMatchesCount / CHUNK_SIZE);
+        const resultsPartIdx = metadata.resultsParts || 0;
+        const matchesPartIdx = metadata.matchesParts || 0;
 
-        // Update counts
-        metadata.resultsCount += resultsChunk.length;
-        metadata.allMatchesCount += matchesChunk.length;
+        let resultsAdded = false;
+        let matchesAdded = false;
+
+        // Save results chunk safely in its own unique key
+        if (resultsChunk && resultsChunk.length > 0) {
+            const key = `${ANALYSIS_RESULTS_PREFIX}${resultsPartIdx}`;
+            await client.set(key, JSON.stringify(resultsChunk), { ex: ANALYSIS_CACHE_TTL });
+            metadata.resultsParts = resultsPartIdx + 1;
+            metadata.resultsCount += resultsChunk.length;
+            resultsAdded = true;
+        }
+
+        // Save matches chunk safely in its own unique key
+        if (matchesChunk && matchesChunk.length > 0) {
+            const key = `${ANALYSIS_MATCHES_PREFIX}${matchesPartIdx}`;
+            await client.set(key, JSON.stringify(matchesChunk), { ex: ANALYSIS_CACHE_TTL });
+            metadata.matchesParts = matchesPartIdx + 1;
+            metadata.allMatchesCount += matchesChunk.length;
+            matchesAdded = true;
+        }
+
+        metadata.version = 'double-chunked-v2';
 
         // Save metadata
         await client.set(ANALYSIS_CACHE_KEY, JSON.stringify(metadata), { ex: ANALYSIS_CACHE_TTL });
 
-        // Save results chunk
-        if (resultsChunk.length > 0) {
-            const key = `${ANALYSIS_RESULTS_PREFIX}${resultsPartIdx}`;
-            await client.set(key, JSON.stringify(resultsChunk), { ex: ANALYSIS_CACHE_TTL });
-        }
-
-        // Save matches chunk
-        if (matchesChunk.length > 0) {
-            const key = `${ANALYSIS_MATCHES_PREFIX}${matchesPartIdx}`;
-            await client.set(key, JSON.stringify(matchesChunk), { ex: ANALYSIS_CACHE_TTL });
-        }
-
-        console.log(`[Redis] Flush: Results Part ${resultsPartIdx} (${resultsChunk.length}), Matches Part ${matchesPartIdx} (${matchesChunk.length})`);
+        console.log(`[Redis] Flush: Results Part ${resultsAdded ? resultsPartIdx : '-'} (${resultsChunk.length}), Matches Part ${matchesAdded ? matchesPartIdx : '-'} (${matchesChunk.length})`);
         return true;
     } catch (error) {
         console.error('[Redis] Partial cache error:', error.message);
@@ -97,7 +108,7 @@ async function getCachedAnalysisResults() {
         const metadata = typeof metadataRaw === 'string' ? JSON.parse(metadataRaw) : metadataRaw;
 
         // Backward compatibility
-        if (metadata.version !== 'double-chunked') {
+        if (metadata.version !== 'double-chunked' && metadata.version !== 'double-chunked-v2') {
             console.log('[Redis] Legacy cache format detected');
             return Array.isArray(metadata.results) ? metadata : { results: [], allMatches: [] };
         }
@@ -106,7 +117,10 @@ async function getCachedAnalysisResults() {
         const allMatches = [];
 
         // 1. Fetch Results Chunks
-        const resultsPartCount = Math.ceil(metadata.resultsCount / CHUNK_SIZE);
+        const resultsPartCount = metadata.version === 'double-chunked-v2' 
+            ? (metadata.resultsParts || 0) 
+            : Math.ceil((metadata.resultsCount || 0) / CHUNK_SIZE);
+            
         for (let i = 0; i < resultsPartCount; i++) {
             const key = `${ANALYSIS_RESULTS_PREFIX}${i}`;
             const chunkRaw = await client.get(key);
@@ -117,7 +131,10 @@ async function getCachedAnalysisResults() {
         }
 
         // 2. Fetch Matches Chunks
-        const matchesPartCount = Math.ceil(metadata.allMatchesCount / CHUNK_SIZE);
+        const matchesPartCount = metadata.version === 'double-chunked-v2'
+            ? (metadata.matchesParts || 0)
+            : Math.ceil((metadata.allMatchesCount || 0) / CHUNK_SIZE);
+            
         for (let i = 0; i < matchesPartCount; i++) {
             const key = `${ANALYSIS_MATCHES_PREFIX}${i}`;
             const chunkRaw = await client.get(key);
@@ -127,7 +144,7 @@ async function getCachedAnalysisResults() {
             }
         }
 
-        console.log(`[Redis] Reconstructed ${results.length} results and ${allMatches.length} total matches`);
+        console.log(`[Redis] Reconstructed ${results.length} results and ${allMatches.length} total matches. Metadata claimed: ${metadata.resultsCount} res, ${metadata.allMatchesCount} matches.`);
         return { results, allMatches };
     } catch (error) {
         console.error('[Redis] Get cache error:', error.message);
